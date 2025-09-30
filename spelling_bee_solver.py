@@ -2,12 +2,18 @@
 """
 New York Times Spelling Bee Solver
 
+A sophisticated solver for the NYT Spelling Bee puzzle that uses multiple
+dictionary sources and intelligent filtering to predict the most likely
+words that will be accepted.
+
 Rules:
 - Words must contain at least 4 letters
 - Words must include the center letter
 - Words can only use letters from the 7 available letters
 - Letters can be used more than once
 - Each puzzle has at least one "pangram" using all 7 letters
+
+Author: Enhanced with aggregate scoring and comprehensive filtering
 """
 
 import sys
@@ -19,10 +25,10 @@ _google_common_words = None
 
 def load_google_common_words():
     """Load Google common words list for enhanced confidence scoring."""
-    global _google_common_words
+    # Use module-level variable to cache the word list
     if _google_common_words is None:
         google_words_path = Path(__file__).parent / "google-10000-common.txt"
-        _google_common_words = set()
+        words = set()
         
         if google_words_path.exists():
             try:
@@ -30,11 +36,14 @@ def load_google_common_words():
                     for line in f:
                         word = line.strip().lower()
                         if len(word) >= 4:  # Only words 4+ letters for Spelling Bee
-                            _google_common_words.add(word)
+                            words.add(word)
             except IOError:
                 pass
+        
+        # Update the module-level variable
+        globals()['_google_common_words'] = words
     
-    return _google_common_words
+    return _google_common_words or set()  # Always return a set, never None
 
 
 def get_word_dictionary_scores(word):
@@ -50,11 +59,12 @@ def get_word_dictionary_scores(word):
     }
     
     # Google common words score
-    if is_google_common_word(word):
+    google_words = load_google_common_words()
+    if word in google_words:
         scores['google_common'] = 100
         # Bonus for very high frequency words (top 1000)
-        google_words = load_google_common_words()
-        if word in list(google_words)[:1000]:  # Approximate top 1000
+        word_list = list(google_words)
+        if len(word_list) >= 1000 and word in word_list[:1000]:
             scores['frequency'] = 50
     
     # SOWPODS dictionary presence (assume it's loaded if we got here)
@@ -71,6 +81,12 @@ def get_word_dictionary_scores(word):
         scores['compound'] = 25
     
     return scores
+
+
+def is_google_common_word(word):
+    """Check if a word is in the Google common words list."""
+    common_words = load_google_common_words()
+    return word.lower() in common_words
 
 
 def calculate_aggregate_confidence(word, dict_scores):
@@ -121,11 +137,6 @@ def calculate_aggregate_confidence(word, dict_scores):
         base_score -= 20
     
     return max(0, min(100, base_score))
-
-def is_google_common_word(word):
-    """Check if a word is in the Google common words list."""
-    common_words = load_google_common_words()
-    return word.lower() in common_words
 
 
 def is_likely_nyt_rejected(word):
@@ -351,14 +362,19 @@ def find_solutions(center_letter, outer_letters, dictionary, exclude_found=None,
     Find all valid words for the Spelling Bee puzzle.
 
     Args:
-        center_letter: The required center letter (str)
-        outer_letters: The 6 outer letters (str or list)
-        dictionary: Set of valid words
-        exclude_found: Set of words to exclude from display (already found)
-        rejected_words: Set of words to exclude globally (not accepted by NYT)
+        center_letter (str): The required center letter
+        outer_letters (str or list): The 6 outer letters
+        dictionary (set): Set of valid words to search through
+        exclude_found (set, optional): Set of words to exclude from display (already found)
+        rejected_words (set, optional): Set of words to exclude globally (not accepted by NYT)
 
     Returns:
-        dict with 'words', 'pangrams', and 'total_points'
+        dict: Dictionary with keys:
+            - 'words': List of (word, points, is_pangram) tuples
+            - 'pangrams': List of pangram words
+            - 'total_points': Total points for remaining words
+            - 'total_available': Total points for all valid words
+            - 'found_count': Number of words already found
     """
     center = center_letter.lower()
     allowed_letters = set(center + ''.join(outer_letters).lower())
@@ -435,7 +451,14 @@ def is_common_word(word):
 
 
 def display_results(results, show_all=False, top_n=None):
-    """Display the solver results in a formatted way."""
+    """
+    Display the solver results in a formatted way.
+    
+    Args:
+        results (dict): Results dictionary from find_solutions()
+        show_all (bool): Whether to show obscure words (default: False)
+        top_n (int, optional): Limit to top N words (default: None for all)
+    """
     words = results['words']
     pangrams = results['pangrams']
     total_points = results['total_points']
@@ -496,7 +519,13 @@ def display_results(results, show_all=False, top_n=None):
 
 
 def draw_hexagon(center, outer):
-    """Draw honeycomb hexagon with letters."""
+    """
+    Draw honeycomb hexagon with letters.
+    
+    Args:
+        center (str): The center letter
+        outer (str): The 6 outer letters
+    """
     letters = list(outer.upper())
     c = center.upper()
 
@@ -516,7 +545,12 @@ def draw_hexagon(center, outer):
 
 
 def interactive_mode():
-    """Interactive mode with hexagon display."""
+    """
+    Interactive mode with hexagon display.
+    
+    Returns:
+        tuple: (center, outer, mark_mode, reset_mode, show_all, top_n)
+    """
     print("New York Times Spelling Bee Solver")
     print("=" * 60)
 
