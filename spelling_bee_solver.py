@@ -21,15 +21,15 @@ import json
 from pathlib import Path
 
 # Load Google common words list for confidence scoring
-_google_common_words = None
+GOOGLE_COMMON_WORDS = None
 
 def load_google_common_words():
     """Load Google common words list for enhanced confidence scoring."""
     # Use module-level variable to cache the word list
-    if _google_common_words is None:
+    if GOOGLE_COMMON_WORDS is None:
         google_words_path = Path(__file__).parent / "google-10000-common.txt"
         words = set()
-        
+
         if google_words_path.exists():
             try:
                 with open(google_words_path, 'r', encoding='utf-8') as f:
@@ -39,11 +39,11 @@ def load_google_common_words():
                             words.add(word)
             except IOError:
                 pass
-        
+
         # Update the module-level variable
-        globals()['_google_common_words'] = words
-    
-    return _google_common_words or set()  # Always return a set, never None
+        globals()['GOOGLE_COMMON_WORDS'] = words
+
+    return GOOGLE_COMMON_WORDS or set()  # Always return a set, never None
 
 
 def get_word_dictionary_scores(word):
@@ -57,7 +57,7 @@ def get_word_dictionary_scores(word):
         'compound': 0,
         'frequency': 0
     }
-    
+
     # Google common words score
     google_words = load_google_common_words()
     if word in google_words:
@@ -66,10 +66,10 @@ def get_word_dictionary_scores(word):
         word_list = list(google_words)
         if len(word_list) >= 1000 and word in word_list[:1000]:
             scores['frequency'] = 50
-    
+
     # SOWPODS dictionary presence (assume it's loaded if we got here)
     scores['sowpods'] = 30  # Base score for being in SOWPODS
-    
+
     # Compound word detection
     compound_indicators = [
         word in ['cannot', 'into', 'onto', 'upon', 'without', 'output', 'input'],
@@ -79,7 +79,7 @@ def get_word_dictionary_scores(word):
     ]
     if any(compound_indicators):
         scores['compound'] = 25
-    
+
     return scores
 
 
@@ -94,7 +94,7 @@ def calculate_aggregate_confidence(word, dict_scores):
     Calculate confidence using aggregate scores from multiple sources.
     """
     base_score = 20  # Lower base score, require evidence
-    
+
     # Major bonus for strong dictionary evidence
     if dict_scores['google_common'] > 0:
         base_score += 40
@@ -102,11 +102,11 @@ def calculate_aggregate_confidence(word, dict_scores):
         base_score += 20
     if dict_scores['compound'] > 0:
         base_score += 15
-    
+
     # Pangrams always get high score
     if len(set(word)) == 7:
         return 100
-    
+
     # Length preferences
     if 4 <= len(word) <= 6:
         base_score += 15
@@ -114,7 +114,7 @@ def calculate_aggregate_confidence(word, dict_scores):
         base_score += 8
     elif len(word) >= 9:
         base_score -= 20
-    
+
     # NYT pattern bonuses
     pattern_bonuses = [
         (word.endswith('ing'), 15),
@@ -123,19 +123,19 @@ def calculate_aggregate_confidence(word, dict_scores):
         (word.endswith(('ness', 'ment', 'ful')), 10),
         (word.endswith(('er', 'or', 'ly', 'ed')), 8),
     ]
-    
+
     for condition, bonus in pattern_bonuses:
         if condition:
             base_score += bonus
             break
-    
+
     # Penalties for problematic patterns
     if not dict_scores['google_common'] and len(word) > 6:
         base_score -= 15  # Uncommon long words
-    
+
     if any(bad in word for bad in ['oo', 'ii', 'uu']) and not dict_scores['google_common']:
         base_score -= 20
-    
+
     return max(0, min(100, base_score))
 
 
@@ -145,80 +145,81 @@ def is_likely_nyt_rejected(word):
     Returns True if the word should be filtered out.
     """
     word = word.lower()
-    
+
     # Proper nouns (capitalized words) - already handled by dictionary loading
-    
+
     # Common NYT rejection patterns
     rejection_patterns = [
         # Scientific/technical suffixes
         word.endswith(('ism', 'ist', 'ite', 'ide', 'ase', 'ose')) and len(word) > 6,
-        
+
         # Medical/biological terms
         word.endswith(('osis', 'itis', 'emia', 'uria', 'pathy')) and len(word) > 6,
-        
+
         # Chemical compounds
         word.endswith(('ene', 'ine', 'ane', 'ole', 'yl')) and len(word) > 5,
-        
+
         # Foreign language endings
         word.endswith(('eau', 'ieu', 'oux', 'ais', 'ois', 'eur')),
-        
+
         # Latin/Greek endings
         word.endswith(('um', 'us', 'ae', 'ii')) and len(word) > 4,
-        
+
         # Archaic/obsolete endings
-        word.endswith(('est', 'eth', 'th')) and word not in ['best', 'test', 'rest', 'west', 'nest', 'pest'],
-        
+        word.endswith(('est', 'eth', 'th')) and word not in [
+            'best', 'test', 'rest', 'west', 'nest', 'pest'],
+
         # Unusual letter combinations
         'qq' in word or 'xx' in word or 'zz' in word and word not in ['buzz', 'jazz', 'fizz'],
-        
+
         # Very short uncommon words
         len(word) == 4 and word.startswith(('zz', 'qq', 'xx')),
-        
+
         # Slang/informal contractions
         word.endswith(("'s", "'t", "'d", "'ll", "'ve", "'re")),
-        
+
         # Hyphenated words (though these should be filtered earlier)
         '-' in word,
-        
+
         # Geographic/place name indicators
         word.endswith(('burg', 'heim', 'stadt', 'grad', 'sk', 'icz')),
-        
+
         # Technical abbreviations
         len(word) <= 5 and word.isupper() and word.isalpha(),
     ]
-    
+
     # Specific word blacklist - known NYT rejects
     nyt_blacklist = {
         # Common technical terms
         'api', 'cpu', 'gpu', 'ram', 'rom', 'usb', 'wifi', 'http', 'html', 'css',
         'sql', 'xml', 'json', 'unix', 'linux', 'ios', 'app', 'apps',
-        
-        # Internet/gaming terms  
+
+        # Internet/gaming terms
         'meme', 'blog', 'vlog', 'tweet', 'emoji', 'selfie', 'hashtag',
         'avatar', 'noob', 'pwn', 'lol', 'omg', 'wtf', 'fyi', 'asap',
-        
+
         # Brand names that might slip through
         'pepsi', 'nike', 'ford', 'sony', 'apple', 'google', 'tesla',
-        
+
         # Vulgar/offensive (basic list)
         'damn', 'hell', 'crap', 'piss',
-        
+
         # Very informal/slang
         'yeah', 'nope', 'yep', 'nah', 'ugh', 'meh', 'blah', 'duh',
         'bro', 'sis', 'mom', 'dad', 'grandma', 'grandpa',
-        
+
         # Onomatopoeia
         'whoosh', 'bang', 'boom', 'crash', 'splash', 'thud', 'whack',
         'zap', 'pow', 'bam', 'wham', 'kaboom',
-        
+
         # Very technical/scientific
         'amino', 'enzyme', 'protein', 'genome', 'neuron', 'synapse',
         'photon', 'quark', 'boson', 'plasma',
     }
-    
+
     if word in nyt_blacklist:
         return True
-    
+
     return any(rejection_patterns)
 
 
@@ -228,9 +229,10 @@ def is_likely_nyt_word(word):
     if len(word) > 6:
         if word.endswith(('itic', 'otic')) and word not in ['biotic', 'otic', 'abiotic']:
             return False
-        if word.endswith('ite') and word not in ['bite', 'cite', 'elite', 'finite', 'ignite', 'invite',
-                                                   'polite', 'quite', 'site', 'white', 'write', 'lite',
-                                                   'kite', 'mite', 'rite', 'smite', 'spite', 'trite', 'unite']:
+        if word.endswith('ite') and word not in [
+                'bite', 'cite', 'elite', 'finite', 'ignite', 'invite',
+                'polite', 'quite', 'site', 'white', 'write', 'lite',
+                'kite', 'mite', 'rite', 'smite', 'spite', 'trite', 'unite']:
             # Likely a mineral/scientific term
             return False
 
@@ -357,7 +359,8 @@ def save_found_words(center, outer, found_words, date=None):
         json.dump(data, f, indent=2)
 
 
-def find_solutions(center_letter, outer_letters, dictionary, exclude_found=None, rejected_words=None):
+def find_solutions(center_letter, outer_letters, dictionary,
+                   exclude_found=None, rejected_words=None):
     """
     Find all valid words for the Spelling Bee puzzle.
 
@@ -439,7 +442,7 @@ def calculate_word_confidence(word):
     """
     # Get scores from multiple dictionary sources
     dict_scores = get_word_dictionary_scores(word)
-    
+
     # Use aggregate confidence calculation
     return calculate_aggregate_confidence(word, dict_scores)
 
@@ -453,7 +456,7 @@ def is_common_word(word):
 def display_results(results, show_all=False, top_n=None):
     """
     Display the solver results in a formatted way.
-    
+
     Args:
         results (dict): Results dictionary from find_solutions()
         show_all (bool): Whether to show obscure words (default: False)
@@ -467,13 +470,15 @@ def display_results(results, show_all=False, top_n=None):
 
     # Add confidence scores and sort by points (highest first), then confidence
     words_with_confidence = [(w, p, pan, calculate_word_confidence(w)) for w, p, pan in words]
-    words_with_confidence.sort(key=lambda x: (-x[1], -x[3], x[0]))  # Sort by points desc, confidence desc, name asc
+    # Sort by points desc, confidence desc, name asc
+    words_with_confidence.sort(key=lambda x: (-x[1], -x[3], x[0]))
 
     # Filter to common words unless --all
     obscure_count = 0
     obscure_points = 0
     if not show_all:
-        common_words = [(w, p, pan, conf) for w, p, pan, conf in words_with_confidence if conf >= 60]
+        common_words = [(w, p, pan, conf) for w, p, pan, conf in words_with_confidence
+                        if conf >= 60]
         obscure_count = len(words_with_confidence) - len(common_words)
         obscure_points = total_points - sum(p for _, p, _, _ in common_words)
         words_with_confidence = common_words
@@ -521,7 +526,7 @@ def display_results(results, show_all=False, top_n=None):
 def draw_hexagon(center, outer):
     """
     Draw honeycomb hexagon with letters.
-    
+
     Args:
         center (str): The center letter
         outer (str): The 6 outer letters
@@ -547,7 +552,7 @@ def draw_hexagon(center, outer):
 def interactive_mode():
     """
     Interactive mode with hexagon display.
-    
+
     Returns:
         tuple: (center, outer, mark_mode, reset_mode, show_all, top_n)
     """
@@ -650,7 +655,8 @@ def main():
 
     # Find solutions
     print(f"\nSolving puzzle: Center='{center.upper()}' Outer='{outer.upper()}'")
-    results = find_solutions(center, outer, dictionary, exclude_found=found_words, rejected_words=rejected_words)
+    results = find_solutions(center, outer, dictionary,
+                             exclude_found=found_words, rejected_words=rejected_words)
 
     # Display results
     display_results(results, show_all=show_all, top_n=top_n)
