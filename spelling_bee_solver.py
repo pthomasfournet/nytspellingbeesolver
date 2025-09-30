@@ -14,6 +14,202 @@ import sys
 import json
 from pathlib import Path
 
+# Load Google common words list for confidence scoring
+_google_common_words = None
+
+def load_google_common_words():
+    """Load Google common words list for enhanced confidence scoring."""
+    global _google_common_words
+    if _google_common_words is None:
+        google_words_path = Path(__file__).parent / "google-10000-common.txt"
+        _google_common_words = set()
+        
+        if google_words_path.exists():
+            try:
+                with open(google_words_path, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        word = line.strip().lower()
+                        if len(word) >= 4:  # Only words 4+ letters for Spelling Bee
+                            _google_common_words.add(word)
+            except IOError:
+                pass
+    
+    return _google_common_words
+
+
+def get_word_dictionary_scores(word):
+    """
+    Get aggregate scores from multiple dictionary sources.
+    Returns a dict with scores from different sources.
+    """
+    scores = {
+        'google_common': 0,
+        'sowpods': 0,
+        'compound': 0,
+        'frequency': 0
+    }
+    
+    # Google common words score
+    if is_google_common_word(word):
+        scores['google_common'] = 100
+        # Bonus for very high frequency words (top 1000)
+        google_words = load_google_common_words()
+        if word in list(google_words)[:1000]:  # Approximate top 1000
+            scores['frequency'] = 50
+    
+    # SOWPODS dictionary presence (assume it's loaded if we got here)
+    scores['sowpods'] = 30  # Base score for being in SOWPODS
+    
+    # Compound word detection
+    compound_indicators = [
+        word in ['cannot', 'into', 'onto', 'upon', 'without', 'output', 'input'],
+        any(word.startswith(prefix) for prefix in ['auto', 'self', 'over', 'under', 'out']),
+        any(word.endswith(suffix) for suffix in ['up', 'out', 'off', 'down']),
+        len(word) >= 6 and any(common in word for common in ['cat', 'dog', 'top', 'set'])
+    ]
+    if any(compound_indicators):
+        scores['compound'] = 25
+    
+    return scores
+
+
+def calculate_aggregate_confidence(word, dict_scores):
+    """
+    Calculate confidence using aggregate scores from multiple sources.
+    """
+    base_score = 20  # Lower base score, require evidence
+    
+    # Major bonus for strong dictionary evidence
+    if dict_scores['google_common'] > 0:
+        base_score += 40
+    if dict_scores['frequency'] > 0:
+        base_score += 20
+    if dict_scores['compound'] > 0:
+        base_score += 15
+    
+    # Pangrams always get high score
+    if len(set(word)) == 7:
+        return 100
+    
+    # Length preferences
+    if 4 <= len(word) <= 6:
+        base_score += 15
+    elif 7 <= len(word) <= 8:
+        base_score += 8
+    elif len(word) >= 9:
+        base_score -= 20
+    
+    # NYT pattern bonuses
+    pattern_bonuses = [
+        (word.endswith('ing'), 15),
+        (word.endswith('tion'), 15),
+        (word.endswith(('able', 'ible')), 12),
+        (word.endswith(('ness', 'ment', 'ful')), 10),
+        (word.endswith(('er', 'or', 'ly', 'ed')), 8),
+    ]
+    
+    for condition, bonus in pattern_bonuses:
+        if condition:
+            base_score += bonus
+            break
+    
+    # Penalties for problematic patterns
+    if not dict_scores['google_common'] and len(word) > 6:
+        base_score -= 15  # Uncommon long words
+    
+    if any(bad in word for bad in ['oo', 'ii', 'uu']) and not dict_scores['google_common']:
+        base_score -= 20
+    
+    return max(0, min(100, base_score))
+
+def is_google_common_word(word):
+    """Check if a word is in the Google common words list."""
+    common_words = load_google_common_words()
+    return word.lower() in common_words
+
+
+def is_likely_nyt_rejected(word):
+    """
+    Check if a word is likely to be rejected by NYT Spelling Bee.
+    Returns True if the word should be filtered out.
+    """
+    word = word.lower()
+    
+    # Proper nouns (capitalized words) - already handled by dictionary loading
+    
+    # Common NYT rejection patterns
+    rejection_patterns = [
+        # Scientific/technical suffixes
+        word.endswith(('ism', 'ist', 'ite', 'ide', 'ase', 'ose')) and len(word) > 6,
+        
+        # Medical/biological terms
+        word.endswith(('osis', 'itis', 'emia', 'uria', 'pathy')) and len(word) > 6,
+        
+        # Chemical compounds
+        word.endswith(('ene', 'ine', 'ane', 'ole', 'yl')) and len(word) > 5,
+        
+        # Foreign language endings
+        word.endswith(('eau', 'ieu', 'oux', 'ais', 'ois', 'eur')),
+        
+        # Latin/Greek endings
+        word.endswith(('um', 'us', 'ae', 'ii')) and len(word) > 4,
+        
+        # Archaic/obsolete endings
+        word.endswith(('est', 'eth', 'th')) and word not in ['best', 'test', 'rest', 'west', 'nest', 'pest'],
+        
+        # Unusual letter combinations
+        'qq' in word or 'xx' in word or 'zz' in word and word not in ['buzz', 'jazz', 'fizz'],
+        
+        # Very short uncommon words
+        len(word) == 4 and word.startswith(('zz', 'qq', 'xx')),
+        
+        # Slang/informal contractions
+        word.endswith(("'s", "'t", "'d", "'ll", "'ve", "'re")),
+        
+        # Hyphenated words (though these should be filtered earlier)
+        '-' in word,
+        
+        # Geographic/place name indicators
+        word.endswith(('burg', 'heim', 'stadt', 'grad', 'sk', 'icz')),
+        
+        # Technical abbreviations
+        len(word) <= 5 and word.isupper() and word.isalpha(),
+    ]
+    
+    # Specific word blacklist - known NYT rejects
+    nyt_blacklist = {
+        # Common technical terms
+        'api', 'cpu', 'gpu', 'ram', 'rom', 'usb', 'wifi', 'http', 'html', 'css',
+        'sql', 'xml', 'json', 'unix', 'linux', 'ios', 'app', 'apps',
+        
+        # Internet/gaming terms  
+        'meme', 'blog', 'vlog', 'tweet', 'emoji', 'selfie', 'hashtag',
+        'avatar', 'noob', 'pwn', 'lol', 'omg', 'wtf', 'fyi', 'asap',
+        
+        # Brand names that might slip through
+        'pepsi', 'nike', 'ford', 'sony', 'apple', 'google', 'tesla',
+        
+        # Vulgar/offensive (basic list)
+        'damn', 'hell', 'crap', 'piss',
+        
+        # Very informal/slang
+        'yeah', 'nope', 'yep', 'nah', 'ugh', 'meh', 'blah', 'duh',
+        'bro', 'sis', 'mom', 'dad', 'grandma', 'grandpa',
+        
+        # Onomatopoeia
+        'whoosh', 'bang', 'boom', 'crash', 'splash', 'thud', 'whack',
+        'zap', 'pow', 'bam', 'wham', 'kaboom',
+        
+        # Very technical/scientific
+        'amino', 'enzyme', 'protein', 'genome', 'neuron', 'synapse',
+        'photon', 'quark', 'boson', 'plasma',
+    }
+    
+    if word in nyt_blacklist:
+        return True
+    
+    return any(rejection_patterns)
+
 
 def is_likely_nyt_word(word):
     """Filter out words unlikely to be in NYT Spelling Bee."""
@@ -56,7 +252,7 @@ def is_likely_nyt_word(word):
 
 
 def load_dictionary(dict_path=None):
-    """Load dictionary words from SOWPODS or system dictionary."""
+    """Load dictionary words from SOWPODS or system dictionary with NYT filtering."""
     # Try SOWPODS first (better for word games)
     if dict_path is None:
         sowpods_path = Path.home() / "sowpods.txt"
@@ -66,7 +262,7 @@ def load_dictionary(dict_path=None):
             dict_path = "/usr/share/dict/words"
 
     try:
-        with open(dict_path, 'r') as f:
+        with open(dict_path, 'r', encoding='utf-8') as f:
             words = set()
             for word in f:
                 word = word.strip()
@@ -75,7 +271,11 @@ def load_dictionary(dict_path=None):
                     continue
                 word_lower = word.lower()
 
-                # Apply NYT-specific filters
+                # Apply NYT rejection filter first (performance optimization)
+                if is_likely_nyt_rejected(word_lower):
+                    continue
+
+                # Apply original NYT-specific filters
                 if not is_likely_nyt_word(word_lower):
                     continue
 
@@ -91,7 +291,7 @@ def load_rejected_words():
     rejected_file = Path.home() / ".spelling_bee_rejected.json"
     if rejected_file.exists():
         try:
-            with open(rejected_file, 'r') as f:
+            with open(rejected_file, 'r', encoding='utf-8') as f:
                 return set(json.load(f))
         except (json.JSONDecodeError, IOError):
             return set()
@@ -101,7 +301,7 @@ def load_rejected_words():
 def save_rejected_words(rejected_words):
     """Save globally rejected words."""
     rejected_file = Path.home() / ".spelling_bee_rejected.json"
-    with open(rejected_file, 'w') as f:
+    with open(rejected_file, 'w', encoding='utf-8') as f:
         json.dump(list(rejected_words), f, indent=2)
 
 
@@ -115,7 +315,7 @@ def load_found_words(center, outer, date=None):
 
     if found_file.exists():
         try:
-            with open(found_file, 'r') as f:
+            with open(found_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
                 # Handle both old format (list) and new format (dict with metadata)
                 if isinstance(data, list):
@@ -142,7 +342,7 @@ def save_found_words(center, outer, found_words, date=None):
         'outer': outer,
         'words': list(found_words)
     }
-    with open(found_file, 'w') as f:
+    with open(found_file, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=2)
 
 
@@ -219,141 +419,19 @@ def find_solutions(center_letter, outer_letters, dictionary, exclude_found=None,
 def calculate_word_confidence(word):
     """
     Calculate confidence score (0-100) that NYT will accept this word.
-    Higher score = more likely to be accepted.
+    Enhanced with aggregate scoring from multiple dictionary sources.
     """
-    score = 50  # Start at neutral
-
-    # Pangrams are always shown
-    if len(set(word)) == 7:
-        return 100
-
-    # Length bonus - common words are often 4-8 letters
-    if 4 <= len(word) <= 6:
-        score += 20
-    elif 7 <= len(word) <= 8:
-        score += 10
-    elif len(word) >= 9:
-        score -= 15  # Very long words often obscure
-
-    # Common endings (positive signals)
-    common_endings = {
-        'ing': 20, 'tion': 20, 'able': 15, 'ible': 15, 'ness': 15,
-        'less': 15, 'ment': 15, 'ful': 15, 'ous': 15, 'ance': 15,
-        'ence': 15, 'ant': 10, 'ent': 10, 'er': 10, 'or': 10,
-        'ly': 10, 'ed': 10, 'al': 10, 'ive': 10, 'ate': 10
-    }
-    for ending, bonus in common_endings.items():
-        if word.endswith(ending) and len(word) > len(ending) + 2:
-            score += bonus
-            break
-
-    # Penalize obscure patterns
-    obscure_patterns = [
-        ('itic', -30), ('otic', -25), ('olite', -30),
-        ('elli', -20), ('obi', -25), ('oboli', -30),
-        ('ii', -20), ('uu', -25), ('aa', -20)
-    ]
-    for pattern, penalty in obscure_patterns:
-        if pattern in word:
-            score += penalty
-
-    # Penalize 'oo' in middle of word (but not for -oon endings which are common)
-    if 'oo' in word[1:-1] and not word.endswith('oon'):
-        score -= 10
-
-    # Penalize 'pp' in short words
-    if word.count('pp') > 0 and len(word) < 6:
-        score -= 15
-
-    # Handle repeated letters - some are common (poop, noon, papa), some aren't
-    if len(word) <= 5:
-        # Common repeated-letter words get a big bonus
-        common_repeated = ['poop', 'noon', 'papa', 'mama', 'toot', 'peep', 'putt', 'mutt', 'butt', 'coop']
-        if word in common_repeated:
-            score += 40  # Increased from 20 to ensure 100% confidence
-        else:
-            # Penalize unusual doubles in short words
-            unusual_doubles = ['pp', 'tt', 'oo', 'aa', 'uu']
-            for double in unusual_doubles:
-                if double in word:
-                    score -= 10
-
-    # Penalize foreign-looking words
-    foreign_endings = ['ata', 'atta', 'otto', 'etto', 'ooh', 'aah']
-    for ending in foreign_endings:
-        if word.endswith(ending):
-            score -= 15
-
-    # Penalize words ending in -an/-on that might be foreign
-    if len(word) >= 6 and word.endswith(('an', 'on')) and word[-3] in 'aeiouy':
-        score -= 10
-
-    # Bonus for recognizable common words and compound words
-    very_common = [
-        'about', 'upon', 'into', 'onto', 'cannot', 'output', 'potato',
-        'cotton', 'button', 'coupon', 'caption', 'catnap', 'copout',
-        'cutup', 'setup', 'popup', 'letup', 'getup', 'makeup', 'takeout',
-        'payout', 'without', 'turnout', 'workout', 'cookout',
-        'atop', 'coup', 'pact', 'pant', 'punt', 'pout', 'taco', 'coat',
-        'auto', 'unto', 'tattoo', 'cocoa', 'cancan', 'pontoon', 'cartoon',
-        'balloon', 'raccoon', 'harpoon', 'spoon', 'noon', 'moon'
-    ]
-    if word in very_common:
-        score += 50  # Increased from 35 to ensure 100% confidence
-
-    # Bonus for recognizable compound word patterns
-    compound_patterns = [
-        ('cat', 'nap'), ('cop', 'out'), ('cut', 'up'), ('put', 'out'),
-        ('top', 'coat'), ('out', 'put'), ('un', 'cap')
-    ]
-    for part1, part2 in compound_patterns:
-        if word == part1 + part2:
-            score += 25
-            break
-
-    # Major penalty for words ending in -an, -on, -un that aren't common
-    if len(word) >= 5 and word.endswith(('tan', 'pan', 'ton', 'pon', 'tun', 'pun')) and word not in very_common:
-        # Check if it's likely a foreign/technical term
-        if word.endswith(('tan', 'pan', 'ton', 'pon')) and word not in ['cotton', 'button', 'coupon', 'canton']:
-            score -= 25
-
-    # Penalty for words with unusual letter patterns (likely foreign)
-    unusual_sequences = ['aca', 'ata', 'uca', 'uta', 'nta', 'nca', 'oupa', 'patu', 'paua', 'noup', 'caup']
-    for seq in unusual_sequences:
-        if seq in word:
-            score -= 30
-            break
-
-    # Heavy penalty for likely obscure words (not in common vocabulary)
-    # Comprehensive list of obscure words to reject
-    obscure_word_list = [
-        # 4-letter obscure
-        'atap', 'paca', 'paco', 'caup', 'noup', 'oupa', 'patu', 'paua', 'poco', 'tapa', 'tapu', 'topo', 'upta',
-        'capa', 'napa', 'pont', 'puna', 'pupa', 'pupu', 'pott', 'noop', 'poon', 'poot', 'oppo',
-        # 5-letter obscure
-        'attap', 'apoop', 'napoo', 'nappa', 'poonac', 'pucan', 'poupt', 'putto', 'tappa',
-        'capot', 'caput', 'coapt', 'panto', 'punto', 'potoo', 'potto', 'puton',
-        # 6+ letter obscure
-        'captan', 'pantun', 'panton', 'pataca', 'ponton', 'tupuna', 'autoput', 'catapan',
-        'cocopan', 'puccoon', 'taupata', 'caponata', 'optant', 'outtop', 'puncta', 'puncto'
-    ]
-
-    obscure_indicators = [
-        word in obscure_word_list,
-        len(word) == 5 and word.endswith(('ta', 'ca', 'pa', 'to', 'po')) and word not in very_common,
-        len(word) >= 6 and word.endswith(('ant', 'pon', 'tan', 'tun', 'cta', 'cto')) and word not in very_common,
-    ]
-    if any(obscure_indicators):
-        score -= 50
-
-    # Cap score between 0 and 100
-    return max(0, min(100, score))
+    # Get scores from multiple dictionary sources
+    dict_scores = get_word_dictionary_scores(word)
+    
+    # Use aggregate confidence calculation
+    return calculate_aggregate_confidence(word, dict_scores)
 
 
 def is_common_word(word):
     """Check if a word is common enough to show by default."""
     confidence = calculate_word_confidence(word)
-    return confidence >= 40  # Show words with 40+ confidence
+    return confidence >= 60  # Raised threshold for better filtering
 
 
 def display_results(results, show_all=False, top_n=None):
@@ -369,8 +447,10 @@ def display_results(results, show_all=False, top_n=None):
     words_with_confidence.sort(key=lambda x: (-x[1], -x[3], x[0]))  # Sort by points desc, confidence desc, name asc
 
     # Filter to common words unless --all
+    obscure_count = 0
+    obscure_points = 0
     if not show_all:
-        common_words = [(w, p, pan, conf) for w, p, pan, conf in words_with_confidence if conf >= 40]
+        common_words = [(w, p, pan, conf) for w, p, pan, conf in words_with_confidence if conf >= 60]
         obscure_count = len(words_with_confidence) - len(common_words)
         obscure_points = total_points - sum(p for _, p, _, _ in common_words)
         words_with_confidence = common_words
@@ -421,13 +501,13 @@ def draw_hexagon(center, outer):
     c = center.upper()
 
     print("\n" + " " * 10 + "     ___")
-    print(" " * 10 + f"    /   \\")
+    print(" " * 10 + "    /   \\")
     print(" " * 10 + f"   / {letters[0]:^3} \\")
     print(" " * 5 + " ___/___  ___\\___")
-    print(" " * 5 + f"/   \\   /   \\   /")
+    print(" " * 5 + "/   \\   /   \\   /")
     print(" " * 5 + f"/ {letters[5]:^3} \\ / {c:^3} \\ / {letters[1]:^3} \\")
     print(" " * 5 + "\\___  ___/___  ___/")
-    print(" " * 9 + f"\\   /   \\   /")
+    print(" " * 9 + "\\   /   \\   /")
     print(" " * 9 + f" \\ / {letters[4]:^3} \\ / {letters[2]:^3} \\")
     print(" " * 9 + "  \\___  ___/")
     print(" " * 13 + "\\   /")
@@ -472,9 +552,6 @@ def interactive_mode():
 
 def main():
     """Main function to run the Spelling Bee solver."""
-    # Check for special flags
-    auto_solve = "-y" in sys.argv or "--yes" in sys.argv
-
     # Get puzzle input
     if len(sys.argv) >= 3 and sys.argv[1] not in ['-y', '--yes']:
         # CLI mode with letters provided
