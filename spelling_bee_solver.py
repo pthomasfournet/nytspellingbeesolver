@@ -257,8 +257,8 @@ def calculate_word_confidence(word):
         if pattern in word:
             score += penalty
 
-    # Penalize 'oo' in middle of word
-    if 'oo' in word[1:-1]:
+    # Penalize 'oo' in middle of word (but not for -oon endings which are common)
+    if 'oo' in word[1:-1] and not word.endswith('oon'):
         score -= 10
 
     # Penalize 'pp' in short words
@@ -267,10 +267,10 @@ def calculate_word_confidence(word):
 
     # Handle repeated letters - some are common (poop, noon, papa), some aren't
     if len(word) <= 5:
-        # Common repeated-letter words get a bonus
-        common_repeated = ['poop', 'noon', 'papa', 'mama', 'toot', 'peep', 'noon', 'putt', 'mutt', 'butt']
+        # Common repeated-letter words get a big bonus
+        common_repeated = ['poop', 'noon', 'papa', 'mama', 'toot', 'peep', 'putt', 'mutt', 'butt', 'coop']
         if word in common_repeated:
-            score += 20
+            score += 40  # Increased from 20 to ensure 100% confidence
         else:
             # Penalize unusual doubles in short words
             unusual_doubles = ['pp', 'tt', 'oo', 'aa', 'uu']
@@ -293,12 +293,13 @@ def calculate_word_confidence(word):
         'about', 'upon', 'into', 'onto', 'cannot', 'output', 'potato',
         'cotton', 'button', 'coupon', 'caption', 'catnap', 'copout',
         'cutup', 'setup', 'popup', 'letup', 'getup', 'makeup', 'takeout',
-        'ayout', 'payout', 'without', 'turnout', 'workout', 'cookout',
+        'payout', 'without', 'turnout', 'workout', 'cookout',
         'atop', 'coup', 'pact', 'pant', 'punt', 'pout', 'taco', 'coat',
-        'auto', 'unto', 'tattoo', 'cocoa', 'cancan'
+        'auto', 'unto', 'tattoo', 'cocoa', 'cancan', 'pontoon', 'cartoon',
+        'balloon', 'raccoon', 'harpoon', 'spoon', 'noon', 'moon'
     ]
     if word in very_common:
-        score += 35
+        score += 50  # Increased from 35 to ensure 100% confidence
 
     # Bonus for recognizable compound word patterns
     compound_patterns = [
