@@ -13,25 +13,29 @@ A Python-based solver for the New York Times Spelling Bee puzzle with intelligen
 ## Usage
 
 ```bash
-# Basic usage
-python spelling_bee_solver.py <center_letter> <outer_letters>
+# Interactive mode (shows hexagon, prompts for letters)
+./bee
 
-# Example: Tuesday Sept 30, 2025 (center: I, outer: BELCOT)
-python spelling_bee_solver.py I BELCOT
+# Quick solve with letters
+./bee P NOUCAT
 
-# Show top N most confident predictions
-python spelling_bee_solver.py P NOUCAT --top 50
+# Shows top 46 most confident words by default
 
 # Show all words including obscure ones
-python spelling_bee_solver.py I BELCOT --all
+./bee I BELCOT --all
+
+# Show specific number of top predictions
+./bee P NOUCAT --top 50
 
 # Interactive mode to mark found words
-python spelling_bee_solver.py I BELCOT --mark
+./bee I BELCOT --mark
 # Enter words you found, or prefix with '-' to reject (e.g., -obscureword)
 
 # Reset puzzle progress
-python spelling_bee_solver.py I BELCOT --reset
+./bee I BELCOT --reset
 ```
+
+Alternatively, use `python spelling_bee_solver.py` instead of `./bee`
 
 ## Files
 
