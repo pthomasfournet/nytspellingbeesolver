@@ -324,15 +324,26 @@ def calculate_word_confidence(word):
             break
 
     # Heavy penalty for likely obscure words (not in common vocabulary)
-    # These patterns indicate foreign/technical/rare words
+    # Comprehensive list of obscure words to reject
+    obscure_word_list = [
+        # 4-letter obscure
+        'atap', 'paca', 'paco', 'caup', 'noup', 'oupa', 'patu', 'paua', 'poco', 'tapa', 'tapu', 'topo', 'upta',
+        'capa', 'napa', 'pont', 'puna', 'pupa', 'pupu', 'pott', 'noop', 'poon', 'poot', 'oppo',
+        # 5-letter obscure
+        'attap', 'apoop', 'napoo', 'nappa', 'poonac', 'pucan', 'poupt', 'putto', 'tappa',
+        'capot', 'caput', 'coapt', 'panto', 'punto', 'potoo', 'potto', 'puton',
+        # 6+ letter obscure
+        'captan', 'pantun', 'panton', 'pataca', 'ponton', 'tupuna', 'autoput', 'catapan',
+        'cocopan', 'puccoon', 'taupata', 'caponata', 'optant', 'outtop', 'puncta', 'puncto'
+    ]
+
     obscure_indicators = [
-        len(word) == 5 and word.endswith(('ta', 'ca', 'pa')) and word not in very_common,
-        len(word) == 4 and word in ['atap', 'paca', 'paco', 'caup', 'noup', 'oupa', 'patu', 'paua', 'poco', 'tapa', 'tapu', 'topo', 'upta'],
-        len(word) >= 5 and word in ['attap', 'apoop', 'napoo', 'nappa', 'poonac', 'pucan', 'poupt', 'putto', 'tappa'],
-        len(word) >= 6 and word in ['captan', 'pantun', 'panton', 'pataca', 'ponton', 'tupuna', 'autoput', 'catapan', 'cocopan', 'puccoon', 'taupata', 'caponata'],
+        word in obscure_word_list,
+        len(word) == 5 and word.endswith(('ta', 'ca', 'pa', 'to', 'po')) and word not in very_common,
+        len(word) >= 6 and word.endswith(('ant', 'pon', 'tan', 'tun', 'cta', 'cto')) and word not in very_common,
     ]
     if any(obscure_indicators):
-        score -= 40
+        score -= 50
 
     # Cap score between 0 and 100
     return max(0, min(100, score))
