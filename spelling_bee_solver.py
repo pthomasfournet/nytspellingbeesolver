@@ -352,9 +352,9 @@ def display_results(results, show_all=False, top_n=None):
     total_available = results['total_available']
     found_count = results['found_count']
 
-    # Add confidence scores and sort by confidence
+    # Add confidence scores and sort by points (highest first), then confidence
     words_with_confidence = [(w, p, pan, calculate_word_confidence(w)) for w, p, pan in words]
-    words_with_confidence.sort(key=lambda x: (-x[3], -x[1], x[0]))  # Sort by confidence desc, points desc, name asc
+    words_with_confidence.sort(key=lambda x: (-x[1], -x[3], x[0]))  # Sort by points desc, confidence desc, name asc
 
     # Filter to common words unless --all
     if not show_all:
@@ -403,13 +403,69 @@ def display_results(results, show_all=False, top_n=None):
         print(f"{marker} {word:20} ({points} pts, {confidence}% confidence)")
 
 
-def main():
-    """Main function to run the Spelling Bee solver."""
+def draw_hexagon(center, outer):
+    """Draw honeycomb hexagon with letters."""
+    letters = list(outer.upper())
+    c = center.upper()
+
+    print("\n" + " " * 10 + "     ___")
+    print(" " * 10 + f"    /   \\")
+    print(" " * 10 + f"   / {letters[0]:^3} \\")
+    print(" " * 5 + " ___/___  ___\\___")
+    print(" " * 5 + f"/   \\   /   \\   /")
+    print(" " * 5 + f"/ {letters[5]:^3} \\ / {c:^3} \\ / {letters[1]:^3} \\")
+    print(" " * 5 + "\\___  ___/___  ___/")
+    print(" " * 9 + f"\\   /   \\   /")
+    print(" " * 9 + f" \\ / {letters[4]:^3} \\ / {letters[2]:^3} \\")
+    print(" " * 9 + "  \\___  ___/")
+    print(" " * 13 + "\\   /")
+    print(" " * 13 + f" \\ / {letters[3]:^3}")
+    print(" " * 13 + "  \\___/\n")
+
+
+def interactive_mode():
+    """Interactive mode with hexagon display."""
     print("New York Times Spelling Bee Solver")
     print("=" * 60)
 
+    while True:
+        # Get center letter
+        center = input("\nEnter CENTER letter: ").strip().lower()
+        if len(center) != 1 or not center.isalpha():
+            print("❌ Error: Must enter exactly 1 letter")
+            continue
+
+        # Get outer letters
+        outer = input("Enter 6 OUTER letters: ").strip().lower()
+        if len(outer) != 6 or not outer.isalpha():
+            print("❌ Error: Must enter exactly 6 letters")
+            continue
+
+        # Display hexagon
+        draw_hexagon(center, outer)
+
+        # Confirm
+        ready = input("Ready to solve? (y/n): ").strip().lower()
+        if ready == 'y':
+            return center, outer, False, False, False, 46  # Return defaults with top_n=46
+        elif ready == 'n':
+            change = input("Change letters? (y/n): ").strip().lower()
+            if change != 'y':
+                print("Exiting...")
+                sys.exit(0)
+            # Loop continues to re-enter letters
+        else:
+            print("Please enter 'y' or 'n'")
+
+
+def main():
+    """Main function to run the Spelling Bee solver."""
+    # Check for special flags
+    auto_solve = "-y" in sys.argv or "--yes" in sys.argv
+
     # Get puzzle input
-    if len(sys.argv) >= 3:
+    if len(sys.argv) >= 3 and sys.argv[1] not in ['-y', '--yes']:
+        # CLI mode with letters provided
         center = sys.argv[1]
         outer = sys.argv[2]
         mark_mode = "--mark" in sys.argv or "-m" in sys.argv
@@ -424,13 +480,13 @@ def main():
                     top_n = int(sys.argv[i + 1])
                 except ValueError:
                     pass
+
+        # Default to top 46 if not specified
+        if top_n is None and not mark_mode and not reset_mode:
+            top_n = 46
     else:
-        center = input("Enter the CENTER letter: ").strip()
-        outer = input("Enter the 6 OUTER letters: ").strip()
-        mark_mode = False
-        reset_mode = False
-        show_all = False
-        top_n = None
+        # Interactive mode
+        center, outer, mark_mode, reset_mode, show_all, top_n = interactive_mode()
 
     # Validate input
     if len(center) != 1 or len(outer) != 6:
