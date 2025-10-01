@@ -12,6 +12,7 @@ Features:
 - Memory-efficient batch processing
 """
 
+from typing import Any, Dict, List, Tuple
 import logging
 import time
 from collections import defaultdict
@@ -19,7 +20,6 @@ from collections import defaultdict
 # import numpy as np  # Not needed for current implementation
 
 _CUDA_NLTK_PROCESSOR = None
-from typing import Any, Dict, List, Tuple
 
 try:
     import cupy as cp
@@ -50,7 +50,8 @@ class CudaNLTKProcessor:
             self.device = cp.cuda.Device()
             self._init_cuda_kernels()
         else:
-            logger.warning("CUDA not available, falling back to CPU processing")
+            logger.warning(
+                "CUDA not available, falling back to CPU processing")
 
         # Preload NLTK data
         self._ensure_nltk_data()
@@ -98,7 +99,7 @@ class CudaNLTKProcessor:
         self.string_match_kernel = cp.RawKernel(
             r"""
         extern "C" __global__
-        void string_contains_char(const char* strings, const char target, 
+        void string_contains_char(const char* strings, const char target,
                                   bool* results, int num_strings, int max_len) {
             int idx = blockIdx.x * blockDim.x + threadIdx.x;
             if (idx < num_strings) {
@@ -133,7 +134,7 @@ class CudaNLTKProcessor:
 
         # Process in batches to manage GPU memory
         for i in range(0, len(texts), batch_size):
-            batch = texts[i : i + batch_size]
+            batch = texts[i: i + batch_size]
 
             # Use CPU tokenization but optimize with vectorization
             # NLTK tokenization is rule-based and harder to parallelize on GPU
@@ -196,7 +197,7 @@ class CudaNLTKProcessor:
 
         # Process in batches
         for i in range(0, len(token_lists), batch_size):
-            batch = token_lists[i : i + batch_size]
+            batch = token_lists[i: i + batch_size]
 
             # Flatten for batch processing
             flat_tokens = []
@@ -225,12 +226,13 @@ class CudaNLTKProcessor:
                         cached_results[token] = tag
 
                 # Reconstruct token lists with tags
-                flat_tagged = [(token, cached_results[token]) for token in flat_tokens]
+                flat_tagged = [(token, cached_results[token])
+                               for token in flat_tokens]
 
                 # Unflatten back to original structure
                 idx = 0
                 for length in lengths:
-                    tagged_list = flat_tagged[idx : idx + length]
+                    tagged_list = flat_tagged[idx: idx + length]
                     all_tagged.append(tagged_list)
                     idx += length
             else:
@@ -289,7 +291,7 @@ class CudaNLTKProcessor:
         all_entities: List[Dict[str, List[str]]] = []
 
         for i in range(0, len(texts), batch_size):
-            batch = texts[i : i + batch_size]
+            batch = texts[i: i + batch_size]
 
             # Tokenize and POS tag in batch
             token_lists = self.batch_tokenize_gpu(batch)
@@ -307,7 +309,8 @@ class CudaNLTKProcessor:
 
                 for chunk in tree:
                     if hasattr(chunk, "label"):
-                        entity_text = " ".join([token for token, pos in chunk.leaves()])
+                        entity_text = " ".join(
+                            [token for token, pos in chunk.leaves()])
                         entities[chunk.label()].append(entity_text)
 
                 all_entities.append(dict(entities))
@@ -339,7 +342,8 @@ class CudaNLTKProcessor:
             lowercase_mask = [word.islower() for word in words]
 
             # Use our string contains GPU kernel for additional checks
-            # This is just an example - real implementation would be more sophisticated
+            # This is just an example - real implementation would be more
+            # sophisticated
             results = [not is_lower for is_lower in lowercase_mask]
         else:
             # CPU fallback
@@ -360,7 +364,8 @@ class CudaNLTKProcessor:
             for i, ner_result in enumerate(ner_results):
                 original_idx = detailed_check_indices[i]
                 # If NER found entities, it's likely a proper noun
-                has_entities = any(entities for entities in ner_result.values())
+                has_entities = any(
+                    entities for entities in ner_result.values())
                 results[original_idx] = has_entities
 
         elapsed = time.time() - start_time
@@ -368,7 +373,8 @@ class CudaNLTKProcessor:
             "CUDA proper noun detection complete: %d words in %.3fs (%.1f words/sec)",
             len(words),
             elapsed,
-            len(words) / elapsed,
+            len(words) /
+            elapsed,
         )
 
         return results
@@ -403,7 +409,8 @@ def cuda_tokenize_batch(texts: List[str]) -> List[List[str]]:
     return processor.batch_tokenize_gpu(texts)
 
 
-def cuda_pos_tag_batch(token_lists: List[List[str]]) -> List[List[Tuple[str, str]]]:
+def cuda_pos_tag_batch(
+        token_lists: List[List[str]]) -> List[List[Tuple[str, str]]]:
     """Convenience function for batch POS tagging."""
     processor = get_cuda_nltk_processor()
     return processor.batch_pos_tag_gpu(token_lists)

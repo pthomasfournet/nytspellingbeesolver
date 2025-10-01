@@ -6,13 +6,9 @@ with GPU acceleration and advanced word filtering capabilities.
 """
 
 from .unified_solver import SolverMode, UnifiedSpellingBeeSolver
-from .word_filtering import (
-    filter_inappropriate_words,
-    filter_words,
-    get_word_confidence,
-    is_likely_nyt_rejected,
-    is_proper_noun,
-)
+from .word_filtering import (filter_inappropriate_words, filter_words,
+                             get_word_confidence, is_likely_nyt_rejected,
+                             is_proper_noun)
 
 __version__ = "2.0.0"
 __author__ = "Tom"

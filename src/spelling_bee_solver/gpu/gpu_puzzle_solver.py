@@ -95,15 +95,16 @@ class GPUPuzzleSolver:
 
         # Additional NYT-specific filters from base solver
         nyt_filtered = [
-            word for word in filtered_words if not self.is_likely_nyt_rejected(word)
-        ]
+            word for word in filtered_words if not self.is_likely_nyt_rejected(word)]
 
         elapsed = time.time() - start_time
         removed = len(words) - len(nyt_filtered)
 
         logger.info(
-            "Fast filtering: removed %d/%d words in %.2fs", removed, len(words), elapsed
-        )
+            "Fast filtering: removed %d/%d words in %.2fs",
+            removed,
+            len(words),
+            elapsed)
 
         return nyt_filtered
 
@@ -130,7 +131,8 @@ class GPUPuzzleSolver:
         logger.info("Starting multi-tier GPU-accelerated solver")
         logger.info("Letters: %s, Required: %s", letters, required_letter)
 
-        for phase_num, (dict_name, dict_path) in enumerate(self.dictionary_sources, 1):
+        for phase_num, (dict_name, dict_path) in enumerate(
+                self.dictionary_sources, 1):
             phase_start = time.time()
 
             logger.info("Phase %d: Processing %s", phase_num, dict_name)
@@ -158,8 +160,9 @@ class GPUPuzzleSolver:
             ]
 
             logger.info(
-                "Found %d candidate words from %s", len(candidate_words), dict_name
-            )
+                "Found %d candidate words from %s",
+                len(candidate_words),
+                dict_name)
 
             if candidate_words:
                 # Apply GPU-accelerated filtering in batches
@@ -167,12 +170,14 @@ class GPUPuzzleSolver:
 
                 # Final validation with basic logic
                 for word in filtered_candidates:
-                    if self.is_valid_word_basic(word, letters, required_letter):
+                    if self.is_valid_word_basic(
+                            word, letters, required_letter):
                         valid_words.append(word)
 
                 logger.info(
-                    "Phase %d found %d valid words", phase_num, len(valid_words)
-                )
+                    "Phase %d found %d valid words",
+                    phase_num,
+                    len(valid_words))
                 all_valid_words.update(valid_words)
 
                 # Update stats
@@ -193,10 +198,13 @@ class GPUPuzzleSolver:
         logger.info("Multi-tier solving complete:")
         logger.info("  Total words found: %d", len(final_words))
         logger.info("  Total time: %.2fs", total_elapsed)
-        logger.info("  Words processed: %d", self.stats["total_words_processed"])
+        logger.info(
+            "  Words processed: %d",
+            self.stats["total_words_processed"])
 
         if self.stats["total_words_processed"] > 0:
-            processing_rate = self.stats["total_words_processed"] / total_elapsed
+            processing_rate = self.stats["total_words_processed"] / \
+                total_elapsed
             logger.info("  Processing rate: %.1f words/sec", processing_rate)
 
         # Show GPU filter stats
@@ -207,7 +215,11 @@ class GPUPuzzleSolver:
 
         return final_words
 
-    def print_results(self, words: List[str], letters: str, required_letter: str):
+    def print_results(
+            self,
+            words: List[str],
+            letters: str,
+            required_letter: str):
         """Print formatted results."""
         print(f"\n{'=' * 60}")
         print("SPELLING BEE SOLVER RESULTS")
@@ -233,7 +245,7 @@ class GPUPuzzleSolver:
 
                 # Print in columns
                 for i in range(0, len(words_of_length), 4):
-                    row = words_of_length[i : i + 4]
+                    row = words_of_length[i: i + 4]
                     print("  " + "".join(f"{word:<15}" for word in row))
 
         print(f"\n{'=' * 60}")
@@ -245,7 +257,8 @@ class GPUPuzzleSolver:
             print(f"  {dict_name}: {word_count} words in {phase_time:.2f}s")
 
         if self.stats["total_time"] > 0:
-            rate = self.stats["total_words_processed"] / self.stats["total_time"]
+            rate = self.stats["total_words_processed"] / \
+                self.stats["total_time"]
             print(
                 f"  Overall: {self.stats['total_words_processed']} words in "
                 f"{self.stats['total_time']:.2f}s ({rate:.1f} words/sec)"
@@ -256,10 +269,13 @@ class GPUPuzzleSolver:
 
 def main():
     """Main function for command-line usage."""
-    parser = argparse.ArgumentParser(description="GPU-Accelerated Spelling Bee Solver")
+    parser = argparse.ArgumentParser(
+        description="GPU-Accelerated Spelling Bee Solver")
     parser.add_argument(
-        "letters", nargs="?", default="nacuot", help="The 7 letters (default: nacuot)"
-    )
+        "letters",
+        nargs="?",
+        default="nacuot",
+        help="The 7 letters (default: nacuot)")
     parser.add_argument(
         "--required", "-r", help="Required letter (default: first letter)"
     )
@@ -271,7 +287,9 @@ def main():
 
     # Configure logging
     level = logging.INFO if args.verbose else logging.WARNING
-    logging.basicConfig(level=level, format="%(levelname)s:%(name)s:%(message)s")
+    logging.basicConfig(
+        level=level,
+        format="%(levelname)s:%(name)s:%(message)s")
 
     # Ensure we have exactly 7 letters
     letters = args.letters.lower()

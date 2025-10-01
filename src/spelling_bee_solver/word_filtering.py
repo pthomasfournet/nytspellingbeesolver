@@ -70,10 +70,12 @@ def is_likely_nyt_rejected(word):
         "wood",
         "land",
     ]
-    if any(word_lower.endswith(suffix) for suffix in proper_suffixes) and len(word) > 6:
+    if any(word_lower.endswith(suffix)
+           for suffix in proper_suffixes) and len(word) > 6:
         return True
 
-    # Words that are likely brand names (all caps in original, or unusual capitalization)
+    # Words that are likely brand names (all caps in original, or unusual
+    # capitalization)
     if len(original_word) > 1 and original_word.isupper():
         return True
 
@@ -81,12 +83,14 @@ def is_likely_nyt_rejected(word):
     # Words with 'x' followed by consonants (often Latin/Greek)
     if "x" in word_lower and len(word) > 5:
         x_idx = word_lower.find("x")
-        if x_idx < len(word) - 1 and word_lower[x_idx + 1] in "bcdfghjklmnpqrstvwyz":
+        if x_idx < len(word) - \
+                1 and word_lower[x_idx + 1] in "bcdfghjklmnpqrstvwyz":
             return True
 
     # Words ending in common Latin suffixes
     latin_endings = ["ium", "ius", "ous", "eum", "ine", "ene", "ane"]
-    if any(word_lower.endswith(ending) for ending in latin_endings) and len(word) > 6:
+    if any(word_lower.endswith(ending)
+           for ending in latin_endings) and len(word) > 6:
         return True
 
     # Scientific/technical words (often have specific patterns)

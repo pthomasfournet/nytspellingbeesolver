@@ -5,8 +5,8 @@ This module replaces the slow NLTK-based filtering with GPU-accelerated batch pr
 Uses persistent caching to avoid reprocessing words.
 """
 
+import json
 import logging
-import pickle
 import time
 from pathlib import Path
 from typing import Any, Dict, List
@@ -89,24 +89,25 @@ class GPUWordFilter:
             raise
 
     def _load_cache(self, filename: str) -> Dict[str, bool]:
-        """Load cache from file."""
-        cache_path = self.cache_dir / filename
-        if cache_path.exists():
-            try:
-                with open(cache_path, "rb") as f:
-                    cache = pickle.load(f)
+        """Load cache from JSON file."""
+        cache_path = Path(__file__).parent / "cache" / f"{filename}.json"
+        try:
+            if cache_path.exists():
+                with open(cache_path, "r", encoding="utf-8") as f:
+                    cache = json.load(f)
                 logger.info("Loaded %d entries from %s", len(cache), filename)
                 return cache
-            except Exception as e:
-                logger.warning("Failed to load cache %s: %s", filename, e)
+        except Exception as e:
+            logger.warning("Failed to load cache %s: %s", filename, e)
         return {}
 
     def _save_cache(self, cache: Dict[str, bool], filename: str):
-        """Save cache to file."""
-        cache_path = self.cache_dir / filename
+        """Save cache to JSON file."""
+        cache_path = Path(__file__).parent / "cache" / f"{filename}.json"
+        cache_path.parent.mkdir(exist_ok=True)
         try:
-            with open(cache_path, "wb") as f:
-                pickle.dump(cache, f)
+            with open(cache_path, "w", encoding="utf-8") as f:
+                json.dump(cache, f)
             logger.debug("Saved %d entries to %s", len(cache), filename)
         except Exception as e:
             logger.warning("Failed to save cache %s: %s", filename, e)

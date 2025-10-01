@@ -350,8 +350,10 @@ class NetworkError(SpellingBeeSolverError):
     """
 
     def __init__(
-        self, message: str, url: Optional[str] = None, status_code: Optional[int] = None
-    ):
+            self,
+            message: str,
+            url: Optional[str] = None,
+            status_code: Optional[int] = None):
         self.url = url
         self.status_code = status_code
         details = f"URL: {url}, Status: {status_code}" if url else None
