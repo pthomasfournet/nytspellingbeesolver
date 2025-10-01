@@ -3,6 +3,8 @@
 Simplified test runner for code coverage analysis.
 """
 
+import pytest
+
 
 def test_basic_imports():
     """Test that all modules can be imported."""
@@ -31,10 +33,11 @@ def test_basic_imports():
         except Exception as e:
             print(f"⚠ cuda_nltk: {e}")
 
-        return True
+        # All imports successful
+        assert True
     except Exception as e:
         print(f"✗ Import test failed: {e}")
-        return False
+        pytest.fail(f"Import test failed: {e}")
 
 
 def test_unified_solver():
@@ -54,10 +57,10 @@ def test_unified_solver():
         results = solver.solve_puzzle("NACUOTP", "N")
         print(f"✓ Puzzle solved: {len(results)} words found")
 
-        return True
+        assert len(results) >= 0, "Should return some results"
     except Exception as e:
         print(f"✗ Unified solver test failed: {e}")
-        return False
+        pytest.fail(f"Unified solver test failed: {e}")
 
 
 def test_word_filtering():
@@ -71,10 +74,11 @@ def test_word_filtering():
         accepted = is_likely_nyt_rejected("count")  # Should not be rejected
         print(f"✓ Rejection filter: London={rejected}, count={accepted}")
 
-        return True
+        assert rejected is True, "London should be rejected as proper noun"
+        assert accepted is False, "count should not be rejected"
     except Exception as e:
         print(f"✗ Word filtering test failed: {e}")
-        return False
+        pytest.fail(f"Word filtering test failed: {e}")
 
 
 if __name__ == "__main__":

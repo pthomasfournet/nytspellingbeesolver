@@ -21,7 +21,7 @@ def test_extreme_edge_cases():
 
     # Test with valid puzzle that has many solutions
     print("Testing complex puzzle...")
-    results = solver.solve_puzzle("ACTIONER", "A")
+    results = solver.solve_puzzle("ACTIONS", "A")
     print(f"Complex puzzle results: {len(results)}")
 
     # Test dictionary downloading (if available)

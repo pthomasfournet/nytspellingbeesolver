@@ -16,6 +16,16 @@ import torch
 
 logger = logging.getLogger(__name__)
 
+_GPU_FILTER = None
+
+
+def get_gpu_filter():
+    """Get the singleton GPU filter instance."""
+    global _GPU_FILTER
+    if _GPU_FILTER is None:
+        _GPU_FILTER = GPUWordFilter()
+    return _GPU_FILTER
+
 
 class GPUWordFilter:
     """GPU-accelerated word filter using spaCy with CUDA support."""
@@ -85,10 +95,10 @@ class GPUWordFilter:
             try:
                 with open(cache_path, "rb") as f:
                     cache = pickle.load(f)
-                logger.info(f"Loaded {len(cache)} entries from {filename}")
+                logger.info("Loaded %d entries from %s", len(cache), filename)
                 return cache
             except Exception as e:
-                logger.warning(f"Failed to load cache {filename}: {e}")
+                logger.warning("Failed to load cache %s: %s", filename, e)
         return {}
 
     def _save_cache(self, cache: Dict[str, bool], filename: str):
@@ -97,9 +107,9 @@ class GPUWordFilter:
         try:
             with open(cache_path, "wb") as f:
                 pickle.dump(cache, f)
-            logger.debug(f"Saved {len(cache)} entries to {filename}")
+            logger.debug("Saved %d entries to %s", len(cache), filename)
         except Exception as e:
-            logger.warning(f"Failed to save cache {filename}: {e}")
+            logger.warning("Failed to save cache %s: %s", filename, e)
 
     def _batch_process_words(
         self, words: List[str], batch_size: int = 1000
@@ -130,13 +140,15 @@ class GPUWordFilter:
                 elapsed = time.time() - start_time
                 rate = (i + batch_size) / elapsed
                 logger.info(
-                    f"Processed {i + batch_size}/{len(words)} words ({rate:.1f} words/sec)"
+                    "Processed %d/%d words (%.1f words/sec)",
+                    i + batch_size, len(words), rate
                 )
 
         elapsed = time.time() - start_time
         rate = len(words) / elapsed if elapsed > 0 else 0
         logger.info(
-            f"Batch processing complete: {len(words)} words in {elapsed:.2f}s ({rate:.1f} words/sec)"
+            "Batch processing complete: %d words in %.2fs (%.1f words/sec)",
+            len(words), elapsed, rate
         )
 
         return docs
@@ -166,7 +178,8 @@ class GPUWordFilter:
             return results
 
         logger.info(
-            f"Processing {len(uncached_words)} uncached words for proper noun detection"
+            "Processing %d uncached words for proper noun detection",
+            len(uncached_words)
         )
 
         # Process uncached words in batches
@@ -250,7 +263,8 @@ class GPUWordFilter:
             return results
 
         logger.info(
-            f"Processing {len(uncached_words)} uncached words for inappropriate content"
+            "Processing %d uncached words for inappropriate content",
+            len(uncached_words)
         )
 
         # For now, implement basic checks
@@ -298,20 +312,21 @@ class GPUWordFilter:
         start_time = time.time()
         original_count = len(words)
 
-        logger.info(f"Starting comprehensive filtering of {original_count} words")
+        logger.info("Starting comprehensive filtering of %d words", original_count)
 
         # Apply all filters
         words = self.filter_inappropriate_words(words)
-        logger.info(f"After inappropriate filter: {len(words)} words remain")
+        logger.info("After inappropriate filter: %d words remain", len(words))
 
         words = self.filter_proper_nouns(words)
-        logger.info(f"After proper noun filter: {len(words)} words remain")
+        logger.info("After proper noun filter: %d words remain", len(words))
 
         elapsed = time.time() - start_time
         filtered_count = original_count - len(words)
 
         logger.info(
-            f"Filtering complete: removed {filtered_count}/{original_count} words in {elapsed:.2f}s"
+            "Filtering complete: removed %d/%d words in %.2fs",
+            filtered_count, original_count, elapsed
         )
 
         return words
@@ -334,12 +349,3 @@ class GPUWordFilter:
 
 
 # Convenience functions for backward compatibility
-_gpu_filter = None
-
-
-def get_gpu_filter() -> GPUWordFilter:
-    """Get or create the global GPU filter instance."""
-    global _gpu_filter
-    if _gpu_filter is None:
-        _gpu_filter = GPUWordFilter()
-    return _gpu_filter

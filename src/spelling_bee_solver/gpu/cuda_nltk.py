@@ -17,6 +17,8 @@ import time
 from collections import defaultdict
 
 # import numpy as np  # Not needed for current implementation
+
+_CUDA_NLTK_PROCESSOR = None
 from typing import Any, Dict, List, Tuple
 
 try:
@@ -284,7 +286,7 @@ class CudaNLTKProcessor:
         logger.info("Processing NER for %d texts", len(texts))
         start_time = time.time()
 
-        all_entities = []
+        all_entities: List[Dict[str, List[str]]] = []
 
         for i in range(0, len(texts), batch_size):
             batch = texts[i : i + batch_size]
@@ -386,12 +388,12 @@ class CudaNLTKProcessor:
 _cuda_nltk_processor = None
 
 
-def get_cuda_nltk_processor() -> CudaNLTKProcessor:
+def get_cuda_nltk_processor():
     """Get or create the global CUDA NLTK processor."""
-    global _cuda_nltk_processor
-    if _cuda_nltk_processor is None:
-        _cuda_nltk_processor = CudaNLTKProcessor()
-    return _cuda_nltk_processor
+    global _CUDA_NLTK_PROCESSOR
+    if _CUDA_NLTK_PROCESSOR is None:
+        _CUDA_NLTK_PROCESSOR = CudaNLTKProcessor()
+    return _CUDA_NLTK_PROCESSOR
 
 
 # Convenience functions

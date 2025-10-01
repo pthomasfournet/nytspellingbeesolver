@@ -3,6 +3,8 @@
 Simple test script to exercise core functionality for code coverage analysis.
 """
 
+import pytest
+
 import os
 import sys
 

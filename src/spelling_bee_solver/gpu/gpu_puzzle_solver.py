@@ -8,9 +8,10 @@ Uses efficient caching and batch processing for optimal performance.
 import argparse
 import logging
 import time
-from typing import List, Set
+from typing import Dict, List, Optional, Set
 
 # import spelling_bee_solver  # Removed - functionality integrated
+from ..word_filtering import is_likely_nyt_rejected
 from .gpu_word_filtering import GPUWordFilter
 
 logger = logging.getLogger(__name__)
@@ -80,8 +81,6 @@ class GPUPuzzleSolver:
 
     def is_likely_nyt_rejected(self, word: str) -> bool:
         """Check if a word is likely to be rejected by NYT Spelling Bee."""
-        from ..word_filtering import is_likely_nyt_rejected
-
         return is_likely_nyt_rejected(word)
 
     def filter_words_fast(self, words: List[str]) -> List[str]:
@@ -109,13 +108,14 @@ class GPUPuzzleSolver:
         return nyt_filtered
 
     def solve_puzzle_multi_tier(
-        self, letters: str, required_letter: str = None
+        self, letters: str, required_letter: Optional[str] = None
     ) -> List[str]:
         """
         Solve puzzle using multi-tier dictionary approach with GPU acceleration.
 
         Args:
-            letters: The 7 letters for the puzzle (first letter is required if required_letter not specified)
+            letters: The 7 letters for the puzzle (first letter is required if
+                required_letter not specified)
             required_letter: The required letter (optional, uses first letter if not specified)
 
         Returns:
@@ -219,7 +219,7 @@ class GPUPuzzleSolver:
 
         if words:
             # Group by length
-            by_length = {}
+            by_length: Dict[int, List[str]] = {}
             for word in words:
                 length = len(word)
                 if length not in by_length:
@@ -247,7 +247,8 @@ class GPUPuzzleSolver:
         if self.stats["total_time"] > 0:
             rate = self.stats["total_words_processed"] / self.stats["total_time"]
             print(
-                f"  Overall: {self.stats['total_words_processed']} words in {self.stats['total_time']:.2f}s ({rate:.1f} words/sec)"
+                f"  Overall: {self.stats['total_words_processed']} words in "
+                f"{self.stats['total_time']:.2f}s ({rate:.1f} words/sec)"
             )
 
         print(f"{'=' * 60}")

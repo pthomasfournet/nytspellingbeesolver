@@ -238,10 +238,16 @@ def test_configuration_and_edge_cases():
             print("✓ Correctly rejects invalid required letter")
 
         # Test confidence edge cases
-        conf_empty = solver.calculate_confidence("")
+        # Test confidence edge cases
+        try:
+            conf_empty = solver.calculate_confidence("")
+            print("✗ Should have failed with empty confidence input")
+        except ValueError:
+            print("✓ Correctly rejects empty confidence input")
+        
         conf_normal = solver.calculate_confidence("count")
         print(
-            f"✓ Confidence edge cases: empty={conf_empty:.1f}, normal={conf_normal:.1f}"
+            f"✓ Confidence calculation: normal={conf_normal:.1f}"
         )
 
     except (ImportError, AttributeError, RuntimeError) as e:
