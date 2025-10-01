@@ -1,0 +1,98 @@
+{
+  "_description": "Unified Spelling Bee Solver Configuration",
+  "_version": "1.0",
+  
+  "solver": {
+    "mode": "production",
+    "_mode_options": ["production", "cpu_fallback", "debug_single", "debug_all"],
+    "_mode_description": "production: GPU + 3 core dicts, cpu_fallback: CPU + 3 core dicts, debug_single: single dict, debug_all: all 11 dicts"
+  },
+  
+  "acceleration": {
+    "force_gpu_off": false,
+    "_force_gpu_off_description": "Override GPU detection and force CPU-only processing",
+    
+    "enable_cuda_nltk": true,
+    "_enable_cuda_nltk_description": "Use CUDA-accelerated NLTK proper noun detection when available",
+    
+    "gpu_batch_size": 1000,
+    "_gpu_batch_size_description": "Number of words to process per GPU batch"
+  },
+  
+  "dictionaries": {
+    "force_single_dictionary": null,
+    "_force_single_dictionary_description": "Override mode and use only this dictionary path (for debugging)",
+    "_force_single_dictionary_example": "/usr/share/dict/american-english",
+    
+    "exclude_dictionaries": [],
+    "_exclude_dictionaries_description": "List of dictionary names to skip",
+    "_exclude_dictionaries_example": ["Webster's Dictionary", "British English"],
+    
+    "include_only_dictionaries": [],
+    "_include_only_dictionaries_description": "If specified, only use these dictionaries (overrides mode)",
+    "_include_only_dictionaries_example": ["American English", "Google 10K Common"],
+    
+    "download_timeout": 30,
+    "_download_timeout_description": "Timeout in seconds for downloading remote dictionaries",
+    
+    "cache_expiry_days": 30,
+    "_cache_expiry_days_description": "Days before re-downloading cached remote dictionaries"
+  },
+  
+  "filtering": {
+    "min_word_length": 4,
+    "_min_word_length_description": "Minimum word length (NYT Spelling Bee requires 4+)",
+    
+    "enable_nyt_rejection_filter": true,
+    "_enable_nyt_rejection_filter_description": "Filter out abbreviations and likely rejected words",
+    
+    "confidence_threshold": 0,
+    "_confidence_threshold_description": "Minimum confidence score to include word (0-100)",
+    
+    "max_results": 0,
+    "_max_results_description": "Maximum number of results to return (0 = unlimited)"
+  },
+  
+  "output": {
+    "show_confidence": true,
+    "_show_confidence_description": "Display confidence scores with words",
+    
+    "group_by_length": true,
+    "_group_by_length_description": "Group output by word length",
+    
+    "highlight_pangrams": true,
+    "_highlight_pangrams_description": "Show pangrams in separate section",
+    
+    "minimal_stats": true,
+    "_minimal_stats_description": "Show only essential performance stats (GPU on/off, time)",
+    
+    "verbose_stats": false,
+    "_verbose_stats_description": "Show detailed GPU and performance statistics"
+  },
+  
+  "logging": {
+    "level": "WARNING",
+    "_level_options": ["DEBUG", "INFO", "WARNING", "ERROR"],
+    "_level_description": "Logging verbosity level",
+    
+    "log_dictionary_loading": false,
+    "_log_dictionary_loading_description": "Log detailed dictionary loading progress",
+    
+    "log_filtering_steps": false,
+    "_log_filtering_steps_description": "Log each filtering step with timing"
+  },
+  
+  "debug": {
+    "profile_performance": false,
+    "_profile_performance_description": "Enable detailed performance profiling",
+    
+    "save_candidates": false,
+    "_save_candidates_description": "Save filtered candidates to file for analysis",
+    
+    "validate_results": false,
+    "_validate_results_description": "Run additional validation checks on results",
+    
+    "benchmark_mode": false,
+    "_benchmark_mode_description": "Run multiple iterations and report average performance"
+  }
+}

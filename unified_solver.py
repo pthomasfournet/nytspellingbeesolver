@@ -32,41 +32,78 @@ from enum import Enum
 from gpu_word_filtering import GPUWordFilter
 
 class SolverMode(Enum):
-    """Different solving strategies available."""
-    WEBSTER_ONLY = "webster"
-    MULTI_TIER = "multi_tier" 
-    GPU_ACCELERATED = "gpu"
-    HYBRID = "hybrid"
-    NLTK_CUDA = "nltk_cuda"
+    """Solving strategies available."""
+    PRODUCTION = "production"        # Default: GPU ON + 3 core dictionaries
+    CPU_FALLBACK = "cpu_fallback"   # GPU OFF + 3 core dictionaries  
+    DEBUG_SINGLE = "debug_single"   # Single dictionary for debugging
+    DEBUG_ALL = "debug_all"         # All 11 dictionaries for debugging
 
 class UnifiedSpellingBeeSolver:
-    """Unified spelling bee solver with multiple strategies and GPU acceleration."""
+    """Unified spelling bee solver with configurable settings and GPU acceleration."""
     
-    def __init__(self, mode: SolverMode = SolverMode.GPU_ACCELERATED, verbose: bool = False):
+    def __init__(self, mode: SolverMode = None, verbose: bool = None, config_path: str = None):
         """Initialize the unified solver.
         
         Args:
-            mode: Solving strategy to use
-            verbose: Enable verbose logging
+            mode: Solving strategy to use (overrides config if specified)
+            verbose: Enable verbose logging (overrides config if specified) 
+            config_path: Path to configuration JSON file
         """
-        self.mode = mode
-        self.verbose = verbose
+        # Load configuration first (with minimal logging)
+        self.config = self._load_config(config_path or "solver_config.json")
         
-        # Configure logging
-        level = logging.INFO if verbose else logging.WARNING
-        logging.basicConfig(level=level, format='%(levelname)s:%(name)s:%(message)s')
+        # Apply overrides from parameters
+        self.mode = SolverMode(mode.value if mode else self.config["solver"]["mode"])
+        self.verbose = verbose if verbose is not None else (self.config["logging"]["level"] in ["DEBUG", "INFO"])
+        
+        # Configure logging based on config and overrides
+        log_level = getattr(logging, self.config["logging"]["level"])
+        if self.verbose:
+            log_level = logging.INFO
+        logging.basicConfig(level=log_level, format='%(levelname)s:%(name)s:%(message)s')
         self.logger = logging.getLogger(__name__)
         
-        # Initialize components based on mode
+        # Initialize GPU acceleration and CUDA-NLTK based on config
         self.gpu_filter = None
-        if mode in [SolverMode.GPU_ACCELERATED, SolverMode.HYBRID, SolverMode.NLTK_CUDA]:
-            self.gpu_filter = GPUWordFilter()
-            
+        self.cuda_nltk = None
+        self.use_gpu = False
+        
+        if not self.config["acceleration"]["force_gpu_off"]:
+            if self.mode in [SolverMode.PRODUCTION, SolverMode.CPU_FALLBACK, SolverMode.DEBUG_ALL]:
+                try:
+                    self.gpu_filter = GPUWordFilter()
+                    
+                    # Initialize CUDA-NLTK if enabled in config
+                    if self.config["acceleration"]["enable_cuda_nltk"]:
+                        try:
+                            from cuda_nltk import get_cuda_nltk_processor
+                            self.cuda_nltk = get_cuda_nltk_processor()
+                            self.logger.info("CUDA-NLTK processor initialized")
+                        except ImportError:
+                            self.logger.info("CUDA-NLTK not available")
+                    
+                    # Set GPU usage based on mode and config
+                    if self.mode != SolverMode.CPU_FALLBACK:
+                        self.use_gpu = True
+                    
+                except Exception:
+                    self.logger.warning("GPU filter initialization failed, falling back to CPU")
+        
+        
+        self.logger.info("Solver initialized: mode=%s, GPU=%s, CUDA-NLTK=%s", 
+                        self.mode.value, self.use_gpu, self.cuda_nltk is not None)
+        
         # Load Google common words for confidence scoring
         self.google_common_words = self._load_google_common_words()
         
-        # Comprehensive dictionary sources including Oxford and aspell (READ-ONLY)
-        # These canonical dictionaries should not be modified to maintain integrity
+        # Define core production dictionaries (3 high-quality sources)
+        self._CORE_DICTIONARIES = tuple([
+            ("American English", "/usr/share/dict/american-english"),
+            ("Google 10K Common", "./google-10000-common.txt"), 
+            ("English Words Alpha", "https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt"),
+        ])
+        
+        # Comprehensive dictionary sources for debug mode (READ-ONLY)
         self._CANONICAL_DICTIONARY_SOURCES = tuple([
             # Local system dictionaries (read-only system files)
             ("Webster's Dictionary", "/usr/share/dict/words"),
@@ -100,13 +137,66 @@ class UnifiedSpellingBeeSolver:
         # Validate dictionary integrity
         if not self.validate_dictionary_integrity():
             self.logger.warning("Some canonical dictionaries may be corrupted")
-        
-        self.logger.info("Unified solver initialized with mode: %s", mode.value)
+    
+    def _load_config(self, config_path: str) -> dict:
+        """Load configuration from JSON file."""
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+            # Can't use self.logger here since it's not initialized yet
+            print(f"INFO: Loaded configuration from {config_path}")
+            return config
+        except FileNotFoundError:
+            print(f"WARNING: Config file {config_path} not found, using defaults")
+            return self._get_default_config()
+        except json.JSONDecodeError as e:
+            print(f"ERROR: Invalid JSON in config file {config_path}: {e}")
+            return self._get_default_config()
+    
+    def _get_default_config(self) -> dict:
+        """Return default configuration if file loading fails."""
+        return {
+            "solver": {"mode": "production"},
+            "acceleration": {"force_gpu_off": False, "enable_cuda_nltk": True, "gpu_batch_size": 1000},
+            "dictionaries": {"force_single_dictionary": None, "exclude_dictionaries": [], 
+                           "include_only_dictionaries": [], "download_timeout": 30, "cache_expiry_days": 30},
+            "filtering": {"min_word_length": 4, "enable_nyt_rejection_filter": True, 
+                        "confidence_threshold": 0, "max_results": 0},
+            "output": {"show_confidence": True, "group_by_length": True, "highlight_pangrams": True,
+                     "minimal_stats": True, "verbose_stats": False},
+            "logging": {"level": "WARNING", "log_dictionary_loading": False, "log_filtering_steps": False},
+            "debug": {"profile_performance": False, "save_candidates": False, 
+                    "validate_results": False, "benchmark_mode": False}
+        }
     
     @property
     def dictionary_sources(self):
-        """Read-only access to canonical dictionary sources."""
-        return self._CANONICAL_DICTIONARY_SOURCES
+        """Read-only access to dictionary sources based on mode and config."""
+        # Check for config overrides first
+        if self.config["dictionaries"]["force_single_dictionary"]:
+            single_path = self.config["dictionaries"]["force_single_dictionary"]
+            return (("Forced Single Dictionary", single_path),)
+        
+        if self.config["dictionaries"]["include_only_dictionaries"]:
+            # Filter to only specified dictionaries
+            included_names = set(self.config["dictionaries"]["include_only_dictionaries"])
+            all_dicts = self._CANONICAL_DICTIONARY_SOURCES
+            return tuple((name, path) for name, path in all_dicts if name in included_names)
+        
+        # Default mode-based selection
+        if self.mode == SolverMode.DEBUG_SINGLE:
+            return (("American English", "/usr/share/dict/american-english"),)
+        elif self.mode == SolverMode.DEBUG_ALL:
+            selected_dicts = self._CANONICAL_DICTIONARY_SOURCES
+        else:  # PRODUCTION or CPU_FALLBACK
+            selected_dicts = self._CORE_DICTIONARIES
+        
+        # Apply exclusions if specified
+        if self.config["dictionaries"]["exclude_dictionaries"]:
+            excluded_names = set(self.config["dictionaries"]["exclude_dictionaries"])
+            return tuple((name, path) for name, path in selected_dicts if name not in excluded_names)
+        
+        return selected_dicts
     
     def _protect_canonical_files(self):
         """Set read-only permissions on canonical dictionary files to prevent accidental modification."""
@@ -326,38 +416,24 @@ class UnifiedSpellingBeeSolver:
         
         return min(100.0, max(0.0, confidence))
     
-    def solve_webster_only(self, letters: str, required_letter: str) -> List[Tuple[str, float]]:
-        """Original Webster's dictionary approach."""
-        self.logger.info("Using Webster's dictionary approach")
+    def solve_puzzle(self, letters: str, required_letter: str = None) -> List[Tuple[str, float]]:
+        """Streamlined solving function: GPU + 3 dictionaries + comprehensive filtering.
         
-        dictionary = self.load_dictionary("/usr/share/dict/american-english")
-        valid_words = []
+        Default flow: GPU acceleration ON → load dictionaries → filter unwanted words → solve → sort
+        """
+        if required_letter is None:
+            required_letter = letters[0].lower()
         
-        letters_set = set(letters.lower())
-        req_letter = required_letter.lower()
+        start_time = time.time()
         
-        for word in dictionary:
-            if (len(word) >= 4 and 
-                req_letter in word and 
-                set(word).issubset(letters_set) and
-                not self.is_likely_nyt_rejected(word)):
-                
-                confidence = self.calculate_confidence(word)
-                valid_words.append((word, confidence))
-        
-        # Sort by confidence, then length, then alphabetically
-        valid_words.sort(key=lambda x: (-x[1], -len(x[0]), x[0]))
-        
-        return valid_words
-    
-    def solve_multi_tier(self, letters: str, required_letter: str) -> List[Tuple[str, float]]:
-        """Multi-tier dictionary approach."""
-        self.logger.info("Using multi-tier dictionary approach")
+        self.logger.info("Solving puzzle: letters='%s', required='%s', mode=%s", 
+                        letters, required_letter, self.mode.value)
         
         all_valid_words = {}  # word -> confidence
         letters_set = set(letters.lower())
         req_letter = required_letter.lower()
         
+        # Load dictionaries based on mode
         for dict_name, dict_path in self.dictionary_sources:
             self.logger.info("Processing %s", dict_name)
             
@@ -365,50 +441,7 @@ class UnifiedSpellingBeeSolver:
             if not dictionary:
                 continue
                 
-            # Pre-filter candidates
-            candidates = [
-                word for word in dictionary
-                if (len(word) >= 4 and 
-                    req_letter in word and 
-                    set(word).issubset(letters_set))
-            ]
-            
-            self.logger.info("Found %d candidates from %s", len(candidates), dict_name)
-            
-            # Validate each candidate
-            for word in candidates:
-                if (not self.is_likely_nyt_rejected(word) and
-                    word not in all_valid_words):
-                    
-                    confidence = self.calculate_confidence(word)
-                    all_valid_words[word] = confidence
-        
-        # Convert to sorted list
-        valid_words = [(word, conf) for word, conf in all_valid_words.items()]
-        valid_words.sort(key=lambda x: (-x[1], -len(x[0]), x[0]))
-        
-        return valid_words
-    
-    def solve_gpu_accelerated(self, letters: str, required_letter: str) -> List[Tuple[str, float]]:
-        """GPU-accelerated approach with advanced filtering."""
-        self.logger.info("Using GPU-accelerated approach")
-        
-        if not self.gpu_filter:
-            self.logger.warning("GPU filter not available, falling back to multi-tier")
-            return self.solve_multi_tier(letters, required_letter)
-        
-        all_valid_words = {}
-        letters_set = set(letters.lower())
-        req_letter = required_letter.lower()
-        
-        for dict_name, dict_path in self.dictionary_sources:
-            self.logger.info("GPU Processing %s", dict_name)
-            
-            dictionary = self.load_dictionary(dict_path)
-            if not dictionary:
-                continue
-            
-            # Pre-filter candidates
+            # Pre-filter candidates (basic validation)
             candidates = [
                 word for word in dictionary
                 if (len(word) >= 4 and 
@@ -419,15 +452,10 @@ class UnifiedSpellingBeeSolver:
             if not candidates:
                 continue
                 
-            self.logger.info("GPU filtering %d candidates from %s", len(candidates), dict_name)
+            self.logger.info("Found %d candidates from %s", len(candidates), dict_name)
             
-            # Apply GPU-accelerated filtering
-            start_time = time.time()
-            filtered_candidates = self.gpu_filter.comprehensive_filter(candidates)
-            filter_time = time.time() - start_time
-            
-            self.logger.info("GPU filtered %d->%d words in %.3fs", 
-                           len(candidates), len(filtered_candidates), filter_time)
+            # Apply comprehensive filtering pipeline
+            filtered_candidates = self._apply_comprehensive_filter(candidates)
             
             # Final validation and scoring
             for word in filtered_candidates:
@@ -441,122 +469,40 @@ class UnifiedSpellingBeeSolver:
         valid_words = [(word, conf) for word, conf in all_valid_words.items()]
         valid_words.sort(key=lambda x: (-x[1], -len(x[0]), x[0]))
         
-        return valid_words
-    
-    def solve_hybrid(self, letters: str, required_letter: str) -> List[Tuple[str, float]]:
-        """Hybrid approach combining multiple strategies."""
-        self.logger.info("Using hybrid approach")
-        
-        # Start with GPU-accelerated for speed
-        gpu_results = self.solve_gpu_accelerated(letters, required_letter)
-        
-        # If we don't have enough results, supplement with multi-tier
-        if len(gpu_results) < 20:
-            self.logger.info("Supplementing with multi-tier approach")
-            multi_results = self.solve_multi_tier(letters, required_letter)
-            
-            # Merge results, avoiding duplicates
-            gpu_words = {word for word, _ in gpu_results}
-            for word, conf in multi_results:
-                if word not in gpu_words:
-                    gpu_results.append((word, conf))
-            
-            # Re-sort
-            gpu_results.sort(key=lambda x: (-x[1], -len(x[0]), x[0]))
-        
-        return gpu_results
-    
-    def solve_nltk_cuda(self, letters: str, required_letter: str) -> List[Tuple[str, float]]:
-        """CUDA-enhanced NLTK approach."""
-        self.logger.info("Using experimental NLTK+CUDA approach")
-        
-        try:
-            from cuda_nltk import get_cuda_nltk_processor
-            cuda_processor = get_cuda_nltk_processor()
-            
-            all_valid_words = {}
-            letters_set = set(letters.lower())
-            req_letter = required_letter.lower()
-            
-            # Use primary dictionary for CUDA-NLTK processing
-            dictionary = self.load_dictionary("/usr/share/dict/american-english")
-            if not dictionary:
-                self.logger.warning("No dictionary available, falling back to GPU accelerated")
-                return self.solve_gpu_accelerated(letters, required_letter)
-            
-            # Pre-filter candidates
-            candidates = [
-                word for word in dictionary
-                if (len(word) >= 4 and 
-                    req_letter in word and 
-                    set(word).issubset(letters_set))
-            ]
-            
-            if not candidates:
-                return []
-            
-            self.logger.info("CUDA-NLTK processing %d candidates", len(candidates))
-            
-            # Use CUDA-enhanced proper noun detection
-            start_time = time.time()
-            proper_noun_results = cuda_processor.is_proper_noun_batch_cuda(candidates)
-            cuda_time = time.time() - start_time
-            
-            self.logger.info("CUDA proper noun detection: %.3fs for %d words (%.1f words/sec)", 
-                           cuda_time, len(candidates), len(candidates) / cuda_time)
-            
-            # Filter out proper nouns and apply additional filtering
-            filtered_candidates = [
-                word for word, is_proper in zip(candidates, proper_noun_results)
-                if not is_proper and not self.is_likely_nyt_rejected(word)
-            ]
-            
-            # Score remaining candidates
-            for word in filtered_candidates:
-                confidence = self.calculate_confidence(word)
-                all_valid_words[word] = confidence
-            
-            # Convert to sorted list
-            valid_words = [(word, conf) for word, conf in all_valid_words.items()]
-            valid_words.sort(key=lambda x: (-x[1], -len(x[0]), x[0]))
-            
-            self.logger.info("CUDA-NLTK found %d valid words", len(valid_words))
-            return valid_words
-            
-        except ImportError:
-            self.logger.warning("CUDA-NLTK not available, falling back to GPU accelerated")
-            return self.solve_gpu_accelerated(letters, required_letter)
-    
-    def solve_puzzle(self, letters: str, required_letter: str = None) -> List[Tuple[str, float]]:
-        """Main solving function that dispatches to the chosen strategy."""
-        if required_letter is None:
-            required_letter = letters[0].lower()
-        
-        start_time = time.time()
-        
-        self.logger.info("Solving puzzle: letters='%s', required='%s', mode=%s", 
-                        letters, required_letter, self.mode.value)
-        
-        # Dispatch to appropriate solver
-        if self.mode == SolverMode.WEBSTER_ONLY:
-            results = self.solve_webster_only(letters, required_letter)
-        elif self.mode == SolverMode.MULTI_TIER:
-            results = self.solve_multi_tier(letters, required_letter)
-        elif self.mode == SolverMode.GPU_ACCELERATED:
-            results = self.solve_gpu_accelerated(letters, required_letter)
-        elif self.mode == SolverMode.HYBRID:
-            results = self.solve_hybrid(letters, required_letter)
-        elif self.mode == SolverMode.NLTK_CUDA:
-            results = self.solve_nltk_cuda(letters, required_letter)
-        else:
-            raise ValueError(f"Unknown solver mode: {self.mode}")
-        
         solve_time = time.time() - start_time
         self.stats["solve_time"] = solve_time
         
-        self.logger.info("Solving complete: %d words found in %.3fs", len(results), solve_time)
+        self.logger.info("Solving complete: %d words found in %.3fs", len(valid_words), solve_time)
         
-        return results
+        return valid_words
+    
+    def _apply_comprehensive_filter(self, candidates: List[str]) -> List[str]:
+        """Apply all available filtering: GPU + CUDA-NLTK + standard filters."""
+        
+        # GPU acceleration if available and enabled
+        if self.use_gpu and self.gpu_filter:
+            self.logger.info("Applying GPU filtering to %d candidates", len(candidates))
+            start_time = time.time()
+            candidates = self.gpu_filter.comprehensive_filter(candidates)
+            filter_time = time.time() - start_time
+            self.logger.info("GPU filtered to %d words in %.3fs", len(candidates), filter_time)
+        
+        # CUDA-NLTK proper noun detection if available
+        if self.cuda_nltk and candidates:
+            self.logger.info("Applying CUDA-NLTK proper noun detection")
+            start_time = time.time()
+            proper_noun_results = self.cuda_nltk.is_proper_noun_batch_cuda(candidates)
+            cuda_time = time.time() - start_time
+            
+            # Filter out proper nouns
+            candidates = [
+                word for word, is_proper in zip(candidates, proper_noun_results)
+                if not is_proper
+            ]
+            
+            self.logger.info("CUDA-NLTK filtered to %d words in %.3fs", len(candidates), cuda_time)
+        
+        return candidates
     
     def print_results(self, results: List[Tuple[str, float]], letters: str, required_letter: str):
         """Print formatted results with confidence scores."""
@@ -568,6 +514,12 @@ class UnifiedSpellingBeeSolver:
         print(f"Mode: {self.mode.value.upper()}")
         print(f"Total words found: {len(results)}")
         print(f"Solve time: {self.stats['solve_time']:.3f}s")
+        
+        # Minimal performance stats by default
+        if self.gpu_filter:
+            gpu_available = self.gpu_filter.get_stats()['gpu_available']
+            print(f"GPU Acceleration: {'ON' if gpu_available else 'OFF'}")
+        
         print(f"{'='*60}")
         
         if results:
@@ -605,11 +557,10 @@ class UnifiedSpellingBeeSolver:
         
         print(f"\n{'='*60}")
         
-        # GPU stats if available
-        if self.gpu_filter:
+        # Verbose GPU stats only if verbose mode enabled
+        if self.verbose and self.gpu_filter:
             gpu_stats = self.gpu_filter.get_stats()
-            print("GPU ACCELERATION STATUS:")
-            print(f"  GPU Available: {gpu_stats['gpu_available']}")
+            print("DETAILED GPU STATS:")
             print(f"  GPU Device: {gpu_stats['gpu_name']}")
             print(f"  Cache Hit Rate: {gpu_stats['cache_hit_rate']:.1%}")
             print(f"  GPU Batches: {gpu_stats['gpu_batches_processed']}")
@@ -664,7 +615,7 @@ def main():
     # Solver mode
     parser.add_argument('--mode', '-m', 
                       choices=[mode.value for mode in SolverMode],
-                      default=SolverMode.GPU_ACCELERATED.value,
+                      default=SolverMode.PRODUCTION.value,
                       help='Solving strategy to use')
     
     # Options
@@ -672,12 +623,14 @@ def main():
                       help='Enable verbose logging')
     parser.add_argument('--interactive', '-i', action='store_true',
                       help='Start in interactive mode')
+    parser.add_argument('--config', '-c', default='solver_config.json',
+                      help='Path to configuration JSON file')
     
     args = parser.parse_args()
     
     # Create solver
-    mode = SolverMode(args.mode)
-    solver = UnifiedSpellingBeeSolver(mode=mode, verbose=args.verbose)
+    mode = SolverMode(args.mode) if args.mode else None
+    solver = UnifiedSpellingBeeSolver(mode=mode, verbose=args.verbose, config_path=args.config)
     
     # Interactive mode
     if args.interactive or args.letters is None:
