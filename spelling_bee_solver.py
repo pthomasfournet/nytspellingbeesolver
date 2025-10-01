@@ -47,7 +47,13 @@ def load_google_common_words():
     return GOOGLE_COMMON_WORDS or set()  # Always return a set, never None
 
 
-def get_word_dictionary_scores(word):
+def is_google_common_word(word):
+    """Check if a word is in the Google common words list."""
+    common_words = load_google_common_words()
+    return word.lower() in common_words
+
+
+def is_likely_nyt_rejected(word):
     """
     Get comprehensive scores from multiple dictionary sources.
     Returns a dict with detailed scores from different authoritative sources.
@@ -432,8 +438,22 @@ def get_word_dictionary_scores(word):
         and not is_google_common_word(word)
         and any(
             # More specific patterns that don't catch common English words
-            word.endswith(pattern) for pattern in ["pta", "aup"] 
-        ) and word not in ["coup", "putt", "poop", "coop", "loop", "hoop", "boot", "foot", "root", "boot"],
+            word.endswith(pattern)
+            for pattern in ["pta", "aup"]
+        )
+        and word
+        not in [
+            "coup",
+            "putt",
+            "poop",
+            "coop",
+            "loop",
+            "hoop",
+            "boot",
+            "foot",
+            "root",
+            "boot",
+        ],
         # Fake compound words (starts with common prefix but isn't real)
         word.startswith("auto")
         and word not in ["auto", "autonomous", "automatic", "automobile"],
@@ -513,13 +533,15 @@ def calculate_aggregate_confidence(word, dict_scores):
         base_score += 5
 
     # Word pattern bonuses for common English patterns
-    if any([
-        word.endswith("ing"),
-        word.endswith(("tion", "sion")),
-        word.endswith(("able", "ible")),
-        word.endswith(("ness", "ment", "ful")),
-        word.endswith(("er", "or", "ly", "ed"))
-    ]):
+    if any(
+        [
+            word.endswith("ing"),
+            word.endswith(("tion", "sion")),
+            word.endswith(("able", "ible")),
+            word.endswith(("ness", "ment", "ful")),
+            word.endswith(("er", "or", "ly", "ed")),
+        ]
+    ):
         base_score += 5
 
     # Ensure minimum score for words in any legitimate dictionary
@@ -539,219 +561,269 @@ def is_likely_nyt_rejected(word):
     original_word = word
     word = word.lower()
 
+    # Filter inappropriate words that NYT would never include in a family puzzle
+    inappropriate_words = {
+        "clit",
+        "cock",
+        "dick",
+        "fuck",
+        "shit",
+        "piss",
+        "damn",
+        "hell",
+        "bastard",
+        "bitch",
+        "whore",
+        "slut",
+        "tits",
+        "ass",
+        "fart",
+        "penis",
+        "vagina",
+        "anal",
+        "oral",
+        "sex",
+        "nude",
+        "naked",
+        "orgasm",
+        "erotic",
+        "porn",
+        "xxx",
+        "sexy",
+    }
+
+    # Filter abbreviations and invalid words that aren't real dictionary words
+    abbreviations_and_invalid = {
+        "capt",  # Abbreviation for captain
+        "dept",  # Abbreviation for department
+        "appt",  # Abbreviation for appointment
+        "govt",  # Abbreviation for government
+        "intl",  # Abbreviation for international
+        "natl",  # Abbreviation for national
+        "assn",  # Abbreviation for association
+        "corp",  # Abbreviation for corporation
+        "prof",  # Abbreviation for professor
+        "resp",  # Abbreviation for respective
+        "misc",  # Abbreviation for miscellaneous
+        "mgmt",  # Abbreviation for management
+        "mfg",  # Abbreviation for manufacturing
+        "mktg",  # Abbreviation for marketing
+        "acct",  # Abbreviation for account
+        "admin",  # Abbreviation for administration
+        "exec",  # Abbreviation for executive
+    }
+
+    if word in inappropriate_words or word in abbreviations_and_invalid:
+        return True
+
     # Check for proper nouns - capitalized words that aren't common words
     if original_word[0].isupper() and not original_word.isupper():
         # Allow some common words that happen to be capitalized
-        common_capitalized = {'august', 'may', 'will', 'grace', 'hope', 'faith', 'joy', 'rose', 'lily'}
+        common_capitalized = {
+            "august",
+            "may",
+            "will",
+            "grace",
+            "hope",
+            "faith",
+            "joy",
+            "rose",
+            "lily",
+        }
         if word not in common_capitalized:
             return True
-    
+
     # Check for acronyms - all caps and short
     if original_word.isupper() and len(original_word) <= 6:
         return True
-    
+
     # Enhanced proper noun detection - common proper nouns even in lowercase
     # These are ones that NLTK might miss but are definitely proper nouns
     proper_nouns = {
         # Artists and historical figures
-        'botticelli', 'leonardo', 'michelangelo', 'raphael', 'donatello',
-        'monet', 'picasso', 'dali', 'cezanne', 'renoir', 'degas',
-        'beethoven', 'mozart', 'bach', 'chopin', 'vivaldi',
-        'shakespeare', 'dante', 'homer', 'plato', 'aristotle',
-        
+        "botticelli",
+        "leonardo",
+        "michelangelo",
+        "raphael",
+        "donatello",
+        "monet",
+        "picasso",
+        "dali",
+        "cezanne",
+        "renoir",
+        "degas",
+        "beethoven",
+        "mozart",
+        "bach",
+        "chopin",
+        "vivaldi",
+        "shakespeare",
+        "dante",
+        "homer",
+        "plato",
+        "aristotle",
         # People names
-        'elliott', 'elliot', 'eliot', 'cecil', 'bobbie', 'bobbi', 'lillie', 'lottie', 
-        'bettie', 'ellie', 'ollie', 'billie', 'cecile', 'tito', 'tobit',
-        
-        # Place names  
-        'celtic', 'tibet', 'beloit', 'lille', 'poona', 'napa', 'patna', 'upton', 
-        'patton', 'pocono', 'tucson', 'yukon', 'pontiac', 'penn', 'canton', 'newton', 'sutton',
-        'belgium', 'britain', 'france', 'spain', 'italy', 'greece', 'egypt',
-        
+        "elliott",
+        "elliot",
+        "eliot",
+        "cecil",
+        "bobbie",
+        "bobbi",
+        "lillie",
+        "lottie",
+        "bettie",
+        "ellie",
+        "ollie",
+        "billie",
+        "cecile",
+        "tito",
+        "tobit",
+        # Place names
+        "celtic",
+        "tibet",
+        "beloit",
+        "lille",
+        "poona",
+        "napa",
+        "patna",
+        "upton",
+        "patton",
+        "pocono",
+        "tucson",
+        "yukon",
+        "pontiac",
+        "penn",
+        "canton",
+        "newton",
+        "sutton",
+        "belgium",
+        "britain",
+        "france",
+        "spain",
+        "italy",
+        "greece",
+        "egypt",
         # Mythological/classical names
-        'clio', 'apollo', 'athena', 'zeus', 'hermes', 'poseidon', 'hades',
-        
+        "clio",
+        "apollo",
+        "athena",
+        "zeus",
+        "hermes",
+        "poseidon",
+        "hades",
         # Acronyms and abbreviations (even in lowercase)
-        'ieee', 'naacp', 'ioctl', 'biol', 'coli', 'ecoli', 'clii',
-        
+        "ieee",
+        "naacp",
+        "ioctl",
+        "biol",
+        "coli",
+        "ecoli",
+        "clii",
         # Brand names and companies
-        'intel', 'cisco', 'apple', 'google', 'microsoft', 'facebook', 'twitter'
+        "intel",
+        "cisco",
+        "apple",
+        "google",
+        "microsoft",
+        "facebook",
+        "twitter",
     }
-    
+
     if word in proper_nouns:
         return True
-    
+
     # Check for obvious abbreviations - common patterns
-    if word.endswith(('co', 'corp', 'inc', 'ltd', 'dept', 'govt', 'assoc', 'prof')):
+    if word.endswith(("co", "corp", "inc", "ltd", "dept", "govt", "assoc", "prof")):
         return True
-    
+
     # Reject compound words with common prefixes (NYT typically rejects these)
     # But allow some legitimate exceptions
     legitimate_exceptions = {
-        'capo', 'coopt', 'copout', 'upon', 'atop', 'auto', 'anti', 
-        'coop', 'coup', 'pact', 'pant', 'pout', 'punt', 'putt'
+        "capo",
+        "coopt",
+        "copout",
+        "upon",
+        "atop",
+        "auto",
+        "anti",
+        "coop",
+        "coup",
+        "pact",
+        "pant",
+        "pout",
+        "punt",
+        "putt",
     }
-    
+
     if word in legitimate_exceptions:
         return False  # Don't reject these legitimate words
-    
+
     prefix_patterns = [
-        'co',     # co-occupant -> cooccupant
-        'non',    # non-occupant -> nonoccupant  
-        'pre',    # pre-approval -> preapproval
-        'anti',   # anti-aircraft -> antiaircraft
-        'multi',  # multi-purpose -> multipurpose
-        'sub',    # sub-optimal -> suboptimal
-        'over',   # over-confident -> overconfident
-        'under',  # under-estimate -> underestimate
-        'inter',  # inter-connect -> interconnect
-        'super',  # super-natural -> supernatural
-        'ultra',  # ultra-modern -> ultramodern
+        "co",  # co-occupant -> cooccupant
+        "non",  # non-occupant -> nonoccupant
+        "pre",  # pre-approval -> preapproval
+        "anti",  # anti-aircraft -> antiaircraft
+        "multi",  # multi-purpose -> multipurpose
+        "sub",  # sub-optimal -> suboptimal
+        "over",  # over-confident -> overconfident
+        "under",  # under-estimate -> underestimate
+        "inter",  # inter-connect -> interconnect
+        "super",  # super-natural -> supernatural
+        "ultra",  # ultra-modern -> ultramodern
     ]
-    
+
     for prefix in prefix_patterns:
         if word.startswith(prefix) and len(word) > len(prefix) + 4:
             # Check if removing the prefix leaves a valid-looking word
-            remainder = word[len(prefix):]
+            remainder = word[len(prefix) :]
             if len(remainder) >= 4 and remainder.isalpha():
                 return True
-    
+
     # Smart detection of likely place names - conservative patterns only
-    if word.endswith(('ton', 'ville', 'burg', 'land', 'shire', 'stead')) and len(word) > 4:
+    if (
+        word.endswith(("ton", "ville", "burg", "land", "shire", "stead"))
+        and len(word) > 4
+    ):
         return True
-    
+
     # Geographic patterns that are less likely to be regular words
-    if word.endswith(('ona', 'una', 'ina')) and len(word) >= 5:  # Include 5-letter words
+    if (
+        word.endswith(("ona", "una", "ina")) and len(word) >= 5
+    ):  # Include 5-letter words
         return True
-    
-    # Very specific acronym patterns - be conservative  
-    if len(word) == 5 and word.count('a') >= 2:  # Like 'naacp' - 2+ A's in 5 letters is unusual
+
+    # Very specific acronym patterns - be conservative
+    if (
+        len(word) == 5 and word.count("a") >= 2
+    ):  # Like 'naacp' - 2+ A's in 5 letters is unusual
         return True
-    
+
     # Additional place name patterns
-    if word.endswith(('cono', 'ana', 'tna')):  # pocono, patna patterns
+    if word.endswith(("cono", "ana", "tna")):  # pocono, patna patterns
         return True
-    
+
     return False
 
 
 def is_likely_nyt_word(word):
     """Intelligent filtering - only reject obvious non-words, let scoring handle quality."""
-    
+
     # Skip non-alphabetic words
     if not word.isalpha():
         return False
-    
+
     word = word.lower()
-    
+
     # Reject obvious nonsense patterns
     if len(set(word)) <= 2 and len(word) > 4:  # Too repetitive
         return False
-    
+
     # Reject words with obvious gibberish patterns
-    if any(pattern in word for pattern in ['qqq', 'xxx', 'zzz']):
+    if any(pattern in word for pattern in ["qqq", "xxx", "zzz"]):
         return False
-    
+
     # Everything else should be evaluated by confidence scoring
     return True
-
-
-def load_dictionary(dict_path=None):
-    """Load dictionary words from multiple high-quality sources optimized for word games."""
-    all_words = set()
-
-    # Priority order: try multiple high-quality dictionary sources
-    dictionary_sources = [
-        # Official Scrabble dictionaries (Tournament Word List) - Better than SOWPODS
-        (Path.home() / "twl06.txt", "Official Tournament Word List (Scrabble)"),
-        (Path.home() / "ospd.txt", "Official Scrabble Players Dictionary"),
-        # Mobile word game dictionaries (highest quality for normal English)
-        (Path.home() / "wordle-words.txt", "Wordle Official Word List"),
-        (Path.home() / "wordscapes-dict.txt", "Wordscapes Dictionary"),
-        (Path.home() / "word-cookies-dict.txt", "Word Cookies Dictionary"),
-        # Clean system dictionaries (much better than SOWPODS)
-        (Path("/usr/share/dict/words"), "System Dictionary"),
-        (Path("/usr/dict/words"), "Alternative System Dictionary"),
-        # SOWPODS REMOVED - includes too much garbage like "autoput"
-        # (Path.home() / "sowpods.txt", "SOWPODS (Scrabble)"),
-    ]
-
-    source_used = "None"
-
-    for dict_path_obj, source_name in dictionary_sources:
-        if dict_path_obj.exists():
-            try:
-                print(f"Loading {source_name}...")
-                with open(dict_path_obj, "r", encoding="utf-8") as f:
-                    source_words = set()
-                    for word in f:
-                        word = word.strip()
-                        # Skip short words and words with apostrophes/hyphens
-                        if len(word) < 4 or "'" in word or "-" in word:
-                            continue
-                        word_lower = word.lower()
-
-                        # Apply NYT rejection filter first (performance optimization)
-                        if is_likely_nyt_rejected(word_lower):
-                            continue
-
-                        # Apply minimal garbage filtering (let scoring handle quality)
-                        if not is_likely_nyt_word(word_lower):
-                            continue
-
-                        source_words.add(word_lower)
-
-                    if source_words:
-                        all_words.update(source_words)
-                        source_used = source_name
-                        print(f"✓ Loaded {len(source_words)} words from {source_name}")
-
-                        # If we have a good mobile game dictionary, prefer it
-                        if any(
-                            keyword in source_name.lower()
-                            for keyword in [
-                                "wordle",
-                                "wordscapes",
-                                "word cookies",
-                                "tournament",
-                            ]
-                        ):
-                            print(f"Using high-quality source: {source_name}")
-                            break
-
-            except (FileNotFoundError, IOError, UnicodeDecodeError) as e:
-                print(f"Could not load {source_name}: {e}")
-                continue
-
-    # If no dictionaries found, try the provided path
-    if not all_words and dict_path:
-        try:
-            with open(dict_path, "r", encoding="utf-8") as f:
-                for word in f:
-                    word = word.strip().lower()
-                    if len(word) >= 4 and "'" not in word and "-" not in word:
-                        if not is_likely_nyt_rejected(word) and is_likely_nyt_word(
-                            word
-                        ):
-                            all_words.add(word)
-                source_used = f"Custom: {dict_path}"
-        except (FileNotFoundError, IOError):
-            pass
-
-    if not all_words:
-        print("❌ No dictionary sources found!")
-        print(
-            "\nTo improve word quality, download one of these dictionaries to your home directory:"
-        )
-        print("  - twl06.txt (Tournament Word List - Best for word games)")
-        print("  - wordle-words.txt (Wordle official list)")
-        print("  - ospd.txt (Official Scrabble Players Dictionary)")
-        print("  - wordscapes-dict.txt (Mobile game dictionary)")
-        return set()
-
-    print(f"\n📚 Dictionary loaded: {source_used}")
-    print(f"Total words available: {len(all_words):,}")
-    return all_words
 
 
 def load_rejected_words():
@@ -809,7 +881,7 @@ def save_found_words(center, outer, found_words, date=None):
         json.dump(data, f, indent=2)
 
 
-def solve_puzzle_webster_first(center_letter, outer_letters, target_count=46):
+def solve_puzzle_webster_first(center_letter, outer_letters):
     """
     Solve spelling bee puzzle using Webster's as the primary gatekeeper.
     Only look at other dictionaries if we need more words.
@@ -817,50 +889,50 @@ def solve_puzzle_webster_first(center_letter, outer_letters, target_count=46):
     center = center_letter.lower()
     outer = outer_letters.lower()
     allowed_letters = set(center + outer)
-    
+
     print(f"Solving puzzle: Center='{center.upper()}' Outer='{outer.upper()}'")
-    
+
     # Load rejected words
     rejected_words = load_rejected_words()
-    
+
     # PHASE 1: Webster's Dictionary (Primary - High Quality)
     print("\n=== PHASE 1: Webster's Dictionary (Primary) ===")
     webster_words = load_webster_dictionary()
     if not webster_words:
         print("❌ No Webster's dictionary found! Using system dictionary as fallback.")
         webster_words = load_system_dictionary()
-    
+
     print(f"Primary dictionary loaded: {len(webster_words)} words")
-    
+
     # Find valid words in primary dictionary
     primary_solutions = []
     primary_pangrams = []
-    
+
     for word in webster_words:
         # Must contain center letter
         if center not in word:
             continue
-            
+
         # Must only use allowed letters
         if not set(word) <= allowed_letters:
             continue
-            
+
         # Must be long enough
         if len(word) < 4:
             continue
-            
+
         # Skip rejected words
         if word in rejected_words:
             continue
-            
+
         # Apply intelligent filtering for obvious non-NYT words
         if is_likely_nyt_rejected(word):
             continue
-            
+
         # Valid word found!
         word_len = len(word)
         is_pangram = len(set(word)) == 7
-        
+
         if is_pangram:
             points = word_len + 7
             primary_pangrams.append(word)
@@ -868,18 +940,18 @@ def solve_puzzle_webster_first(center_letter, outer_letters, target_count=46):
             points = 1
         else:
             points = word_len
-            
+
         # High confidence for primary dictionary words
         # Calculate basic confidence - Webster's words get high base score
         confidence = 100 if len(word) >= 4 else 95
         primary_solutions.append((word, points, confidence))
-    
+
     print(f"Found {len(primary_solutions)} valid words in primary dictionary")
     print(f"Found {len(primary_pangrams)} pangrams in primary dictionary")
-    
+
     # Sort by confidence then points
     primary_solutions.sort(key=lambda x: (-x[2], -x[1]))
-    
+
     return primary_solutions, primary_pangrams
 
 
@@ -887,172 +959,52 @@ def load_webster_dictionary():
     """Load Webster's dictionary specifically"""
     webster_paths = [
         Path.home() / "webster-dictionary.txt",
-        Path.home() / "merriam-webster.txt", 
+        Path.home() / "merriam-webster.txt",
         Path.home() / "websters.txt",
-        Path("/usr/share/dict/american-english")
+        Path("/usr/share/dict/american-english"),
     ]
-    
+
     for path in webster_paths:
         if path.exists():
             try:
                 print(f"Loading Webster's from: {path}")
-                with open(path, 'r', encoding='utf-8') as f:
+                with open(path, "r", encoding="utf-8") as f:
                     words = set()
                     for word in f:
                         word = word.strip().lower()
-                        if len(word) >= 4 and word.isalpha() and "'" not in word and "-" not in word:
+                        if (
+                            len(word) >= 4
+                            and word.isalpha()
+                            and "'" not in word
+                            and "-" not in word
+                        ):
                             words.add(word)
                     return words
             except Exception as e:
                 print(f"Failed to load {path}: {e}")
                 continue
-    
+
     return set()
 
 
 def load_system_dictionary():
     """Load system dictionary as fallback"""
     try:
-        with open('/usr/share/dict/words', 'r', encoding='utf-8') as f:
+        with open("/usr/share/dict/words", "r", encoding="utf-8") as f:
             words = set()
             for word in f:
                 word = word.strip().lower()
-                if len(word) >= 4 and word.isalpha() and "'" not in word and "-" not in word:
+                if (
+                    len(word) >= 4
+                    and word.isalpha()
+                    and "'" not in word
+                    and "-" not in word
+                ):
                     if not is_likely_nyt_rejected(word) and is_likely_nyt_word(word):
                         words.add(word)
             return words
     except Exception:
         return set()
-
-
-def find_solutions(
-    center_letter, outer_letters, dictionary, exclude_found=None, rejected_words=None
-):
-    """
-    LEGACY: Find all valid words for the Spelling Bee puzzle.
-    Use solve_puzzle_webster_first() for new Webster-first approach.
-    """
-    center = center_letter.lower()
-    allowed_letters = set(center + "".join(outer_letters).lower())
-    exclude_found = exclude_found or set()
-    rejected_words = rejected_words or set()
-
-    solutions = []
-    pangrams = []
-    total_points = 0
-    total_available = 0
-
-    for word in dictionary:
-        # Skip rejected words
-        if word in rejected_words:
-            continue
-
-        # Must contain center letter
-        if center not in word:
-            continue
-
-        # Must only use allowed letters
-        if not all(letter in allowed_letters for letter in word):
-            continue
-
-        # Valid word found
-        word_len = len(word)
-
-        # Calculate points (4-letter words = 1 point, longer = length, pangrams = length + 7)
-        is_pangram = len(set(word)) == 7
-
-        if is_pangram:
-            points = word_len + 7
-            pangrams.append(word)
-        elif word_len == 4:
-            points = 1
-        else:
-            points = word_len
-
-        total_available += points
-
-        # Only add to display if not already found
-        if word not in exclude_found:
-            solutions.append((word, points, is_pangram))
-            total_points += points
-
-    # Sort by points (descending), then alphabetically
-    solutions.sort(key=lambda x: (-x[1], x[0]))
-
-    return {
-        "words": solutions,
-        "pangrams": pangrams,
-        "total_points": total_points,
-        "total_available": total_available,
-        "found_count": len(exclude_found),
-    }
-
-
-def calculate_word_confidence(word):
-    """
-    Calculate confidence score (0-100) that NYT will accept this word.
-    Enhanced with aggregate scoring from multiple dictionary sources.
-    """
-    # Get scores from multiple dictionary sources
-    dict_scores = get_word_dictionary_scores(word)
-
-    # Use aggregate confidence calculation
-    return calculate_aggregate_confidence(word, dict_scores)
-
-
-def display_results(results, top_n=None):
-    """
-    Display the solver results in a formatted way.
-
-    Args:
-        results (dict): Results dictionary from find_solutions()
-        top_n (int, optional): Limit to top N words (default: None for all)
-    """
-    words = results["words"]
-    pangrams = results["pangrams"]
-    total_points = results["total_points"]
-    total_available = results["total_available"]
-    found_count = results["found_count"]
-
-    # Add confidence scores and sort by confidence (highest first), then points
-    words_with_confidence = [
-        (w, p, pan, calculate_word_confidence(w)) for w, p, pan in words
-    ]
-    # Sort by confidence desc, points desc, name asc
-    words_with_confidence.sort(key=lambda x: (-x[3], -x[1], x[0]))
-
-    # Always show all words, just sort them by confidence
-    # Limit to top N if specified
-    if top_n:
-        words_with_confidence = words_with_confidence[:top_n]
-
-    # Recalculate total points for display
-    total_points = sum(p for _, p, _, _ in words_with_confidence)
-
-    print(f"\n{'='*60}")
-    if found_count > 0:
-        points_found = total_available - results["total_points"]
-        print(f"Progress: {found_count} words found ({points_found} points)")
-        print(f"Remaining: {len(words)} words ({total_points} points)")
-    else:
-        print(f"Found {len(words)} words worth {total_points} points")
-    print(f"Pangrams: {len(pangrams)}")
-    print(f"{'='*60}\n")
-
-    if len(words) == 0:
-        print("✓ All words found! Congratulations!")
-        return
-
-    if pangrams:
-        print("🌟 PANGRAMS:")
-        for pangram in pangrams:
-            print(f"  {pangram.upper()}")
-        print()
-
-    print("Remaining words:")
-    for word, points, is_pangram, confidence in words_with_confidence:
-        marker = "🌟" if is_pangram else " "
-        print(f"{marker} {word:20} ({points} pts, {confidence}% confidence)")
 
 
 def draw_hexagon(center, outer):
@@ -1123,6 +1075,29 @@ def interactive_mode():
 
 def main():
     """Main function to run the Spelling Bee solver."""
+    # Check for help
+    if "--help" in sys.argv or "-h" in sys.argv:
+        print("New York Times Spelling Bee Solver")
+        print("=" * 40)
+        print("Usage: python spelling_bee_solver.py <center> <outer_letters> [options]")
+        print("")
+        print("Options:")
+        print(
+            "  --continue, -c    Continue previous session (hide already found words)"
+        )
+        print("  --reset, -r       Reset/clear all found words for this puzzle")
+        print("  --mark, -m        Mark words as found")
+        print("  --top N           Show only top N words (default: 46)")
+        print("  --help, -h        Show this help message")
+        print("")
+        print("Examples:")
+        print("  python spelling_bee_solver.py i tlocbe                # Fresh solve")
+        print(
+            "  python spelling_bee_solver.py i tlocbe --continue     # Continue session"
+        )
+        print("  python spelling_bee_solver.py i tlocbe --reset        # Reset puzzle")
+        sys.exit(0)
+
     # Get puzzle input
     if len(sys.argv) >= 3 and sys.argv[1] not in ["-y", "--yes"]:
         # CLI mode with letters provided
@@ -1130,6 +1105,7 @@ def main():
         outer = sys.argv[2]
         mark_mode = "--mark" in sys.argv or "-m" in sys.argv
         reset_mode = "--reset" in sys.argv or "-r" in sys.argv
+        continue_mode = "--continue" in sys.argv or "-c" in sys.argv
 
         # Check for --top N flag
         top_n = None
@@ -1146,6 +1122,7 @@ def main():
     else:
         # Interactive mode
         center, outer, mark_mode, reset_mode, top_n = interactive_mode()
+        continue_mode = False  # Default to fresh start in interactive mode
 
     # Validate input
     if len(center) != 1 or len(outer) != 6:
@@ -1169,45 +1146,59 @@ def main():
 
     # Load dictionary and solve puzzle using Webster-first approach
     print("\nLoading dictionary...")
-    
+
     # Use new Webster-first approach
     solutions, pangrams = solve_puzzle_webster_first(center, outer)
-    
+
     if not solutions and not pangrams:
         print("Could not find any valid words. Please check your dictionary setup.")
         sys.exit(1)
 
-    # Load previously found words for filtering display
-    found_words = load_found_words(center, outer)
-    
-    # Filter out found words for display
-    display_solutions = [sol for sol in solutions if sol[0] not in found_words]
-    display_pangrams = [p for p in pangrams if p not in found_words]
-    
+    # Only filter previously found words if in continue mode
+    if continue_mode:
+        found_words = load_found_words(center, outer)
+        # Filter out found words for display
+        display_solutions = [sol for sol in solutions if sol[0] not in found_words]
+        display_pangrams = [p for p in pangrams if p not in found_words]
+    else:
+        # Fresh start - show all words
+        found_words = set()
+        display_solutions = solutions
+        display_pangrams = pangrams
+
     # Calculate points
-    total_points = sum(sol[1] for sol in display_solutions) + sum((len(p) + 7) for p in display_pangrams)
-    
-    print(f"\n" + "=" * 60)
-    print(f"Found {len(display_solutions + display_pangrams)} words worth {total_points} points")
+    total_points = sum(sol[1] for sol in display_solutions) + sum(
+        (len(p) + 7) for p in display_pangrams
+    )
+
+    print("\n" + "=" * 60)
+    print(
+        f"Found {len(display_solutions +
+                       display_pangrams)} words worth {total_points} points"
+    )
     print(f"Pangrams: {len(display_pangrams)}")
     print("=" * 60)
-    
+
     # Display pangrams first
     if display_pangrams:
-        print(f"\n🌟 PANGRAMS:")
+        print("\n🌟 PANGRAMS:")
         for word in display_pangrams:
             points = len(word) + 7
             print(f"  {word.upper()}")
-    
+
     # Display remaining words
     if display_solutions:
-        print(f"\nRemaining words:")
+        print("\nRemaining words:")
         shown = 0
         for word, points, confidence in display_solutions:
             if top_n and shown >= top_n:
                 break
             if word not in display_pangrams:  # Don't show pangrams twice
-                conf_str = f"{confidence}% confidence" if confidence < 100 else "100% confidence"
+                conf_str = (
+                    f"{confidence}% confidence"
+                    if confidence < 100
+                    else "100% confidence"
+                )
                 if confidence < 50:
                     print(f"🌟 {word:<20} ({points:2} pts, {conf_str})")
                 else:
