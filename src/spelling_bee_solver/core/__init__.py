@@ -1,20 +1,13 @@
-"""
-Core Components Package
+"""Core components for Spelling Bee solver.
 
-This package contains extracted, focused components from the unified solver,
-following the Single Responsibility Principle.
-
-Each component has a single, well-defined responsibility:
-- InputValidator: Validates puzzle inputs
-- DictionaryManager: Manages word dictionaries
-- ConfidenceScorer: Scores word confidence
-- (Future) CandidateGenerator: Generates candidate words
-- (Future) ResultFormatter: Formats output
+This package provides the fundamental building blocks for the Spelling Bee solver,
+following SOLID principles with clean separation of concerns.
 """
 
 from .input_validator import InputValidator, create_input_validator
 from .dictionary_manager import DictionaryManager, create_dictionary_manager
 from .confidence_scorer import ConfidenceScorer, create_confidence_scorer
+from .candidate_generator import CandidateGenerator, create_candidate_generator
 
 __all__ = [
     'InputValidator',
@@ -23,4 +16,6 @@ __all__ = [
     'create_dictionary_manager',
     'ConfidenceScorer',
     'create_confidence_scorer',
+    'CandidateGenerator',
+    'create_candidate_generator',
 ]
