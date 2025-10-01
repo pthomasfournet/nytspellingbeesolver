@@ -8,6 +8,7 @@ from .input_validator import InputValidator, create_input_validator
 from .dictionary_manager import DictionaryManager, create_dictionary_manager
 from .confidence_scorer import ConfidenceScorer, create_confidence_scorer
 from .candidate_generator import CandidateGenerator, create_candidate_generator
+from .result_formatter import ResultFormatter, create_result_formatter, OutputFormat
 
 __all__ = [
     'InputValidator',
@@ -18,4 +19,7 @@ __all__ = [
     'create_confidence_scorer',
     'CandidateGenerator',
     'create_candidate_generator',
+    'ResultFormatter',
+    'create_result_formatter',
+    'OutputFormat',
 ]
