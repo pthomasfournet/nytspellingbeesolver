@@ -1,14 +1,21 @@
 # NYT Spelling Bee Solver
 
-A Python-based solver for the New York Times Spelling Bee puzzle with intelligent word filtering, aggregate scoring from multiple dictionaries, and enhanced confidence prediction.
+A Python-based solver for the New York Times Spelling Bee puzzle with
+intelligent word filtering, aggregate scoring from multiple dictionaries, and
+enhanced confidence prediction.
 
 ## Features
 
-- **Enhanced Filtering**: Pre-filters dictionary to remove 16,500+ inappropriate words (proper nouns, technical terms, foreign words)
-- **Aggregate Scoring**: Combines evidence from SOWPODS dictionary, Google common words, and pattern analysis
-- **Smart Confidence Scoring**: Ranks words by likelihood of NYT acceptance (60-100% for display)
-- **Global Reject List**: Filters out 76+ obscure words learned from previous puzzles
-- **Performance Optimized**: Loads 248,056 high-quality words (vs 264,581 original)
+- **Enhanced Filtering**: Pre-filters dictionary to remove 16,500+
+  inappropriate words (proper nouns, technical terms, foreign words)
+- **Aggregate Scoring**: Combines evidence from SOWPODS dictionary, Google
+  common words, and pattern analysis
+- **Smart Confidence Scoring**: Ranks words by likelihood of NYT acceptance
+  (60-100% for display)
+- **Global Reject List**: Filters out 76+ obscure words learned from previous
+  puzzles
+- **Performance Optimized**: Loads 248,056 high-quality words (vs 264,581
+  original)
 - **Puzzle Tracking**: Saves progress per puzzle by date
 - **Interactive Mode**: Beautiful hexagon display and marking system
 
@@ -82,7 +89,8 @@ You can also use `python spelling_bee_solver.py` instead of `./bee`
 
 ### Results Quality
 
-- **P/NOUCAT**: 5 high-confidence words (occupant, potato, output, coupon, upon)
+- **P/NOUCAT**: 5 high-confidence words (occupant, potato, output, coupon,
+  upon)
 - **T/HAILER**: 20+ realistic suggestions with 7 pangrams
 - **Better Accuracy**: Focuses on words actually likely to be in NYT puzzles
 
@@ -124,7 +132,9 @@ The solver assigns each word a confidence score (60-100% displayed):
 Run code quality checks:
 
 ```bash
-ruff check spelling_bee_solver.py    # All checks should pass
+# All checks should pass
+ruff check spelling_bee_solver.py
 ```
 
-The codebase maintains 100% code quality rating with proper encoding, error handling, and clean Python patterns.
+The codebase maintains 100% code quality rating with proper encoding, error
+handling, and clean Python patterns.

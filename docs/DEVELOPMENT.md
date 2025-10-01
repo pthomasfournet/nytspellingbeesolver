@@ -1,6 +1,7 @@
 # Development Environment
 
-This project uses a comprehensive set of development tools to ensure code quality, security, and maintainability.
+This project uses a comprehensive set of development tools to ensure code
+quality, security, and maintainability.
 
 ## Virtual Environment
 
@@ -53,7 +54,7 @@ ruff check spelling_bee_solver.py --fix
 bandit spelling_bee_solver.py
 ```
 
-### Dead Code Detection
+### Dead Code Analysis with Vulture
 
 ```bash
 vulture spelling_bee_solver.py
@@ -67,9 +68,12 @@ mypy spelling_bee_solver.py
 
 ## Features Updated
 
-- **Obscure Word Display**: Now shows obscure words (confidence < 20%) tagged with "(obscure)" instead of hiding them
-- **Comprehensive Scoring**: Multi-dictionary confidence system with penalty for foreign/technical terms
-- **Clean Dependencies**: Professional virtual environment with development tools
+- **Obscure Word Display**: Now shows obscure words (confidence < 20%)
+  tagged with "(obscure)" instead of hiding them
+- **Comprehensive Scoring**: Multi-dictionary confidence system with penalty
+  for foreign/technical terms
+- **Clean Dependencies**: Professional virtual environment with development
+  tools
 
 ## Code Quality Metrics
 
