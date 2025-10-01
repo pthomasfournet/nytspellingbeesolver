@@ -39,7 +39,6 @@ Performance:
 Dictionary Sources:
     Core Dictionaries (Production Mode):
         - American English: /usr/share/dict/american-english
-        - Google 10K Common: High-frequency words for confidence boost
         - English Words Alpha: Comprehensive online repository
 
     Extended Dictionaries (Debug Mode):
@@ -148,12 +147,17 @@ class SolverMode(Enum):
             Uses only American English dictionary for fast testing.
         DEBUG_ALL: All 11 dictionaries for comprehensive debugging.
             Includes all available dictionary sources for maximum coverage.
+        ANAGRAM: GPU-accelerated brute force anagram mode with permutation generation.
+            Generates all possible letter permutations with repetition (4-12 letters)
+            and checks them against dictionaries. Requires CUDA GPU. Optimized for
+            RTX 2080 Super and similar GPUs with 64K-256K batch processing.
     """
 
     PRODUCTION = "production"  # Default: GPU ON + 3 core dictionaries
     CPU_FALLBACK = "cpu_fallback"  # GPU OFF + 3 core dictionaries
     DEBUG_SINGLE = "debug_single"  # Single dictionary for debugging
     DEBUG_ALL = "debug_all"  # All 11 dictionaries for debugging
+    ANAGRAM = "anagram"  # GPU brute force with permutation generation
 
 
 class UnifiedSpellingBeeSolver:
@@ -176,7 +180,6 @@ class UnifiedSpellingBeeSolver:
     Attributes:
         MIN_WORD_LENGTH (int): Minimum word length for Spelling Bee (4 letters).
         CONFIDENCE_BASE (float): Base confidence score for all words.
-        CONFIDENCE_COMMON_BONUS (float): Bonus for words in Google common words list.
         CONFIDENCE_LENGTH_BONUS (float): Bonus for longer words (6+ letters).
         CONFIDENCE_REJECTION_PENALTY (float): Penalty for likely rejected words.
         CACHE_EXPIRY_SECONDS (int): Cache expiration time for downloaded dictionaries.
@@ -215,7 +218,6 @@ class UnifiedSpellingBeeSolver:
     # Class constants for performance
     MIN_WORD_LENGTH = 4
     CONFIDENCE_BASE = 50.0
-    CONFIDENCE_COMMON_BONUS = 40.0
     CONFIDENCE_LENGTH_BONUS = 10.0
     CONFIDENCE_REJECTION_PENALTY = 30.0
     CACHE_EXPIRY_SECONDS = 30 * 24 * 3600  # 30 days
@@ -317,14 +319,10 @@ class UnifiedSpellingBeeSolver:
             self.cuda_nltk is not None,
         )
 
-        # Load Google common words for confidence scoring
-        self.google_common_words = self._load_google_common_words()
-
-        # Define core production dictionaries (3 high-quality sources)
+        # Define core production dictionaries (2 high-quality sources)
         self._core_dictionaries = tuple(
             [
                 ("American English", "/usr/share/dict/american-english"),
-                ("Google 10K Common", "./google-10000-common.txt"),
                 (
                     "English Words Alpha",
                     "https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt",
@@ -342,7 +340,6 @@ class UnifiedSpellingBeeSolver:
                 ("Scrabble Dictionary", "/usr/share/dict/scrabble"),
                 ("CrackLib Common", "/usr/share/dict/cracklib-small"),
                 # Project dictionaries (read-only canonical word lists)
-                ("Google 10K Common", "./google-10000-common.txt"),
                 ("Comprehensive Words", "./comprehensive_words.txt"),
                 ("SOWPODS Scrabble", "./sowpods.txt"),
                 ("Scrabble Words", "./scrabble_words.txt"),
@@ -500,9 +497,8 @@ class UnifiedSpellingBeeSolver:
             >>> print(f"Using {len(sources)} dictionaries:")
             >>> for name, path in sources:
             ...     print(f"  - {name}: {path}")
-            Using 3 dictionaries:
+            Using 2 dictionaries:
               - American English: /usr/share/dict/american-english
-              - Google 10K Common: ./google-10000-common.txt
               - English Words Alpha: https://raw.githubusercontent.com/...
 
         Note:
@@ -615,67 +611,6 @@ class UnifiedSpellingBeeSolver:
 
         self.logger.debug("All active dictionaries passed integrity validation")
         return True
-
-    def _load_google_common_words(self) -> Set[str]:
-        """Load Google's 10,000 most common English words for confidence scoring.
-
-        Loads a curated list of the most frequently used English words based on
-        Google's analysis of web content. These words receive a confidence bonus
-        during scoring as they are more likely to be accepted by NYT Spelling Bee.
-
-        Returns:
-            Set[str]: Set of common words that are 4+ letters long (Spelling Bee minimum).
-                Empty set if the file cannot be loaded or doesn't exist.
-
-        File Location:
-            Looks for 'google-10000-common.txt' in the same directory as this module.
-            The file should contain one word per line in plain text format.
-
-        Word Processing:
-            - Converts all words to lowercase for consistent matching
-            - Filters to only include words 4+ letters long
-            - Removes any whitespace or formatting artifacts
-            - Validates that each line contains only alphabetic characters
-
-        Performance Impact:
-            - Loading time: ~10-50ms for 10,000 words
-            - Memory usage: ~200-500KB depending on word lengths
-            - Cache friendly: set lookup is O(1) for confidence scoring
-
-        Error Handling:
-            - File not found: logs warning, returns empty set
-            - Read errors: logs warning, returns partial set
-            - Malformed content: skips invalid lines, continues processing
-
-        Example:
-            Common words that might be loaded::
-
-                {"about", "after", "again", "against", "because", "before",
-                 "being", "below", "between", "could", "during", "first",
-                 "found", "from", "great", "group", "hand", "help", ...}
-
-        Note:
-            The confidence bonus from common words is significant (40 points) and
-            can strongly influence word ranking in results. Words not in this list
-            are not penalized, they simply don't receive the bonus.
-        """
-        google_words_path = Path(__file__).parent / "google-10000-common.txt"
-        words = set()
-
-        if google_words_path.exists():
-            try:
-                with open(google_words_path, "r", encoding="utf-8") as f:
-                    for line in f:
-                        word = line.strip().lower()
-                        if len(word) >= 4:  # Only words 4+ letters for Spelling Bee
-                            words.add(word)
-                self.logger.info(
-                    "Loaded %d common words for confidence scoring", len(words)
-                )
-            except IOError as e:
-                self.logger.warning("Failed to load Google common words: %s", e)
-
-        return words
 
     def load_dictionary(self, filepath: str) -> Set[str]:
         """Load words from a dictionary file or URL.
@@ -961,10 +896,6 @@ class UnifiedSpellingBeeSolver:
         word = word.lower()
         confidence = self.CONFIDENCE_BASE
 
-        # Google common words boost
-        if word in self.google_common_words:
-            confidence += self.CONFIDENCE_COMMON_BONUS
-
         # Length-based confidence
         if len(word) >= 6:
             confidence += self.CONFIDENCE_LENGTH_BONUS
@@ -1096,6 +1027,70 @@ class UnifiedSpellingBeeSolver:
             required_letter,
             self.mode.value,
         )
+
+        # ANAGRAM mode: Use GPU brute force permutation generation
+        if self.mode == SolverMode.ANAGRAM:
+            self.logger.info("Using ANAGRAM mode with GPU acceleration")
+            try:
+                from anagram_generator import create_anagram_generator
+                
+                # Load all dictionaries into a single set
+                self.logger.info("Loading dictionaries for ANAGRAM mode...")
+                combined_dictionary = set()
+                for dict_name, dict_path in self.dictionary_sources:
+                    self.logger.info("Loading %s", dict_name)
+                    dictionary = self.load_dictionary(dict_path)
+                    if dictionary:
+                        # Pre-filter to only words that could possibly match
+                        # (4+ letters, lowercase, alphabetic)
+                        filtered = {
+                            word.lower() for word in dictionary
+                            if len(word) >= 4 and word.isalpha()
+                        }
+                        combined_dictionary.update(filtered)
+                        self.logger.info(
+                            "  Added %d words from %s", len(filtered), dict_name
+                        )
+                
+                self.logger.info(
+                    "Total dictionary size: %d words", len(combined_dictionary)
+                )
+                
+                # Create anagram generator
+                # Default to max_length=8 for reasonable performance
+                # Can be increased to 10-12 for longer words if needed
+                generator = create_anagram_generator(
+                    letters=letters.lower(),
+                    required_letter=required_letter.lower(),
+                    max_length=8  # Covers most spelling bee words (4-8 letters)
+                )
+                
+                # Generate all permutations and find valid words
+                results = generator.generate_all(
+                    dictionary=combined_dictionary,
+                    use_tqdm=True  # Show progress bar
+                )
+                
+                elapsed_time = time.time() - start_time
+                self.logger.info(
+                    "ANAGRAM mode complete: Found %d words in %.2f seconds",
+                    len(results),
+                    elapsed_time
+                )
+                
+                return results
+                
+            except ImportError as e:
+                self.logger.error(
+                    "Failed to import anagram_generator: %s. "
+                    "Falling back to standard mode.", e
+                )
+                # Fall through to standard mode
+            except Exception as e:
+                self.logger.error(
+                    "Error in ANAGRAM mode: %s. Falling back to standard mode.", e
+                )
+                # Fall through to standard mode
 
         all_valid_words = {}  # word -> confidence
         letters_set = set(letters.lower())

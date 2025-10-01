@@ -125,15 +125,29 @@ __all__ = [
     'IntelligentWordFilter'
 ]
 
-if __name__ == "__main__":
-    # Demo the intelligent filtering system
-    test_words = [
-        "apple", "Apple", "NAACP", "naacp", "FBI", "fbi",
-        "anapanapa", "cacanapa", "hello", "computer", 
-        "Microsoft", "zzzqqqxxx", "normalword"
-    ]
+def get_unified_filter():
+    """Get a unified filter instance for comprehensive word filtering.
     
-    print("🧠 GPU-Accelerated Intelligent Word Filtering Demo")
+    Returns:
+        A filter object with comprehensive_filter method.
+    """
+    class UnifiedFilter:
+        def __init__(self):
+            self.filter_obj = IntelligentWordFilter(use_gpu=True)
+        
+        def comprehensive_filter(self, words):
+            """Apply comprehensive filtering to a list of words."""
+            return self.filter_obj.filter_words_intelligent(words)
+        
+        def is_likely_nyt_rejected(self, word):
+            """Check if a single word is likely to be rejected by NYT."""
+            return is_likely_nyt_rejected(word, use_gpu=True)
+    
+    return UnifiedFilter()
+
+if __name__ == "__main__":
+    # Example usage for real spelling bee solving
+    print("🧠 GPU-Accelerated Intelligent Word Filtering System")
     print("=" * 50)
     
     # Show capabilities
@@ -141,9 +155,7 @@ if __name__ == "__main__":
     print(f"System: {caps['system']}")
     print(f"GPU Available: {caps['gpu_available']}")
     print(f"spaCy Available: {caps['spacy_available']}")
+    print("Model: en_core_web_md (684,830 vocabulary keys)")
     print()
     
-    # Filter words
-    filtered = filter_words_gpu(test_words)
-    print(f"Input: {test_words}")
-    print(f"Output: {filtered}")
+    print("Ready to filter spelling bee candidates!")

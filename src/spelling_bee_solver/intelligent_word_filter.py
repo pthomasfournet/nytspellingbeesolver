@@ -93,8 +93,16 @@ class IntelligentWordFilter:
                 logger.info("✓ spaCy GPU acceleration enabled")
             
             # Load the best available model
-            model_name = "en_core_web_sm"
-            self.nlp = spacy.load(model_name)
+            # Prefer en_core_web_md for better word vectors and NER accuracy
+            # Falls back to sm if md not available
+            try:
+                model_name = "en_core_web_md"
+                self.nlp = spacy.load(model_name)
+                logger.info(f"✓ Loaded {model_name} model (better accuracy)")
+            except OSError:
+                logger.info("en_core_web_md not found, falling back to en_core_web_sm")
+                model_name = "en_core_web_sm"
+                self.nlp = spacy.load(model_name)
             
             # Configure for batch processing
             self.nlp.max_length = 2000000
@@ -266,14 +274,18 @@ class IntelligentWordFilter:
         if self._has_repeated_syllables(word_lower):
             return True
         
-        # Use spaCy's vocabulary if available
+        # Use spaCy's vocabulary if available (but be lenient)
         if self.nlp and hasattr(self.nlp.vocab, 'has_vector'):
             try:
                 doc = self.nlp(word)
                 if doc and len(doc) > 0:
                     token = doc[0]
-                    # If spaCy has never seen this word and it's not a compound
-                    if token.is_oov and not self._looks_like_compound(word_lower):
+                    # Only flag as nonsense if it's OOV AND has other nonsense indicators
+                    # The small spaCy model has limited vocabulary, so we can't rely on OOV alone
+                    if (token.is_oov and 
+                        not self._looks_like_compound(word_lower) and
+                        len(word) > 8 and  # Only for longer words
+                        any(combo in word_lower for combo in ['qx', 'xz', 'zq', 'jx'])):  # Has impossible combos
                         return True
             except Exception:
                 pass
@@ -501,19 +513,69 @@ class IntelligentWordFilter:
         
         return False
 
-# Global filter instance
-_filter_instance: Optional[IntelligentWordFilter] = None
+
+# ==============================================================================
+# Factory Functions (Replaces Singleton Pattern)
+# ==============================================================================
+
+def create_word_filter(use_gpu: bool = True) -> IntelligentWordFilter:
+    """
+    Factory function to create a new word filter instance.
+    
+    This replaces the old singleton pattern for better thread-safety,
+    testability, and flexibility.
+    
+    Args:
+        use_gpu: Whether to use GPU acceleration if available
+        
+    Returns:
+        A new IntelligentWordFilter instance
+        
+    Example:
+        >>> filter1 = create_word_filter(use_gpu=True)
+        >>> filter2 = create_word_filter(use_gpu=False)
+        >>> # filter1 and filter2 are independent instances
+    """
+    return IntelligentWordFilter(use_gpu=use_gpu)
+
 
 def get_filter_instance(use_gpu: bool = True) -> IntelligentWordFilter:
-    """Get or create the global filter instance."""
-    global _filter_instance
-    if _filter_instance is None:
-        _filter_instance = IntelligentWordFilter(use_gpu=use_gpu)
-    return _filter_instance
+    """
+    DEPRECATED: Get or create a filter instance.
+    
+    This function is deprecated and maintained only for backward compatibility.
+    Please use create_word_filter() instead for new code.
+    
+    The old singleton pattern had thread-safety issues and made testing difficult.
+    The new factory pattern creates independent instances.
+    
+    Args:
+        use_gpu: Whether to use GPU acceleration if available
+        
+    Returns:
+        A new IntelligentWordFilter instance
+        
+    Note:
+        This now creates a new instance each time (no longer a singleton).
+        This fixes the thread-safety issue but may impact code expecting
+        singleton behavior. Update your code to use create_word_filter().
+    """
+    import warnings
+    warnings.warn(
+        "get_filter_instance() is deprecated and no longer returns a singleton. "
+        "Use create_word_filter() instead for explicit instance creation.",
+        DeprecationWarning,
+        stacklevel=2
+    )
+    return create_word_filter(use_gpu=use_gpu)
+
 
 def filter_words_intelligent(words: List[str], use_gpu: bool = True) -> List[str]:
     """
     Main entry point for intelligent word filtering.
+    
+    Creates a filter instance and filters the words. Each call creates a new
+    filter instance for thread-safety.
     
     Args:
         words: List of words to filter
@@ -522,12 +584,16 @@ def filter_words_intelligent(words: List[str], use_gpu: bool = True) -> List[str
     Returns:
         List of words that should be kept
     """
-    filter_instance = get_filter_instance(use_gpu=use_gpu)
+    filter_instance = create_word_filter(use_gpu=use_gpu)
     return filter_instance.filter_words_intelligent(words)
+
 
 def is_likely_nyt_rejected(word: str, use_gpu: bool = True) -> bool:
     """
     Check if a single word is likely to be rejected by NYT Spelling Bee.
+    
+    Creates a filter instance and checks the word. Each call creates a new
+    filter instance for thread-safety.
     
     Args:
         word: The word to check
@@ -536,7 +602,7 @@ def is_likely_nyt_rejected(word: str, use_gpu: bool = True) -> bool:
     Returns:
         True if the word should likely be rejected
     """
-    filter_instance = get_filter_instance(use_gpu=use_gpu)
+    filter_instance = create_word_filter(use_gpu=use_gpu)
     
     if filter_instance.nlp:
         doc = filter_instance.nlp(f"The {word} is here.")

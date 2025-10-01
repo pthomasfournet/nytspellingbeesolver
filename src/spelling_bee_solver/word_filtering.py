@@ -55,24 +55,38 @@ def is_likely_nyt_rejected(word):
         return True
 
     # Words ending in common abbreviation patterns
-    abbrev_endings = ["mgmt", "corp", "assn", "dept", "govt", "natl", "intl"]
-    if any(word_lower.endswith(ending) for ending in abbrev_endings):
-        return True
+    # Whitelist common compound words to avoid false positives
+    compound_word_whitelist = {
+        "engagement", "arrangement", "management", "assignment",
+        "government", "department", "assessment"
+    }
+    
+    if word_lower not in compound_word_whitelist:
+        abbrev_endings = ["mgmt", "corp", "assn", "dept", "govt", "natl", "intl"]
+        if any(word_lower.endswith(ending) for ending in abbrev_endings):
+            return True
 
     # Common proper noun suffixes
-    proper_suffixes = [
-        "burg",
-        "ville",
-        "town",
-        "shire",
-        "ford",
-        "field",
-        "wood",
-        "land",
-    ]
-    if any(word_lower.endswith(suffix)
-           for suffix in proper_suffixes) and len(word) > 6:
-        return True
+    # Whitelist common compound words that happen to end with these suffixes
+    geographic_whitelist = {
+        "woodland", "understand", "backfield", "outfield", "midfield",
+        "airfield", "minefield", "battlefield", "misunderstand"
+    }
+    
+    if word_lower not in geographic_whitelist:
+        proper_suffixes = [
+            "burg",
+            "ville",
+            "town",
+            "shire",
+            "ford",
+            "field",
+            "wood",
+            "land",
+        ]
+        if any(word_lower.endswith(suffix)
+               for suffix in proper_suffixes) and len(word) > 6:
+            return True
 
     # Words that are likely brand names (all caps in original, or unusual
     # capitalization)
@@ -88,10 +102,27 @@ def is_likely_nyt_rejected(word):
             return True
 
     # Words ending in common Latin suffixes
-    latin_endings = ["ium", "ius", "ous", "eum", "ine", "ene", "ane"]
-    if any(word_lower.endswith(ending)
-           for ending in latin_endings) and len(word) > 6:
-        return True
+    # Whitelist common English words with these endings
+    latin_suffix_whitelist = {
+        # Common -ous words
+        "famous", "joyous", "nervous", "anxious", "curious", "generous",
+        "dangerous", "zealous", "envious", "glorious", "rigorous", "vigorous",
+        # Common -ane words
+        "plane", "crane", "humane", "insane", "propane", "membrane", "mundane",
+        # Common -ine words
+        "fine", "line", "mine", "pine", "wine", "dine", "vine", "shine",
+        "marine", "machine", "routine", "doctrine", "medicine", "genuine",
+        # Common -ene words
+        "scene", "serene", "obscene",
+        # Common -ium words (keep scientific ones out)
+        "premium", "stadium"
+    }
+    
+    if word_lower not in latin_suffix_whitelist:
+        latin_endings = ["ium", "ius", "ous", "eum", "ine", "ene", "ane"]
+        if any(word_lower.endswith(ending)
+               for ending in latin_endings) and len(word) > 6:
+            return True
 
     # Scientific/technical words (often have specific patterns)
     if (
@@ -102,9 +133,15 @@ def is_likely_nyt_rejected(word):
         return True
 
     # Check for likely foreign words
-    # Double letters uncommon in English
-    uncommon_doubles = ["aa", "ii", "oo", "uu"]
+    # Double letters uncommon in English (removed "oo" - it's common in English)
+    # "aa", "ii", "uu" are truly rare in English words
+    uncommon_doubles = ["aa", "ii", "uu"]
     if any(double in word_lower for double in uncommon_doubles):
+        return True
+    
+    # Separate check for unusual "oo" patterns (but not common words)
+    # Triple-o or starting with oo are suspicious
+    if "ooo" in word_lower or (word_lower.startswith("oo") and len(word) > 4):
         return True
 
     # Words with 'q' not followed by 'u'
