@@ -65,13 +65,26 @@ class UnifiedSpellingBeeSolver:
         # Load Google common words for confidence scoring
         self.google_common_words = self._load_google_common_words()
         
-        # Dictionary sources
-        self.dictionary_sources = [
-            ("Scrabble Dictionary", "/usr/share/dict/scrabble"),
+        # Comprehensive dictionary sources including Oxford and aspell (READ-ONLY)
+        # These canonical dictionaries should not be modified to maintain integrity
+        self._CANONICAL_DICTIONARY_SOURCES = tuple([
+            # Local system dictionaries (read-only system files)
             ("Webster's Dictionary", "/usr/share/dict/words"),
-            ("Aspell Dictionary", "/usr/share/dict/aspell"), 
-            ("System Dictionary", "/usr/share/dict/american-english")
-        ]
+            ("American English", "/usr/share/dict/american-english"),
+            ("British English", "/usr/share/dict/british-english"),
+            ("Scrabble Dictionary", "/usr/share/dict/scrabble"),
+            ("CrackLib Common", "/usr/share/dict/cracklib-small"),
+            
+            # Project dictionaries (read-only canonical word lists)
+            ("Google 10K Common", "./google-10000-common.txt"),
+            ("Comprehensive Words", "./comprehensive_words.txt"),
+            ("SOWPODS Scrabble", "./sowpods.txt"),
+            ("Scrabble Words", "./scrabble_words.txt"),
+            
+            # Online repository dictionaries (download on demand, cached read-only)
+            ("English Words Alpha", "https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt"),
+            ("Webster's Unabridged", "https://raw.githubusercontent.com/matthewreagan/WebstersEnglishDictionary/master/dictionary_compact.json"),
+        ])
         
         # Performance tracking
         self.stats = {
@@ -79,10 +92,77 @@ class UnifiedSpellingBeeSolver:
             "words_processed": 0,
             "cache_hits": 0,
             "gpu_batches": 0,
-            "mode_used": mode.value
         }
         
+        # Initialize read-only protection for canonical dictionaries
+        self._protect_canonical_files()
+        
+        # Validate dictionary integrity
+        if not self.validate_dictionary_integrity():
+            self.logger.warning("Some canonical dictionaries may be corrupted")
+        
         self.logger.info("Unified solver initialized with mode: %s", mode.value)
+    
+    @property
+    def dictionary_sources(self):
+        """Read-only access to canonical dictionary sources."""
+        return self._CANONICAL_DICTIONARY_SOURCES
+    
+    def _protect_canonical_files(self):
+        """Set read-only permissions on canonical dictionary files to prevent accidental modification."""
+        import os
+        import stat
+        
+        for _, dict_path in self._CANONICAL_DICTIONARY_SOURCES:
+            # Skip URLs and non-existent files
+            if dict_path.startswith(('http://', 'https://')) or not Path(dict_path).exists():
+                continue
+                
+            try:
+                # Set read-only permissions (remove write permissions)
+                current_mode = os.stat(dict_path).st_mode
+                read_only_mode = current_mode & ~stat.S_IWUSR & ~stat.S_IWGRP & ~stat.S_IWOTH
+                os.chmod(dict_path, read_only_mode)
+                self.logger.debug("Set read-only protection on: %s", dict_path)
+            except (OSError, PermissionError) as e:
+                # This is expected for system files that we don't have permission to modify
+                self.logger.debug("Cannot set read-only on %s (likely system file): %s", dict_path, e)
+    
+    def validate_dictionary_integrity(self) -> bool:
+        """Validate that canonical dictionaries haven't been corrupted or modified unexpectedly."""
+        integrity_issues = []
+        
+        for dict_name, dict_path in self._CANONICAL_DICTIONARY_SOURCES:
+            if dict_path.startswith(('http://', 'https://')):
+                continue  # Skip URLs
+                
+            path_obj = Path(dict_path)
+            if not path_obj.exists():
+                continue  # Skip non-existent files
+                
+            try:
+                # Basic integrity checks
+                file_size = path_obj.stat().st_size
+                
+                # Check if file is suspiciously small (likely corrupted)
+                if file_size < 1000:  # Less than 1KB is suspicious for a dictionary
+                    integrity_issues.append(f"{dict_name}: File too small ({file_size} bytes)")
+                    
+                # Check if file is readable
+                with open(dict_path, 'r', encoding='utf-8') as f:
+                    first_lines = [f.readline().strip() for _ in range(5)]
+                    if not any(line and line.isalpha() for line in first_lines):
+                        integrity_issues.append(f"{dict_name}: No valid words found in first 5 lines")
+                        
+            except (OSError, UnicodeDecodeError) as e:
+                integrity_issues.append(f"{dict_name}: Cannot read file - {e}")
+        
+        if integrity_issues:
+            self.logger.warning("Dictionary integrity issues found: %s", "; ".join(integrity_issues))
+            return False
+        
+        self.logger.info("All canonical dictionaries passed integrity validation")
+        return True
     
     def _load_google_common_words(self) -> Set[str]:
         """Load Google common words list for confidence scoring."""
@@ -103,7 +183,11 @@ class UnifiedSpellingBeeSolver:
         return words
     
     def load_dictionary(self, filepath: str) -> Set[str]:
-        """Load words from a dictionary file."""
+        """Load words from a dictionary file or URL."""
+        # Check if it's a URL
+        if filepath.startswith(('http://', 'https://')):
+            return self._download_dictionary(filepath)
+        
         try:
             with open(filepath, 'r', encoding='utf-8') as f:
                 words = {word.strip().lower() for word in f 
@@ -115,6 +199,70 @@ class UnifiedSpellingBeeSolver:
             return set()
         except Exception as e:
             self.logger.error("Error loading dictionary %s: %s", filepath, e)
+            return set()
+    
+    def _download_dictionary(self, url: str) -> Set[str]:
+        """Download and cache dictionary from URL."""
+        import requests
+        from urllib.parse import urlparse
+        
+        # Create cache filename from URL
+        parsed_url = urlparse(url)
+        cache_filename = f"cached_{parsed_url.netloc}_{parsed_url.path.replace('/', '_').replace('.', '_')}.txt"
+        cache_path = Path(__file__).parent / "word_filter_cache" / cache_filename
+        
+        # Check if cached version exists and is recent (less than 30 days old)
+        if cache_path.exists():
+            cache_age = time.time() - cache_path.stat().st_mtime
+            if cache_age < 30 * 24 * 3600:  # 30 days
+                self.logger.info("Using cached dictionary: %s", cache_filename)
+                try:
+                    with open(cache_path, 'r', encoding='utf-8') as f:
+                        words = {word.strip().lower() for word in f 
+                                if word.strip() and word.strip().isalpha()}
+                    return words
+                except IOError as e:
+                    self.logger.warning("Failed to read cached dictionary: %s", e)
+        
+        # Download dictionary
+        try:
+            self.logger.info("Downloading dictionary from: %s", url)
+            response = requests.get(url, timeout=30)
+            response.raise_for_status()
+            
+            words = set()
+            
+            # Handle different file formats
+            if url.endswith('.json'):
+                # Handle JSON format (like Webster's)
+                try:
+                    data = response.json()
+                    if isinstance(data, dict):
+                        words = {word.lower() for word in data.keys() 
+                               if word and word.isalpha() and len(word) >= 4}
+                    elif isinstance(data, list):
+                        words = {word.lower() for word in data 
+                               if word and word.isalpha() and len(word) >= 4}
+                except json.JSONDecodeError:
+                    self.logger.warning("Invalid JSON format for %s", url)
+            else:
+                # Handle text format
+                for line in response.text.splitlines():
+                    word = line.strip().lower()
+                    if word and word.isalpha() and len(word) >= 4:
+                        words.add(word)
+            
+            # Cache the results
+            cache_path.parent.mkdir(exist_ok=True)
+            with open(cache_path, 'w', encoding='utf-8') as f:
+                for word in sorted(words):
+                    f.write(f"{word}\n")
+            
+            self.logger.info("Downloaded and cached %d words from %s", len(words), url)
+            return words
+            
+        except Exception as e:
+            self.logger.error("Failed to download dictionary from %s: %s", url, e)
             return set()
     
     def is_valid_word_basic(self, word: str, letters: str, required_letter: str) -> bool:
