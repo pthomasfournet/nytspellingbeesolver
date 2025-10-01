@@ -7,14 +7,14 @@ This subpackage contains GPU-accelerated components for:
 - Multi-tier GPU puzzle solving
 """
 
-from .cuda_nltk import get_cuda_nltk_processor, CudaNLTKProcessor
-from .gpu_word_filtering import GPUWordFilter, get_gpu_filter
+from .cuda_nltk import CudaNLTKProcessor, get_cuda_nltk_processor
 from .gpu_puzzle_solver import GPUPuzzleSolver
+from .gpu_word_filtering import GPUWordFilter, get_gpu_filter
 
 __all__ = [
     "get_cuda_nltk_processor",
-    "CudaNLTKProcessor", 
+    "CudaNLTKProcessor",
     "GPUWordFilter",
     "get_gpu_filter",
-    "GPUPuzzleSolver"
+    "GPUPuzzleSolver",
 ]

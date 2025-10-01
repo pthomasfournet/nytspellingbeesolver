@@ -5,13 +5,13 @@ This package provides comprehensive tools for solving New York Times Spelling Be
 with GPU acceleration and advanced word filtering capabilities.
 """
 
-from .unified_solver import UnifiedSpellingBeeSolver, SolverMode
+from .unified_solver import SolverMode, UnifiedSpellingBeeSolver
 from .word_filtering import (
-    is_likely_nyt_rejected,
+    filter_inappropriate_words,
     filter_words,
     get_word_confidence,
+    is_likely_nyt_rejected,
     is_proper_noun,
-    filter_inappropriate_words
 )
 
 __version__ = "2.0.0"
@@ -20,10 +20,10 @@ __email__ = "tom@example.com"
 
 __all__ = [
     "UnifiedSpellingBeeSolver",
-    "SolverMode", 
+    "SolverMode",
     "is_likely_nyt_rejected",
     "filter_words",
     "get_word_confidence",
     "is_proper_noun",
-    "filter_inappropriate_words"
+    "filter_inappropriate_words",
 ]
