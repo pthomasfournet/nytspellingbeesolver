@@ -14,7 +14,7 @@ Features:
 
 import time
 import logging
-import numpy as np
+# import numpy as np  # Not needed for current implementation
 from typing import List, Dict, Set, Tuple, Any
 from collections import defaultdict
 
@@ -24,7 +24,7 @@ try:
     from nltk.tokenize import word_tokenize
     from nltk.tag import pos_tag
     from nltk.chunk import ne_chunk
-    from nltk.corpus import names
+    # from nltk.corpus import names  # Not needed currently
     CUDA_AVAILABLE = True
 except ImportError as e:
     logging.warning("CUDA-NLTK dependencies not available: %s", e)
@@ -93,24 +93,6 @@ class CudaNLTKProcessor:
             }
         }
         ''', 'string_contains_char')
-        
-        # Kernel for character frequency analysis
-        self.char_freq_kernel = cp.RawKernel(r'''
-        extern "C" __global__
-        void char_frequency(const char* strings, int* frequencies, 
-                           int num_strings, int max_len, int num_chars) {
-            int idx = blockIdx.x * blockDim.x + threadIdx.x;
-            if (idx < num_strings) {
-                for (int i = 0; i < max_len; i++) {
-                    char c = strings[idx * max_len + i];
-                    if (c == 0) break;  // null terminator
-                    if (c >= 'a' && c <= 'z') {
-                        atomicAdd(&frequencies[idx * num_chars + (c - 'a')], 1);
-                    }
-                }
-            }
-        }
-        ''', 'char_frequency')
         
         logger.info("CUDA kernels initialized successfully")
     
@@ -252,43 +234,6 @@ class CudaNLTKProcessor:
         
         return all_tagged
     
-    def vectorized_string_contains_gpu(self, words: List[str], target_char: str) -> List[bool]:
-        """GPU-accelerated string contains operation using custom CUDA kernel."""
-        if not self.cuda_available or not words:
-            return [target_char in word for word in words]
-        
-        logger.debug("GPU string contains check for %d words", len(words))
-        
-        # Prepare data for GPU
-        max_len = max(len(word) for word in words) + 1  # +1 for null terminator
-        num_words = len(words)
-        
-        # Create padded string array
-        padded_strings = np.zeros((num_words, max_len), dtype=np.uint8)
-        for i, word in enumerate(words):
-            word_bytes = word.encode('ascii', errors='ignore')[:max_len-1]
-            padded_strings[i, :len(word_bytes)] = np.frombuffer(word_bytes, dtype=np.uint8)
-        
-        # Transfer to GPU
-        gpu_strings = cp.asarray(padded_strings.flatten())
-        gpu_results = cp.zeros(num_words, dtype=bool)
-        target_byte = ord(target_char.lower())
-        
-        # Launch CUDA kernel
-        block_size = 256
-        grid_size = (num_words + block_size - 1) // block_size
-        
-        self.string_match_kernel(
-            (grid_size,), (block_size,),
-            (gpu_strings, target_byte, gpu_results, num_words, max_len)
-        )
-        
-        # Transfer results back to CPU
-        results = cp.asnumpy(gpu_results).tolist()
-        
-        logger.debug("GPU string contains check completed")
-        return results
-    
     def batch_named_entity_recognition(self, texts: List[str], batch_size: int = 100) -> List[Dict[str, List[str]]]:
         """Batch named entity recognition with GPU optimization."""
         logger.info("Processing NER for %d texts", len(texts))
@@ -410,43 +355,3 @@ def cuda_proper_noun_batch(words: List[str]) -> List[bool]:
     return processor.is_proper_noun_batch_cuda(words)
 
 
-if __name__ == "__main__":
-    # Test the CUDA NLTK processor
-    logging.basicConfig(level=logging.INFO)
-    
-    # Test data
-    test_words = [
-        "apple", "banana", "Python", "London", "JavaScript", 
-        "hello", "world", "OpenAI", "computer", "science",
-        "Obama", "microsoft", "google", "artificial", "intelligence"
-    ]
-    
-    test_texts = [
-        "Barack Obama was the president.",
-        "Apple Inc. is a technology company.",
-        "I love programming in Python.",
-        "London is a beautiful city.",
-        "Machine learning is fascinating."
-    ]
-    
-    processor = CudaNLTKProcessor()
-    
-    print("Testing batch tokenization:")
-    tokens = processor.batch_tokenize_gpu(test_texts)
-    for i, token_list in enumerate(tokens):
-        print(f"  '{test_texts[i]}' -> {token_list}")
-    
-    print("\nTesting batch POS tagging:")
-    tagged = processor.batch_pos_tag_gpu(tokens)
-    for i, tagged_list in enumerate(tagged):
-        print(f"  {test_texts[i]} -> {tagged_list}")
-    
-    print("\nTesting proper noun detection:")
-    proper_results = processor.is_proper_noun_batch_cuda(test_words)
-    for word, is_proper in zip(test_words, proper_results):
-        print(f"  {word}: {'PROPER' if is_proper else 'common'}")
-    
-    print("\nProcessor stats:")
-    stats = processor.get_stats()
-    for key, value in stats.items():
-        print(f"  {key}: {value}")

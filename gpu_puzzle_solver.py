@@ -8,7 +8,7 @@ Uses efficient caching and batch processing for optimal performance.
 import time
 import logging
 from typing import List, Set
-import spelling_bee_solver
+# import spelling_bee_solver  # Removed - functionality integrated
 from gpu_word_filtering import GPUWordFilter
 import argparse
 
@@ -52,14 +52,6 @@ class GPUPuzzleSolver:
             logger.error("Error loading dictionary %s: %s", filepath, e)
             return set()
     
-    def get_valid_words(self, letters: str, required_letter: str) -> List[str]:
-        """Get valid words using basic validation logic."""
-        # Simple implementation based on the original solver logic
-        valid_words = []
-        
-        # This would need to be implemented with a word list
-        # For now, return empty list as we'll use the multi-tier approach
-        return valid_words
     
     def is_valid_word_basic(self, word: str, letters: str, required_letter: str) -> bool:
         """Basic word validation logic."""
@@ -80,6 +72,12 @@ class GPUPuzzleSolver:
             
         return True
     
+
+    def is_likely_nyt_rejected(self, word: str) -> bool:
+        """Check if a word is likely to be rejected by NYT Spelling Bee."""
+        from word_filtering import is_likely_nyt_rejected
+        return is_likely_nyt_rejected(word)
+
     def filter_words_fast(self, words: List[str]) -> List[str]:
         """Apply fast GPU-accelerated filtering to remove inappropriate words."""
         if not words:
@@ -93,7 +91,7 @@ class GPUPuzzleSolver:
         # Additional NYT-specific filters from base solver
         nyt_filtered = [
             word for word in filtered_words 
-            if not spelling_bee_solver.is_likely_nyt_rejected(word)
+            if not self.is_likely_nyt_rejected(word)
         ]
         
         elapsed = time.time() - start_time

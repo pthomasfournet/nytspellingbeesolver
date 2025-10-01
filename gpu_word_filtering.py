@@ -51,7 +51,7 @@ class GPUWordFilter:
             self.nlp = spacy.load("en_core_web_sm")
             
             # Try to configure for GPU if available
-            self.gpu_enabled = False
+            # self.gpu_enabled = False  # Unused attribute
             if torch.cuda.is_available():
                 try:
                     # Test if CuPy is properly installed and can perform operations
@@ -59,11 +59,11 @@ class GPUWordFilter:
                     test_array = cp.array([1, 2, 3])
                     _ = test_array * 2  # Simple test operation
                     spacy.require_gpu()
-                    self.gpu_enabled = True
+                    # self.gpu_enabled = True  # Unused attribute
                     logger.info("GPU acceleration enabled: %s", torch.cuda.get_device_name(0))
                 except (ImportError, ValueError, RuntimeError, OSError) as gpu_error:
                     logger.warning("GPU initialization failed (%s), using optimized CPU processing", gpu_error)
-                    self.gpu_enabled = False
+                    # self.gpu_enabled = False  # Unused attribute
             else:
                 logger.warning("CUDA not available, using optimized CPU processing")
                 
@@ -301,21 +301,6 @@ class GPUWordFilter:
             "gpu_name": torch.cuda.get_device_name(0) if torch.cuda.is_available() else "N/A"
         }
     
-    def clear_cache(self):
-        """Clear all caches."""
-        self.proper_noun_cache.clear()
-        self.inappropriate_cache.clear()
-        self.valid_cache.clear()
-        
-        # Remove cache files
-        for filename in ["proper_nouns.pkl", "inappropriate.pkl", "valid.pkl"]:
-            cache_path = self.cache_dir / filename
-            if cache_path.exists():
-                cache_path.unlink()
-        
-        logger.info("All caches cleared")
-
-
 # Convenience functions for backward compatibility
 _gpu_filter = None
 
@@ -326,40 +311,3 @@ def get_gpu_filter() -> GPUWordFilter:
         _gpu_filter = GPUWordFilter()
     return _gpu_filter
 
-def filter_words_gpu(words: List[str]) -> List[str]:
-    """Filter words using GPU acceleration (convenience function)."""
-    gpu_filter = get_gpu_filter()
-    return gpu_filter.comprehensive_filter(words)
-
-def is_proper_noun_gpu(words: List[str]) -> Dict[str, bool]:
-    """Check proper nouns using GPU acceleration (convenience function)."""
-    gpu_filter = get_gpu_filter()
-    return gpu_filter.is_proper_noun(words)
-
-
-if __name__ == "__main__":
-    # Test the GPU filter
-    logging.basicConfig(level=logging.INFO)
-    
-    test_words = [
-        "apple", "banana", "Python", "London", "JavaScript", 
-        "hello", "world", "OpenAI", "computer", "science",
-        "Obama", "microsoft", "google", "artificial", "intelligence"
-    ]
-    
-    gpu_filter = GPUWordFilter()
-    
-    print("Testing proper noun detection:")
-    proper_results = gpu_filter.is_proper_noun(test_words)
-    for word, is_proper in proper_results.items():
-        print(f"  {word}: {'PROPER' if is_proper else 'common'}")
-    
-    print("\nTesting comprehensive filtering:")
-    filtered = gpu_filter.comprehensive_filter(test_words)
-    print(f"Original: {test_words}")
-    print(f"Filtered: {filtered}")
-    
-    print("\nStats:")
-    stats = gpu_filter.get_stats()
-    for key, value in stats.items():
-        print(f"  {key}: {value}")

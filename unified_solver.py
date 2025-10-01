@@ -19,17 +19,21 @@ Features:
 Author: Tom's Enhanced Spelling Bee Solver
 """
 
-import sys
 import json
 import time
 import logging
 import argparse
+import requests
 from pathlib import Path
-from typing import List, Set, Dict, Optional, Tuple
+from typing import List, Set, Tuple, Dict, Any
 from enum import Enum
 
 # Import our GPU acceleration modules
-from gpu_word_filtering import GPUWordFilter
+try:
+    from gpu_word_filtering import GPUWordFilter
+except ImportError:
+    # Graceful fallback if GPU dependencies aren't available
+    GPUWordFilter = None
 
 class SolverMode(Enum):
     """Solving strategies available."""
@@ -40,6 +44,14 @@ class SolverMode(Enum):
 
 class UnifiedSpellingBeeSolver:
     """Unified spelling bee solver with configurable settings and GPU acceleration."""
+    
+    # Class constants for performance
+    MIN_WORD_LENGTH = 4
+    CONFIDENCE_BASE = 50.0
+    CONFIDENCE_COMMON_BONUS = 40.0
+    CONFIDENCE_LENGTH_BONUS = 10.0
+    CONFIDENCE_REJECTION_PENALTY = 30.0
+    CACHE_EXPIRY_SECONDS = 30 * 24 * 3600  # 30 days
     
     def __init__(self, mode: SolverMode = None, verbose: bool = None, config_path: str = None):
         """Initialize the unified solver.
@@ -53,7 +65,10 @@ class UnifiedSpellingBeeSolver:
         self.config = self._load_config(config_path or "solver_config.json")
         
         # Apply overrides from parameters
-        self.mode = SolverMode(mode.value if mode else self.config["solver"]["mode"])
+        if mode:
+            self.mode = mode
+        else:
+            self.mode = SolverMode(self.config["solver"]["mode"])
         self.verbose = verbose if verbose is not None else (self.config["logging"]["level"] in ["DEBUG", "INFO"])
         
         # Configure logging based on config and overrides
@@ -71,25 +86,26 @@ class UnifiedSpellingBeeSolver:
         if not self.config["acceleration"]["force_gpu_off"]:
             if self.mode in [SolverMode.PRODUCTION, SolverMode.CPU_FALLBACK, SolverMode.DEBUG_ALL]:
                 try:
-                    self.gpu_filter = GPUWordFilter()
-                    
-                    # Initialize CUDA-NLTK if enabled in config
-                    if self.config["acceleration"]["enable_cuda_nltk"]:
-                        try:
-                            from cuda_nltk import get_cuda_nltk_processor
-                            self.cuda_nltk = get_cuda_nltk_processor()
-                            self.logger.info("CUDA-NLTK processor initialized")
-                        except ImportError:
-                            self.logger.info("CUDA-NLTK not available")
-                    
-                    # Set GPU usage based on mode and config
-                    if self.mode != SolverMode.CPU_FALLBACK:
-                        self.use_gpu = True
-                    
-                except Exception:
-                    self.logger.warning("GPU filter initialization failed, falling back to CPU")
-        
-        
+                    if GPUWordFilter is not None:
+                        self.gpu_filter = GPUWordFilter()
+                        
+                        # Initialize CUDA-NLTK if enabled in config
+                        if self.config["acceleration"]["enable_cuda_nltk"]:
+                            try:
+                                from cuda_nltk import get_cuda_nltk_processor
+                                self.cuda_nltk = get_cuda_nltk_processor()
+                                self.logger.info("CUDA-NLTK processor initialized")
+                            except ImportError:
+                                self.logger.info("CUDA-NLTK not available")
+                        
+                        # Set GPU usage based on mode and config
+                        if self.mode != SolverMode.CPU_FALLBACK:
+                            self.use_gpu = True
+                    else:
+                        self.logger.warning("GPUWordFilter not available")
+                        
+                except (ImportError, RuntimeError, OSError) as e:
+                    self.logger.warning("GPU filter initialization failed, falling back to CPU: %s", e)        
         self.logger.info("Solver initialized: mode=%s, GPU=%s, CUDA-NLTK=%s", 
                         self.mode.value, self.use_gpu, self.cuda_nltk is not None)
         
@@ -134,12 +150,22 @@ class UnifiedSpellingBeeSolver:
         # Initialize read-only protection for canonical dictionaries
         self._protect_canonical_files()
         
-        # Validate dictionary integrity
-        if not self.validate_dictionary_integrity():
-            self.logger.warning("Some canonical dictionaries may be corrupted")
+        # Validate dictionary integrity (only for dictionaries we'll actually use)
+        if not self._validate_active_dictionaries():
+            self.logger.warning("Some active dictionaries may have issues")
     
-    def _load_config(self, config_path: str) -> dict:
-        """Load configuration from JSON file."""
+    def _load_config(self, config_path: str) -> Dict[str, Any]:
+        """Load configuration from JSON file.
+        
+        Args:
+            config_path: Path to the JSON configuration file
+            
+        Returns:
+            Configuration dictionary with all settings
+            
+        Raises:
+            None - failures are handled gracefully with defaults
+        """
         try:
             with open(config_path, 'r', encoding='utf-8') as f:
                 config = json.load(f)
@@ -153,8 +179,12 @@ class UnifiedSpellingBeeSolver:
             print(f"ERROR: Invalid JSON in config file {config_path}: {e}")
             return self._get_default_config()
     
-    def _get_default_config(self) -> dict:
-        """Return default configuration if file loading fails."""
+    def _get_default_config(self) -> Dict[str, Any]:
+        """Return default configuration if file loading fails.
+        
+        Returns:
+            Dictionary with sensible default configuration values
+        """
         return {
             "solver": {"mode": "production"},
             "acceleration": {"force_gpu_off": False, "enable_cuda_nltk": True, "gpu_batch_size": 1000},
@@ -175,7 +205,9 @@ class UnifiedSpellingBeeSolver:
         # Check for config overrides first
         if self.config["dictionaries"]["force_single_dictionary"]:
             single_path = self.config["dictionaries"]["force_single_dictionary"]
-            return (("Forced Single Dictionary", single_path),)
+            # Use a descriptive name based on the actual file
+            dict_name = f"Single Dictionary ({single_path.split('/')[-1]})"
+            return ((dict_name, single_path),)
         
         if self.config["dictionaries"]["include_only_dictionaries"]:
             # Filter to only specified dictionaries
@@ -185,7 +217,7 @@ class UnifiedSpellingBeeSolver:
         
         # Default mode-based selection
         if self.mode == SolverMode.DEBUG_SINGLE:
-            return (("American English", "/usr/share/dict/american-english"),)
+            selected_dicts = (("American English", "/usr/share/dict/american-english"),)
         elif self.mode == SolverMode.DEBUG_ALL:
             selected_dicts = self._CANONICAL_DICTIONARY_SOURCES
         else:  # PRODUCTION or CPU_FALLBACK
@@ -218,11 +250,11 @@ class UnifiedSpellingBeeSolver:
                 # This is expected for system files that we don't have permission to modify
                 self.logger.debug("Cannot set read-only on %s (likely system file): %s", dict_path, e)
     
-    def validate_dictionary_integrity(self) -> bool:
-        """Validate that canonical dictionaries haven't been corrupted or modified unexpectedly."""
+    def _validate_active_dictionaries(self) -> bool:
+        """Validate only the dictionaries that will actually be used."""
         integrity_issues = []
         
-        for dict_name, dict_path in self._CANONICAL_DICTIONARY_SOURCES:
+        for dict_name, dict_path in self.dictionary_sources:
             if dict_path.startswith(('http://', 'https://')):
                 continue  # Skip URLs
                 
@@ -248,10 +280,10 @@ class UnifiedSpellingBeeSolver:
                 integrity_issues.append(f"{dict_name}: Cannot read file - {e}")
         
         if integrity_issues:
-            self.logger.warning("Dictionary integrity issues found: %s", "; ".join(integrity_issues))
+            self.logger.warning("Active dictionary integrity issues: %s", "; ".join(integrity_issues))
             return False
         
-        self.logger.info("All canonical dictionaries passed integrity validation")
+        self.logger.debug("All active dictionaries passed integrity validation")
         return True
     
     def _load_google_common_words(self) -> Set[str]:
@@ -287,13 +319,12 @@ class UnifiedSpellingBeeSolver:
         except FileNotFoundError:
             self.logger.warning("Dictionary file not found: %s", filepath)
             return set()
-        except Exception as e:
+        except (UnicodeDecodeError, PermissionError, OSError) as e:
             self.logger.error("Error loading dictionary %s: %s", filepath, e)
             return set()
     
     def _download_dictionary(self, url: str) -> Set[str]:
         """Download and cache dictionary from URL."""
-        import requests
         from urllib.parse import urlparse
         
         # Create cache filename from URL
@@ -304,7 +335,7 @@ class UnifiedSpellingBeeSolver:
         # Check if cached version exists and is recent (less than 30 days old)
         if cache_path.exists():
             cache_age = time.time() - cache_path.stat().st_mtime
-            if cache_age < 30 * 24 * 3600:  # 30 days
+            if cache_age < self.CACHE_EXPIRY_SECONDS:
                 self.logger.info("Using cached dictionary: %s", cache_filename)
                 try:
                     with open(cache_path, 'r', encoding='utf-8') as f:
@@ -351,7 +382,7 @@ class UnifiedSpellingBeeSolver:
             self.logger.info("Downloaded and cached %d words from %s", len(words), url)
             return words
             
-        except Exception as e:
+        except (requests.RequestException, json.JSONDecodeError, OSError, IOError) as e:
             self.logger.error("Failed to download dictionary from %s: %s", url, e)
             return set()
     
@@ -362,7 +393,7 @@ class UnifiedSpellingBeeSolver:
         req_letter = required_letter.lower()
         
         # Check basic requirements
-        if len(word) < 4:
+        if len(word) < self.MIN_WORD_LENGTH:
             return False
         
         if req_letter not in word:
@@ -399,30 +430,60 @@ class UnifiedSpellingBeeSolver:
         return False
     
     def calculate_confidence(self, word: str) -> float:
-        """Calculate confidence score for a word."""
-        confidence = 50.0  # Base confidence
+        """Calculate confidence score for a word.
+        
+        Args:
+            word: The word to score
+            
+        Returns:
+            Confidence score between 0.0 and 100.0
+        """
+        confidence = self.CONFIDENCE_BASE
         
         # Google common words boost
         if word in self.google_common_words:
-            confidence += 40.0
+            confidence += self.CONFIDENCE_COMMON_BONUS
         
         # Length-based confidence
         if len(word) >= 6:
-            confidence += 10.0
+            confidence += self.CONFIDENCE_LENGTH_BONUS
         
         # Penalize likely rejected words
         if self.is_likely_nyt_rejected(word):
-            confidence -= 30.0
+            confidence -= self.CONFIDENCE_REJECTION_PENALTY
         
         return min(100.0, max(0.0, confidence))
     
     def solve_puzzle(self, letters: str, required_letter: str = None) -> List[Tuple[str, float]]:
-        """Streamlined solving function: GPU + 3 dictionaries + comprehensive filtering.
+        """Streamlined solving function: GPU + dictionaries + comprehensive filtering.
         
         Default flow: GPU acceleration ON → load dictionaries → filter unwanted words → solve → sort
+        
+        Args:
+            letters: The 7 letters for the spelling bee puzzle
+            required_letter: Letter that must appear in all words (defaults to first letter)
+            
+        Returns:
+            List of (word, confidence_score) tuples sorted by confidence and length
+            
+        Raises:
+            ValueError: If letters string is invalid length or contains non-alphabetic characters
         """
         if required_letter is None:
             required_letter = letters[0].lower()
+        
+        # Input validation
+        if not letters or len(letters) != 7:
+            raise ValueError(f"Letters must be exactly 7 characters, got {len(letters) if letters else 0}")
+        
+        if not letters.isalpha():
+            raise ValueError("Letters must contain only alphabetic characters")
+            
+        if not required_letter or len(required_letter) != 1:
+            raise ValueError("Required letter must be exactly 1 character")
+            
+        if required_letter.lower() not in letters.lower():
+            raise ValueError("Required letter must be one of the 7 puzzle letters")
         
         start_time = time.time()
         
@@ -598,7 +659,7 @@ class UnifiedSpellingBeeSolver:
             except KeyboardInterrupt:
                 print("\n👋 Goodbye!")
                 break
-            except Exception as e:
+            except (ValueError, TypeError, OSError) as e:
                 print(f"❌ Error: {e}")
 
 
@@ -615,8 +676,8 @@ def main():
     # Solver mode
     parser.add_argument('--mode', '-m', 
                       choices=[mode.value for mode in SolverMode],
-                      default=SolverMode.PRODUCTION.value,
-                      help='Solving strategy to use')
+                      default=None,
+                      help='Solving strategy to use (overrides config file)')
     
     # Options
     parser.add_argument('--verbose', '-v', action='store_true',
