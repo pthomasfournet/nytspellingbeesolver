@@ -316,3 +316,24 @@ class TestInputValidator:
         
         # Invalid: no required letter
         assert not validator.is_valid_word("point", letters_set, required_lower)
+
+    def test_validate_letters_with_duplicates(self):
+        """Test validation rejects duplicate letters (NYT Spelling Bee requires 7 UNIQUE letters)."""
+        validator = InputValidator()
+        
+        # Test 7 letters but with 1 duplicate (A appears twice)
+        with pytest.raises(ValueError, match="7 unique characters"):
+            validator.validate_letters("ACTIONA")
+        
+        # Test 7 letters but with 2 duplicates (A appears 3 times total)
+        with pytest.raises(ValueError, match="duplicate"):
+            validator.validate_letters("AACTION")
+        
+        # Test with consecutive duplicates
+        with pytest.raises(ValueError, match="duplicate"):
+            validator.validate_letters("AABCDEF")
+        
+        # Test valid 7 unique letters (should pass)
+        result = validator.validate_letters("CAPTION")
+        assert result == "caption"
+        assert len(set(result)) == 7  # Verify 7 unique letters

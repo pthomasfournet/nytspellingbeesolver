@@ -132,6 +132,20 @@ except ImportError:
     # Graceful fallback if GPU dependencies aren't available
     GPUWordFilter = None  # type: ignore
 
+# Import core components for dependency injection
+from .core import (
+    InputValidator,
+    DictionaryManager,
+    CandidateGenerator,
+    ConfidenceScorer,
+    ResultFormatter,
+    create_input_validator,
+    create_dictionary_manager,
+    create_candidate_generator,
+    create_confidence_scorer,
+    create_result_formatter,
+)
+
 
 class SolverMode(Enum):
     """Enumeration of available solving strategies.
@@ -227,6 +241,12 @@ class UnifiedSpellingBeeSolver:
         mode: Optional[SolverMode] = None,
         verbose: Optional[bool] = None,
         config_path: Optional[str] = None,
+        # Component dependencies for dependency injection
+        input_validator: Optional["InputValidator"] = None,
+        dictionary_manager: Optional["DictionaryManager"] = None,
+        candidate_generator: Optional["CandidateGenerator"] = None,
+        confidence_scorer: Optional["ConfidenceScorer"] = None,
+        result_formatter: Optional["ResultFormatter"] = None,
     ):
         """Initialize the unified solver.
 
@@ -234,6 +254,11 @@ class UnifiedSpellingBeeSolver:
             mode: Solving strategy to use (overrides config if specified)
             verbose: Enable verbose logging (overrides config if specified)
             config_path: Path to configuration JSON file
+            input_validator: Optional InputValidator instance for dependency injection
+            dictionary_manager: Optional DictionaryManager instance for dependency injection
+            candidate_generator: Optional CandidateGenerator instance for dependency injection
+            confidence_scorer: Optional ConfidenceScorer instance for dependency injection
+            result_formatter: Optional ResultFormatter instance for dependency injection
 
         Raises:
             TypeError: If parameters are of incorrect type
@@ -370,6 +395,18 @@ class UnifiedSpellingBeeSolver:
         # Validate dictionary integrity (only for dictionaries we'll actually use)
         if not self._validate_active_dictionaries():
             self.logger.warning("Some active dictionaries may have issues")
+
+        # Initialize core components for dependency injection
+        # If not provided, create default instances using factory functions
+        self.input_validator = input_validator or create_input_validator()
+        self.dictionary_manager = dictionary_manager or create_dictionary_manager(
+            logger=self.logger
+        )
+        self.candidate_generator = candidate_generator or create_candidate_generator()
+        self.confidence_scorer = confidence_scorer or create_confidence_scorer()
+        self.result_formatter = result_formatter or create_result_formatter()
+
+        self.logger.debug("Core components initialized (dependency injection)")
 
     def _load_config(self, config_path: str) -> Dict[str, Any]:
         """Load configuration from JSON file.
@@ -974,50 +1011,10 @@ class UnifiedSpellingBeeSolver:
             - The required letter must appear in every word
             - Proper nouns, abbreviations, and obscure words are filtered out
         """
-        if required_letter is None:
-            required_letter = letters[0].lower()
-
-        # Comprehensive input validation
-        if letters is None:
-            raise ValueError("Letters parameter cannot be None")
-
-        if not isinstance(letters, str):
-            raise TypeError(f"Letters must be a string, got {type(letters).__name__}")
-
-        if len(letters) != 7:
-            raise ValueError(
-                f"Letters must be exactly 7 characters, got {len(letters)}"
-            )
-
-        if not letters.isalpha():
-            invalid_chars = [c for c in letters if not c.isalpha()]
-            raise ValueError(
-                f"Letters must contain only alphabetic characters, found invalid: {invalid_chars}"
-            )
-
-        if required_letter is None:
-            raise ValueError("Required letter parameter cannot be None")
-
-        if not isinstance(required_letter, str):
-            raise TypeError(
-                f"Required letter must be a string, got {type(required_letter).__name__}"
-            )
-
-        if len(required_letter) != 1:
-            raise ValueError(
-                f"Required letter must be exactly 1 character, got {len(required_letter)}"
-            )
-
-        if not required_letter.isalpha():
-            raise ValueError(
-                f"Required letter must be alphabetic, got '{required_letter}'"
-            )
-
-        if required_letter.lower() not in letters.lower():
-            raise ValueError(
-                f"Required letter '{required_letter}' must be one of the 7 "
-                f"puzzle letters: {letters}"
-            )
+        # Use InputValidator component for validation and normalization
+        letters, required_letter, letters_set = self.input_validator.validate_and_normalize(
+            letters, required_letter
+        )
 
         start_time = time.time()
 
@@ -1093,46 +1090,43 @@ class UnifiedSpellingBeeSolver:
                 # Fall through to standard mode
 
         all_valid_words = {}  # word -> confidence
-        letters_set = set(letters.lower())
-        req_letter = required_letter.lower()
 
-        # Load dictionaries based on mode
+        # Load dictionaries based on mode and generate candidates
         for dict_name, dict_path in self.dictionary_sources:
             self.logger.info("Processing %s", dict_name)
 
-            dictionary = self.load_dictionary(dict_path)
+            # Use DictionaryManager to load dictionary
+            dictionary = self.dictionary_manager.load_dictionary(dict_path)
             if not dictionary:
                 continue
 
-            # Pre-filter candidates (basic validation)
-            candidates = [
-                word
-                for word in dictionary
-                if (
-                    len(word) >= 4
-                    and req_letter in word
-                    and set(word).issubset(letters_set)
-                )
-            ]
+            # Use CandidateGenerator to pre-filter candidates
+            candidates = self.candidate_generator.generate_candidates(
+                dictionary=dictionary,
+                letters=letters,
+                required_letter=required_letter,
+            )
 
             if not candidates:
                 continue
 
             self.logger.info("Found %d candidates from %s", len(candidates), dict_name)
 
-            # Apply comprehensive filtering pipeline
+            # Apply comprehensive filtering pipeline (GPU/NLP - stays in orchestrator)
             filtered_candidates = self._apply_comprehensive_filter(candidates)
 
-            # Final validation and scoring
+            # Use ConfidenceScorer to score candidates
+            # Note: We still use local is_likely_nyt_rejected for now
+            # as it's not yet fully integrated into ConfidenceScorer
             for word in filtered_candidates:
-                if (
-                    not self.is_likely_nyt_rejected(word)
-                    and word not in all_valid_words
-                ):
-                    confidence = self.calculate_confidence(word)
-                    all_valid_words[word] = confidence
+                if word not in all_valid_words:
+                    # Check if likely NYT rejected using local method
+                    if not self.is_likely_nyt_rejected(word):
+                        confidence = self.confidence_scorer.calculate_confidence(word)
+                        all_valid_words[word] = confidence
 
         # Convert to sorted list
+        # Words are already scored, just need to sort them
         valid_words = list(all_valid_words.items())
         valid_words.sort(key=lambda x: (-x[1], -len(x[0]), x[0]))
 
@@ -1234,9 +1228,8 @@ class UnifiedSpellingBeeSolver:
     ):
         """Print beautifully formatted puzzle results with comprehensive statistics.
 
-        Displays puzzle results in an organized, easy-to-read format with confidence
-        scores, word groupings, performance statistics, and special highlighting for
-        pangrams (words using all 7 letters).
+        This method delegates to the ResultFormatter component for all output formatting.
+        It provides backward compatibility while using the new component-based architecture.
 
         Args:
             results (List[Tuple[str, float]]): Sorted list of (word, confidence_score)
@@ -1260,93 +1253,19 @@ class UnifiedSpellingBeeSolver:
             - Length groups are clearly separated with headers
             - Performance timing information is included
 
-        Example Output::
-
-            ============================================================
-            UNIFIED SPELLING BEE SOLVER RESULTS
-            ============================================================
-            Letters: NACUOTP
-            Required: N
-            Mode: PRODUCTION
-            Total words found: 23
-            Solve time: 2.145s
-            GPU Acceleration: ON
-            ============================================================
-
-            🌟 PANGRAMS (1):
-              CAPTION        (95% confidence)
-
-            7-letter words (3):
-              caption    (95%)   catnip     (85%)   pontiac    (75%)
-
-            6-letter words (8):
-              action     (90%)   cation     (88%)   potion     (85%)
-              ...
-
         Note:
-            This method only displays results and does not modify the solver state.
-            For programmatic access to results, use the returned list from solve_puzzle()
-            directly rather than parsing the printed output.
+            This method delegates all formatting to ResultFormatter component,
+            which provides consistent formatting across different output modes.
         """
-        print(f"\n{'=' * 60}")
-        print("UNIFIED SPELLING BEE SOLVER RESULTS")
-        print(f"{'=' * 60}")
-        print(f"Letters: {letters.upper()}")
-        print(f"Required: {required_letter.upper()}")
-        print(f"Mode: {self.mode.value.upper()}")
-        print(f"Total words found: {len(results)}")
-        print(f"Solve time: {self.stats['solve_time']:.3f}s")
-
-        # Minimal performance stats by default
-        if self.gpu_filter:
-            gpu_available = self.gpu_filter.get_stats()["gpu_available"]
-            print(f"GPU Acceleration: {'ON' if gpu_available else 'OFF'}")
-
-        print(f"{'=' * 60}")
-
-        if results:
-            # Group by length
-            by_length: Dict[int, List[Tuple[str, float]]] = {}
-            pangrams = []
-
-            for word, confidence in results:
-                if len(set(word)) == 7:  # Pangram
-                    pangrams.append((word, confidence))
-
-                length = len(word)
-                if length not in by_length:
-                    by_length[length] = []
-                by_length[length].append((word, confidence))
-
-            # Show pangrams first
-            if pangrams:
-                print(f"\n🌟 PANGRAMS ({len(pangrams)}):")
-                for word, confidence in pangrams:
-                    print(f"  {word.upper():<20} ({confidence:.0f}% confidence)")
-
-            # Print by length groups
-            for length in sorted(by_length.keys(), reverse=True):
-                words_of_length = by_length[length]
-                print(f"\n{length}-letter words ({len(words_of_length)}):")
-
-                # Print in columns with confidence
-                for i in range(0, len(words_of_length), 3):
-                    row = words_of_length[i : i + 3]
-                    line = ""
-                    for word, confidence in row:
-                        line += f"{word:<15} ({confidence:.0f}%)  "
-                    print(f"  {line}")
-
-        print(f"\n{'=' * 60}")
-
-        # Verbose GPU stats only if verbose mode enabled
-        if self.verbose and self.gpu_filter:
-            gpu_stats = self.gpu_filter.get_stats()
-            print("DETAILED GPU STATS:")
-            print(f"  GPU Device: {gpu_stats['gpu_name']}")
-            print(f"  Cache Hit Rate: {gpu_stats['cache_hit_rate']:.1%}")
-            print(f"  GPU Batches: {gpu_stats['gpu_batches_processed']}")
-            print(f"{'=' * 60}")
+        # Delegate to ResultFormatter component
+        # ResultFormatter will handle all formatting based on its configuration
+        self.result_formatter.print_results(
+            results=results,
+            letters=letters,
+            required_letter=required_letter,
+            solve_time=self.stats.get("solve_time"),
+            mode=self.mode.value.upper()
+        )
 
     def interactive_mode(self):
         """Start an interactive puzzle solving session with user prompts.

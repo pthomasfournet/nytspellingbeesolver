@@ -5,9 +5,14 @@ This module handles all validation logic for NYT Spelling Bee puzzle inputs,
 following the Single Responsibility Principle by separating validation concerns
 from solving logic.
 
+Simplified Rules (NYT Spelling Bee Standard):
+- Puzzle letters: Exactly 7 UNIQUE characters (a-z only, case-insensitive)
+- Center letter: Exactly 1 character (a-z only, must be one of the 7 puzzle letters)
+- Words: Minimum 4 letters, must contain center letter, only use puzzle letters
+
 Responsibilities:
-- Validate puzzle letters (7 alphabetic characters)
-- Validate required letter (1 alphabetic character in puzzle letters)
+- Validate puzzle letters (7 unique alphabetic characters, no duplicates)
+- Validate required/center letter (1 alphabetic character in puzzle letters)
 - Validate individual words against puzzle rules
 - Normalize inputs (lowercase conversion, whitespace handling)
 """
@@ -32,6 +37,11 @@ class InputValidator:
         """
         Validate and normalize puzzle letters.
         
+        Simplified rules (NYT Spelling Bee standard):
+        - Must be exactly 7 characters
+        - Only a-z letters (case-insensitive)
+        - Must be 7 UNIQUE letters (no duplicates)
+        
         Args:
             letters: The 7 puzzle letters
             
@@ -40,7 +50,7 @@ class InputValidator:
             
         Raises:
             TypeError: If letters is not a string
-            ValueError: If letters is invalid (wrong length, non-alphabetic)
+            ValueError: If letters is invalid (wrong length, non-alphabetic, duplicates)
         """
         # Type validation
         if letters is None:
@@ -56,25 +66,41 @@ class InputValidator:
                 f"got {len(letters)}"
             )
         
-        # Character validation
+        # Character validation - ONLY a-z allowed
         if not letters.isalpha():
             invalid_chars = [c for c in letters if not c.isalpha()]
             raise ValueError(
-                f"Letters must contain only alphabetic characters, "
+                f"Letters must contain only alphabetic characters (a-z), "
                 f"found invalid: {invalid_chars}"
             )
         
-        return letters.lower()
+        letters_lower = letters.lower()
+        
+        # Uniqueness validation - NYT Spelling Bee always has 7 UNIQUE letters
+        unique_letters = set(letters_lower)
+        if len(unique_letters) != self.PUZZLE_LETTER_COUNT:
+            duplicate_count = len(letters_lower) - len(unique_letters)
+            raise ValueError(
+                f"Letters must be 7 unique characters (no duplicates), "
+                f"found {duplicate_count} duplicate(s) in '{letters}'"
+            )
+        
+        return letters_lower
     
     def validate_required_letter(
         self, required_letter: str, letters: str
     ) -> str:
         """
-        Validate and normalize required letter.
+        Validate and normalize required letter (center letter).
+        
+        Simplified rules:
+        - Must be exactly 1 character
+        - Only a-z letters (case-insensitive)
+        - Must be one of the 7 puzzle letters
         
         Args:
-            required_letter: The required letter
-            letters: The puzzle letters (already validated)
+            required_letter: The required/center letter
+            letters: The puzzle letters (already validated and lowercase)
             
         Returns:
             Normalized required letter (lowercase)
@@ -92,27 +118,27 @@ class InputValidator:
                 f"Required letter must be a string, got {type(required_letter).__name__}"
             )
         
-        # Length validation
+        # Length validation - must be exactly 1 character
         if len(required_letter) != self.REQUIRED_LETTER_COUNT:
             raise ValueError(
                 f"Required letter must be exactly {self.REQUIRED_LETTER_COUNT} character, "
                 f"got {len(required_letter)}"
             )
         
-        # Character validation
+        # Character validation - ONLY a-z allowed
         if not required_letter.isalpha():
             raise ValueError(
-                f"Required letter must be alphabetic: '{required_letter}'"
+                f"Required letter must be alphabetic (a-z): '{required_letter}'"
             )
         
-        # Check it's in puzzle letters
         required_lower = required_letter.lower()
-        letters_lower = letters.lower()
+        letters_lower = letters.lower()  # Handle case where letters isn't already lowercase
         
+        # Must be one of the 7 puzzle letters
         if required_lower not in letters_lower:
             raise ValueError(
                 f"Required letter '{required_letter}' must be one of the "
-                f"{self.PUZZLE_LETTER_COUNT} puzzle letters: {letters}"
+                f"puzzle letters: {letters}"
             )
         
         return required_lower
@@ -151,6 +177,103 @@ class InputValidator:
         letters_set = set(letters_lower)
         
         return letters_lower, required_lower, letters_set
+    
+    def validate_puzzle(
+        self, center_letter: str, other_letters: str
+    ) -> Tuple[str, str, Set[str]]:
+        """
+        Validate and normalize puzzle using the cleaner API.
+        
+        This is the preferred API that matches NYT Spelling Bee design:
+        - 1 center letter (required in all words)
+        - 6 other letters (surrounding the center)
+        
+        This design makes it IMPOSSIBLE to create invalid puzzles where
+        the center letter appears multiple times in the 7-letter set.
+        
+        Args:
+            center_letter: The center/required letter (1 character, a-z)
+            other_letters: The 6 surrounding letters (6 unique characters, a-z,
+                must NOT contain the center letter)
+            
+        Returns:
+            Tuple of (all_letters_lower, center_lower, letters_set)
+            where all_letters_lower = center + other_letters
+            
+        Raises:
+            TypeError: If inputs are not strings
+            ValueError: If inputs are invalid
+            
+        Example:
+            >>> validator = InputValidator()
+            >>> all_letters, center, letter_set = validator.validate_puzzle('N', 'ACUOTP')
+            >>> print(all_letters)  # 'nacuotp'
+            >>> print(center)        # 'n'
+            >>> print(len(letter_set))  # 7
+        """
+        # Validate center letter
+        if center_letter is None:
+            raise ValueError("Center letter parameter cannot be None")
+        
+        if not isinstance(center_letter, str):
+            raise TypeError(
+                f"Center letter must be a string, got {type(center_letter).__name__}"
+            )
+        
+        if len(center_letter) != 1:
+            raise ValueError(
+                f"Center letter must be exactly 1 character, got {len(center_letter)}"
+            )
+        
+        if not center_letter.isalpha():
+            raise ValueError(
+                f"Center letter must be alphabetic (a-z): '{center_letter}'"
+            )
+        
+        center_lower = center_letter.lower()
+        
+        # Validate other letters
+        if other_letters is None:
+            raise ValueError("Other letters parameter cannot be None")
+        
+        if not isinstance(other_letters, str):
+            raise TypeError(
+                f"Other letters must be a string, got {type(other_letters).__name__}"
+            )
+        
+        if len(other_letters) != 6:
+            raise ValueError(
+                f"Other letters must be exactly 6 characters, got {len(other_letters)}"
+            )
+        
+        if not other_letters.isalpha():
+            raise ValueError(
+                f"Other letters must contain only alphabetic characters (a-z), "
+                f"found invalid: {[c for c in other_letters if not c.isalpha()]}"
+            )
+        
+        other_lower = other_letters.lower()
+        
+        # Check that other letters are unique (no duplicates)
+        if len(set(other_lower)) != 6:
+            duplicate_count = 6 - len(set(other_lower))
+            raise ValueError(
+                f"Other letters must be 6 unique characters (no duplicates), "
+                f"found {duplicate_count} duplicate(s) in '{other_letters}'"
+            )
+        
+        # Check that center letter is NOT in other letters
+        if center_lower in other_lower:
+            raise ValueError(
+                f"Center letter '{center_letter}' must NOT appear in other letters '{other_letters}'. "
+                f"The center letter should be separate from the 6 surrounding letters."
+            )
+        
+        # Combine into full 7-letter set
+        all_letters_lower = center_lower + other_lower
+        letters_set = set(all_letters_lower)
+        
+        return all_letters_lower, center_lower, letters_set
     
     def is_valid_word(
         self,
