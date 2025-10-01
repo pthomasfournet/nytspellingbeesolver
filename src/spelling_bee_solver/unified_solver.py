@@ -245,14 +245,12 @@ class UnifiedSpellingBeeSolver:
             )
 
         if verbose is not None and not isinstance(verbose, bool):
-            raise TypeError(
-                f"Verbose must be a boolean, got {
-                    type(verbose).__name__}")
+            raise TypeError(f"Verbose must be a boolean, got {type(verbose).__name__}")
 
         if config_path is not None and not isinstance(config_path, str):
             raise TypeError(
-                f"Config path must be a string, got {
-                    type(config_path).__name__}")
+                f"Config path must be a string, got {type(config_path).__name__}"
+            )
 
         # Load configuration first (with minimal logging)
         self.config = self._load_config(config_path or "solver_config.json")
@@ -295,12 +293,10 @@ class UnifiedSpellingBeeSolver:
                         # Initialize CUDA-NLTK if enabled in config
                         if self.config["acceleration"]["enable_cuda_nltk"]:
                             try:
-                                from .gpu.cuda_nltk import \
-                                    get_cuda_nltk_processor
+                                from .gpu.cuda_nltk import get_cuda_nltk_processor
 
                                 self.cuda_nltk = get_cuda_nltk_processor()
-                                self.logger.info(
-                                    "CUDA-NLTK processor initialized")
+                                self.logger.info("CUDA-NLTK processor initialized")
                             except ImportError:
                                 self.logger.info("CUDA-NLTK not available")
 
@@ -312,7 +308,8 @@ class UnifiedSpellingBeeSolver:
 
                 except (ImportError, RuntimeError, OSError) as e:
                     self.logger.warning(
-                        "GPU filter initialization failed, falling back to CPU: %s", e)
+                        "GPU filter initialization failed, falling back to CPU: %s", e
+                    )
         self.logger.info(
             "Solver initialized: mode=%s, GPU=%s, CUDA-NLTK=%s",
             self.mode.value,
@@ -326,14 +323,14 @@ class UnifiedSpellingBeeSolver:
         # Define core production dictionaries (3 high-quality sources)
         self._core_dictionaries = tuple(
             [
-                ("American English",
-                 "/usr/share/dict/american-english"),
-                ("Google 10K Common",
-                 "./google-10000-common.txt"),
-                ("English Words Alpha",
-                 "https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt",
-                 ),
-            ])
+                ("American English", "/usr/share/dict/american-english"),
+                ("Google 10K Common", "./google-10000-common.txt"),
+                (
+                    "English Words Alpha",
+                    "https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt",
+                ),
+            ]
+        )
 
         # Comprehensive dictionary sources for debug mode (READ-ONLY)
         self._canonical_dictionary_sources = tuple(
@@ -349,8 +346,7 @@ class UnifiedSpellingBeeSolver:
                 ("Comprehensive Words", "./comprehensive_words.txt"),
                 ("SOWPODS Scrabble", "./sowpods.txt"),
                 ("Scrabble Words", "./scrabble_words.txt"),
-                # Online repository dictionaries (download on demand, cached
-                # read-only)
+                # Online repository dictionaries (download on demand, cached read-only)
                 (
                     "English Words Alpha",
                     "https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt",
@@ -374,8 +370,7 @@ class UnifiedSpellingBeeSolver:
         # Initialize read-only protection for canonical dictionaries
         self._protect_canonical_files()
 
-        # Validate dictionary integrity (only for dictionaries we'll actually
-        # use)
+        # Validate dictionary integrity (only for dictionaries we'll actually use)
         if not self._validate_active_dictionaries():
             self.logger.warning("Some active dictionaries may have issues")
 
@@ -398,8 +393,7 @@ class UnifiedSpellingBeeSolver:
             print(f"INFO: Loaded configuration from {config_path}")
             return config
         except FileNotFoundError:
-            print(
-                f"WARNING: Config file {config_path} not found, using defaults")
+            print(f"WARNING: Config file {config_path} not found, using defaults")
             return self._get_default_config()
         except json.JSONDecodeError as e:
             print(f"ERROR: Invalid JSON in config file {config_path}: {e}")
@@ -529,13 +523,13 @@ class UnifiedSpellingBeeSolver:
                 self.config["dictionaries"]["include_only_dictionaries"]
             )
             all_dicts = self._canonical_dictionary_sources
-            return tuple((name, path)
-                         for name, path in all_dicts if name in included_names)
+            return tuple(
+                (name, path) for name, path in all_dicts if name in included_names
+            )
 
         # Default mode-based selection
         if self.mode == SolverMode.DEBUG_SINGLE:
-            selected_dicts = (
-                ("American English", "/usr/share/dict/american-english"),)
+            selected_dicts = (("American English", "/usr/share/dict/american-english"),)
         elif self.mode == SolverMode.DEBUG_ALL:
             selected_dicts = self._canonical_dictionary_sources
         else:  # PRODUCTION or CPU_FALLBACK
@@ -543,8 +537,7 @@ class UnifiedSpellingBeeSolver:
 
         # Apply exclusions if specified
         if self.config["dictionaries"]["exclude_dictionaries"]:
-            excluded_names = set(
-                self.config["dictionaries"]["exclude_dictionaries"])
+            excluded_names = set(self.config["dictionaries"]["exclude_dictionaries"])
             return tuple(
                 (name, path)
                 for name, path in selected_dicts
@@ -555,7 +548,7 @@ class UnifiedSpellingBeeSolver:
 
     def _protect_canonical_files(self):
         """Set read-only permissions on canonical dictionary files.
-
+        
         Prevents accidental modification of canonical dictionary files.
         """
 
@@ -571,14 +564,15 @@ class UnifiedSpellingBeeSolver:
                 # Set read-only permissions (remove write permissions)
                 current_mode = os.stat(dict_path).st_mode
                 read_only_mode = (
-                    current_mode & ~stat.S_IWUSR & ~stat.S_IWGRP & ~stat.S_IWOTH)
+                    current_mode & ~stat.S_IWUSR & ~stat.S_IWGRP & ~stat.S_IWOTH
+                )
                 os.chmod(dict_path, read_only_mode)
                 self.logger.debug("Set read-only protection on: %s", dict_path)
             except (OSError, PermissionError) as e:
-                # This is expected for system files that we don't have
-                # permission to modify
+                # This is expected for system files that we don't have permission to modify
                 self.logger.debug(
-                    "Cannot set read-only on %s (likely system file): %s", dict_path, e)
+                    "Cannot set read-only on %s (likely system file): %s", dict_path, e
+                )
 
     def _validate_active_dictionaries(self) -> bool:
         """Validate only the dictionaries that will actually be used."""
@@ -605,22 +599,21 @@ class UnifiedSpellingBeeSolver:
                 # Check if file is readable
                 with open(dict_path, "r", encoding="utf-8") as f:
                     first_lines = [f.readline().strip() for _ in range(5)]
-                    if not any(line and line.isalpha()
-                               for line in first_lines):
+                    if not any(line and line.isalpha() for line in first_lines):
                         integrity_issues.append(
-                            f"{dict_name}: No valid words found in first 5 lines")
+                            f"{dict_name}: No valid words found in first 5 lines"
+                        )
 
             except (OSError, UnicodeDecodeError) as e:
                 integrity_issues.append(f"{dict_name}: Cannot read file - {e}")
 
         if integrity_issues:
             self.logger.warning(
-                "Active dictionary integrity issues: %s",
-                "; ".join(integrity_issues))
+                "Active dictionary integrity issues: %s", "; ".join(integrity_issues)
+            )
             return False
 
-        self.logger.debug(
-            "All active dictionaries passed integrity validation")
+        self.logger.debug("All active dictionaries passed integrity validation")
         return True
 
     def _load_google_common_words(self) -> Set[str]:
@@ -680,8 +673,7 @@ class UnifiedSpellingBeeSolver:
                     "Loaded %d common words for confidence scoring", len(words)
                 )
             except IOError as e:
-                self.logger.warning(
-                    "Failed to load Google common words: %s", e)
+                self.logger.warning("Failed to load Google common words: %s", e)
 
         return words
 
@@ -700,9 +692,7 @@ class UnifiedSpellingBeeSolver:
         """
         # Input validation
         if not isinstance(filepath, str):
-            raise TypeError(
-                f"Filepath must be a string, got {
-                    type(filepath).__name__}")
+            raise TypeError(f"Filepath must be a string, got {type(filepath).__name__}")
 
         if not filepath or not filepath.strip():
             raise ValueError("Filepath cannot be empty or whitespace")
@@ -805,8 +795,7 @@ class UnifiedSpellingBeeSolver:
             f"cached_{parsed_url.netloc}_"
             f"{parsed_url.path.replace('/', '_').replace('.', '_')}.txt"
         )
-        cache_path = Path(__file__).parent / \
-            "word_filter_cache" / cache_filename
+        cache_path = Path(__file__).parent / "word_filter_cache" / cache_filename
 
         # Check if cached version exists and is recent (less than 30 days old)
         if cache_path.exists():
@@ -822,8 +811,7 @@ class UnifiedSpellingBeeSolver:
                         }
                     return words
                 except IOError as e:
-                    self.logger.warning(
-                        "Failed to read cached dictionary: %s", e)
+                    self.logger.warning("Failed to read cached dictionary: %s", e)
 
         # Download dictionary
         try:
@@ -865,15 +853,11 @@ class UnifiedSpellingBeeSolver:
                 for word in sorted(words):
                     f.write(f"{word}\n")
 
-            self.logger.info(
-                "Downloaded and cached %d words from %s",
-                len(words),
-                url)
+            self.logger.info("Downloaded and cached %d words from %s", len(words), url)
             return words
 
         except (requests.RequestException, json.JSONDecodeError, OSError, IOError) as e:
-            self.logger.error(
-                "Failed to download dictionary from %s: %s", url, e)
+            self.logger.error("Failed to download dictionary from %s: %s", url, e)
             return set()
 
     def is_valid_word_basic(
@@ -895,17 +879,13 @@ class UnifiedSpellingBeeSolver:
         """
         # Input validation
         if not isinstance(word, str):
-            raise TypeError(
-                f"Word must be a string, got {
-                    type(word).__name__}")
+            raise TypeError(f"Word must be a string, got {type(word).__name__}")
         if not isinstance(letters, str):
-            raise TypeError(
-                f"Letters must be a string, got {
-                    type(letters).__name__}")
+            raise TypeError(f"Letters must be a string, got {type(letters).__name__}")
         if not isinstance(required_letter, str):
             raise TypeError(
-                f"Required letter must be a string, got {
-                    type(required_letter).__name__}")
+                f"Required letter must be a string, got {type(required_letter).__name__}"
+            )
 
         if not word.strip():
             raise ValueError("Word cannot be empty or whitespace")
@@ -915,18 +895,16 @@ class UnifiedSpellingBeeSolver:
             )
         if len(required_letter) != 1:
             raise ValueError(
-                f"Required letter must be exactly 1 character, got {
-                    len(required_letter)}")
+                f"Required letter must be exactly 1 character, got {len(required_letter)}"
+            )
         if not word.isalpha():
-            raise ValueError(
-                f"Word must contain only alphabetic characters: '{word}'")
+            raise ValueError(f"Word must contain only alphabetic characters: '{word}'")
         if not letters.isalpha():
             raise ValueError(
                 f"Letters must contain only alphabetic characters: '{letters}'"
             )
         if not required_letter.isalpha():
-            raise ValueError(
-                f"Required letter must be alphabetic: '{required_letter}'")
+            raise ValueError(f"Required letter must be alphabetic: '{required_letter}'")
 
         word = word.lower()
         letters_set = set(letters.lower())
@@ -948,99 +926,16 @@ class UnifiedSpellingBeeSolver:
     def is_likely_nyt_rejected(self, word: str) -> bool:
         """Determine if a word is likely to be rejected by NYT Spelling Bee editorial standards.
 
-        Implements heuristics based on analysis of historical NYT Spelling Bee puzzles
-        to identify words that are commonly rejected despite being valid dictionary entries.
-        The NYT editorial team applies subjective criteria for word appropriateness.
-
+        Uses the unified word filtering system for comprehensive and consistent filtering.
+        
         Args:
             word (str): Word to evaluate for potential rejection. Case insensitive.
 
         Returns:
             bool: True if the word is likely to be rejected, False if likely to be accepted.
-                Conservative approach: prefers false negatives over false positives.
-
-        Rejection Criteria:
-            Known Abbreviations:
-                - Corporate: "corp", "assn", "dept", "govt"
-                - Academic: "prof", "repr", "admin", "mgmt"
-                - Technical: "info", "tech", "spec"
-                - Geographic: "natl", "intl"
-
-            Pattern-Based Detection:
-                - Words ending in common abbreviation suffixes
-                - Very short words (4 letters) starting with uppercase
-                - Technical terminology and jargon
-                - Acronyms and initialisms
-
-        Algorithm Logic:
-            1. Convert word to lowercase for consistent processing
-            2. Check against known abbreviation dictionary
-            3. Apply pattern matching for abbreviation endings
-            4. Check for proper noun indicators (short + capitalized)
-            5. Return True if any rejection criteria match
-
-        Accuracy:
-            - True positive rate: ~85% (correctly identifies rejected words)
-            - False positive rate: ~5% (incorrectly rejects valid words)
-            - Based on analysis of 500+ historical puzzles
-
-        Examples:
-            Likely Rejected::
-
-                >>> solver.is_likely_nyt_rejected("corp")
-                True  # Known corporate abbreviation
-                >>> solver.is_likely_nyt_rejected("govt")
-                True  # Government abbreviation
-                >>> solver.is_likely_nyt_rejected("mgmt")
-                True  # Management abbreviation
-
-            Likely Accepted::
-
-                >>> solver.is_likely_nyt_rejected("apple")
-                False  # Common word
-                >>> solver.is_likely_nyt_rejected("computer")
-                False  # Technology word but not abbreviation
-                >>> solver.is_likely_nyt_rejected("wonderful")
-                False  # Descriptive word
-
-        Note:
-            This method provides guidance only - the NYT editorial team makes
-            final decisions based on additional subjective criteria including
-            current events, cultural sensitivity, and puzzle theme appropriateness.
         """
-        word = word.lower()
-
-        # Known abbreviations and patterns NYT typically rejects
-        abbreviations = {
-            "capt",
-            "dept",
-            "govt",
-            "corp",
-            "assn",
-            "natl",
-            "intl",
-            "prof",
-            "repr",
-            "mgmt",
-            "admin",
-            "info",
-            "tech",
-            "spec",
-        }
-
-        if word in abbreviations:
-            return True
-
-        # Words ending in common abbreviation patterns
-        abbrev_endings = ["mgmt", "corp", "assn", "dept"]
-        if any(word.endswith(ending) for ending in abbrev_endings):
-            return True
-
-        # Very short words that are often proper nouns
-        if len(word) == 4 and word[0].isupper():
-            return True
-
-        return False
+        from .unified_word_filtering import get_unified_filter
+        return get_unified_filter().is_likely_nyt_rejected(word)
 
     def calculate_confidence(self, word: str) -> float:
         """Calculate confidence score for a word.
@@ -1057,14 +952,11 @@ class UnifiedSpellingBeeSolver:
         """
         # Input validation
         if not isinstance(word, str):
-            raise TypeError(
-                f"Word must be a string, got {
-                    type(word).__name__}")
+            raise TypeError(f"Word must be a string, got {type(word).__name__}")
         if not word.strip():
             raise ValueError("Word cannot be empty or whitespace")
         if not word.isalpha():
-            raise ValueError(
-                f"Word must contain only alphabetic characters: '{word}'")
+            raise ValueError(f"Word must contain only alphabetic characters: '{word}'")
 
         word = word.lower()
         confidence = self.CONFIDENCE_BASE
@@ -1159,9 +1051,7 @@ class UnifiedSpellingBeeSolver:
             raise ValueError("Letters parameter cannot be None")
 
         if not isinstance(letters, str):
-            raise TypeError(
-                f"Letters must be a string, got {
-                    type(letters).__name__}")
+            raise TypeError(f"Letters must be a string, got {type(letters).__name__}")
 
         if len(letters) != 7:
             raise ValueError(
@@ -1171,20 +1061,21 @@ class UnifiedSpellingBeeSolver:
         if not letters.isalpha():
             invalid_chars = [c for c in letters if not c.isalpha()]
             raise ValueError(
-                f"Letters must contain only alphabetic characters, found invalid: {invalid_chars}")
+                f"Letters must contain only alphabetic characters, found invalid: {invalid_chars}"
+            )
 
         if required_letter is None:
             raise ValueError("Required letter parameter cannot be None")
 
         if not isinstance(required_letter, str):
             raise TypeError(
-                f"Required letter must be a string, got {
-                    type(required_letter).__name__}")
+                f"Required letter must be a string, got {type(required_letter).__name__}"
+            )
 
         if len(required_letter) != 1:
             raise ValueError(
-                f"Required letter must be exactly 1 character, got {
-                    len(required_letter)}")
+                f"Required letter must be exactly 1 character, got {len(required_letter)}"
+            )
 
         if not required_letter.isalpha():
             raise ValueError(
@@ -1232,10 +1123,7 @@ class UnifiedSpellingBeeSolver:
             if not candidates:
                 continue
 
-            self.logger.info(
-                "Found %d candidates from %s",
-                len(candidates),
-                dict_name)
+            self.logger.info("Found %d candidates from %s", len(candidates), dict_name)
 
             # Apply comprehensive filtering pipeline
             filtered_candidates = self._apply_comprehensive_filter(candidates)
@@ -1257,9 +1145,8 @@ class UnifiedSpellingBeeSolver:
         self.stats["solve_time"] = solve_time
 
         self.logger.info(
-            "Solving complete: %d words found in %.3fs",
-            len(valid_words),
-            solve_time)
+            "Solving complete: %d words found in %.3fs", len(valid_words), solve_time
+        )
 
         return valid_words
 
@@ -1317,23 +1204,21 @@ class UnifiedSpellingBeeSolver:
 
         # GPU acceleration if available and enabled
         if self.use_gpu and self.gpu_filter:
-            self.logger.info(
-                "Applying GPU filtering to %d candidates",
-                len(candidates))
+            self.logger.info("Applying GPU filtering to %d candidates", len(candidates))
             start_time = time.time()
-            candidates = self.gpu_filter.comprehensive_filter(candidates)
+            from .unified_word_filtering import get_unified_filter
+            unified_filter = get_unified_filter()
+            candidates = unified_filter.comprehensive_filter(candidates)
             filter_time = time.time() - start_time
             self.logger.info(
-                "GPU filtered to %d words in %.3fs",
-                len(candidates),
-                filter_time)
+                "GPU filtered to %d words in %.3fs", len(candidates), filter_time
+            )
 
         # CUDA-NLTK proper noun detection if available
         if self.cuda_nltk and candidates:
             self.logger.info("Applying CUDA-NLTK proper noun detection")
             start_time = time.time()
-            proper_noun_results = self.cuda_nltk.is_proper_noun_batch_cuda(
-                candidates)
+            proper_noun_results = self.cuda_nltk.is_proper_noun_batch_cuda(candidates)
             cuda_time = time.time() - start_time
 
             # Filter out proper nouns
@@ -1344,9 +1229,8 @@ class UnifiedSpellingBeeSolver:
             ]
 
             self.logger.info(
-                "CUDA-NLTK filtered to %d words in %.3fs",
-                len(candidates),
-                cuda_time)
+                "CUDA-NLTK filtered to %d words in %.3fs", len(candidates), cuda_time
+            )
 
         return candidates
 
@@ -1443,10 +1327,7 @@ class UnifiedSpellingBeeSolver:
             if pangrams:
                 print(f"\n🌟 PANGRAMS ({len(pangrams)}):")
                 for word, confidence in pangrams:
-                    print(
-                        f"  {
-                            word.upper():<20} ({
-                            confidence:.0f}% confidence)")
+                    print(f"  {word.upper():<20} ({confidence:.0f}% confidence)")
 
             # Print by length groups
             for length in sorted(by_length.keys(), reverse=True):
@@ -1455,7 +1336,7 @@ class UnifiedSpellingBeeSolver:
 
                 # Print in columns with confidence
                 for i in range(0, len(words_of_length), 3):
-                    row = words_of_length[i: i + 3]
+                    row = words_of_length[i : i + 3]
                     line = ""
                     for word, confidence in row:
                         line += f"{word:<15} ({confidence:.0f}%)  "
@@ -1540,7 +1421,8 @@ class UnifiedSpellingBeeSolver:
         while True:
             try:
                 letters = (
-                    input("\nEnter 7 letters (or 'quit' to exit): ").strip().lower())
+                    input("\nEnter 7 letters (or 'quit' to exit): ").strip().lower()
+                )
 
                 if letters == "quit":
                     break
@@ -1550,9 +1432,8 @@ class UnifiedSpellingBeeSolver:
                     continue
 
                 required = (
-                    input(
-                        f"Required letter (default: {
-                            letters[0]}): ").strip().lower())
+                    input(f"Required letter (default: {letters[0]}): ").strip().lower()
+                )
                 if not required:
                     required = letters[0]
 
@@ -1648,8 +1529,7 @@ def main():
         as a script. For programmatic use, instantiate UnifiedSpellingBeeSolver
         directly rather than calling main().
     """
-    parser = argparse.ArgumentParser(
-        description="Unified NYT Spelling Bee Solver")
+    parser = argparse.ArgumentParser(description="Unified NYT Spelling Bee Solver")
 
     # Puzzle input
     parser.add_argument(
@@ -1673,10 +1553,8 @@ def main():
         "--verbose", "-v", action="store_true", help="Enable verbose logging"
     )
     parser.add_argument(
-        "--interactive",
-        "-i",
-        action="store_true",
-        help="Start in interactive mode")
+        "--interactive", "-i", action="store_true", help="Start in interactive mode"
+    )
     parser.add_argument(
         "--config",
         "-c",
@@ -1700,9 +1578,7 @@ def main():
     # Command-line mode
     letters = args.letters.lower()
     if len(letters) != 7:
-        print(
-            f"❌ Error: Please provide exactly 7 letters (got {
-                len(letters)})")
+        print(f"❌ Error: Please provide exactly 7 letters (got {len(letters)})")
         return
 
     required_letter = args.required.lower() if args.required else letters[0]
