@@ -24,6 +24,17 @@ from pathlib import Path
 from typing import List, Set, Union, Tuple, Dict, Any, Optional
 import numpy as np
 
+# Import NLP abstraction layer
+try:
+    from .nlp import NLPProvider, SpacyNLPProvider, MockNLPProvider
+    NLP_ABSTRACTION_AVAILABLE = True
+except ImportError:
+    NLP_ABSTRACTION_AVAILABLE = False
+    NLPProvider = None
+    SpacyNLPProvider = None
+    MockNLPProvider = None
+
+# Backward compatibility: still import spaCy for legacy code
 try:
     import spacy
     from spacy.tokens import Doc, Token
@@ -51,23 +62,52 @@ logger = logging.getLogger(__name__)
 
 class IntelligentWordFilter:
     """
-    GPU-accelerated intelligent word filter using spaCy's linguistic intelligence.
+    GPU-accelerated intelligent word filter using NLP provider abstraction.
     
     This filter uses machine learning and linguistic analysis to identify words
     that NYT Spelling Bee would likely reject, without relying on hardcoded lists.
+    
+    Now uses the NLP provider abstraction (Dependency Inversion Principle) to
+    decouple from specific NLP backends like spaCy.
     """
     
-    def __init__(self, use_gpu: bool = True):
-        """Initialize the intelligent word filter with optional GPU acceleration."""
+    def __init__(self, nlp_provider: Optional[NLPProvider] = None, use_gpu: bool = True):
+        """
+        Initialize the intelligent word filter.
+        
+        Args:
+            nlp_provider: NLP provider to use. If None, defaults to SpacyNLPProvider
+                         for backward compatibility.
+            use_gpu: Whether to use GPU acceleration (used when creating default provider)
+        """
         self.use_gpu = use_gpu and GPU_AVAILABLE
+        
+        # Use provided NLP provider or create default (backward compatibility)
+        if nlp_provider is None:
+            if NLP_ABSTRACTION_AVAILABLE and SpacyNLPProvider is not None:
+                self.nlp_provider = SpacyNLPProvider(use_gpu=self.use_gpu)
+                logger.info("Using SpacyNLPProvider (default)")
+            else:
+                self.nlp_provider = None
+                logger.warning("NLP abstraction not available - using legacy spaCy")
+        else:
+            self.nlp_provider = nlp_provider
+            logger.info("Using custom NLP provider: %s", nlp_provider.get_name())
+        
+        # Legacy: keep self.nlp for backward compatibility
         self.nlp = None
         self.batch_size = 10000 if self.use_gpu else 1000
         
         # Pattern cache for performance
         self._pattern_cache = {}
         
-        # Initialize spaCy pipeline
-        self._initialize_nlp()
+        # Initialize spaCy pipeline (legacy path if no provider)
+        if self.nlp_provider is None:
+            self._initialize_nlp()
+        else:
+            # Check if provider is available
+            if not self.nlp_provider.is_available():
+                logger.warning("NLP provider not available, falling back to patterns")
         
         # Linguistic patterns for nonsense detection
         self._nonsense_patterns = [
@@ -78,6 +118,20 @@ class IntelligentWordFilter:
             re.compile(r'^[aeiou]{4,}$'),  # Too many vowels
             re.compile(r'[qx][^u]'),  # Q not followed by U, X in wrong position
         ]
+        
+        logger.info(f"✓ Intelligent word filter initialized (GPU: {self.use_gpu})")
+    
+    @property
+    def spacy_available(self) -> bool:
+        """Check if spaCy is available (backward compatibility)"""
+        if self.nlp_provider is not None:
+            return self.nlp_provider.is_available()
+        return self.nlp is not None
+    
+    @property
+    def gpu_available(self) -> bool:
+        """Check if GPU is available"""
+        return GPU_AVAILABLE
         
         logger.info(f"✓ Intelligent word filter initialized (GPU: {self.use_gpu})")
     
@@ -125,7 +179,7 @@ class IntelligentWordFilter:
     
     def is_proper_noun_intelligent(self, word: str, context: Optional[str] = None) -> bool:
         """
-        Intelligently detect proper nouns using spaCy's POS tagging and NER.
+        Intelligently detect proper nouns using NLP provider.
         
         Args:
             word: The word to analyze
@@ -134,10 +188,48 @@ class IntelligentWordFilter:
         Returns:
             True if the word is likely a proper noun
         """
-        if not self.nlp:
-            return self._is_proper_noun_fallback(word)
+        # Use NLP provider if available
+        if self.nlp_provider is not None and self.nlp_provider.is_available():
+            return self._is_proper_noun_with_provider(word, context)
         
-        # Use context if provided, otherwise create minimal context
+        # Legacy path: use direct spaCy
+        if self.nlp:
+            return self._is_proper_noun_legacy_spacy(word, context)
+        
+        # Fallback to pattern-based
+        return self._is_proper_noun_fallback(word)
+    
+    def _is_proper_noun_with_provider(self, word: str, context: Optional[str] = None) -> bool:
+        """Use NLP provider to detect proper nouns"""
+        try:
+            # Use context if provided, otherwise create minimal context
+            text = context if context else f"The {word} is here."
+            
+            # Process text with NLP provider
+            doc = self.nlp_provider.process_text(text)
+            
+            # Check if the word is a proper noun
+            if doc.has_proper_noun(word):
+                return True
+            
+            # Check named entity recognition
+            if doc.has_entity_type(word, ["PERSON", "ORG", "GPE", "NORP", "FACILITY", "LOC"]):
+                return True
+            
+            # Additional checks for capitalized words
+            if word[0].isupper() and len(word) > 1:
+                token = doc.find_token(word)
+                if token and token.is_oov:  # Out of vocabulary
+                    return True
+            
+            return False
+            
+        except Exception as e:
+            logger.warning(f"NLP provider analysis failed for '{word}': {e}")
+            return self._is_proper_noun_fallback(word)
+    
+    def _is_proper_noun_legacy_spacy(self, word: str, context: Optional[str] = None) -> bool:
+        """Legacy method using direct spaCy (for backward compatibility)"""
         text = context if context else f"The {word} is here."
         
         try:
@@ -518,7 +610,10 @@ class IntelligentWordFilter:
 # Factory Functions (Replaces Singleton Pattern)
 # ==============================================================================
 
-def create_word_filter(use_gpu: bool = True) -> IntelligentWordFilter:
+def create_word_filter(
+    nlp_provider: Optional[NLPProvider] = None,
+    use_gpu: bool = True
+) -> IntelligentWordFilter:
     """
     Factory function to create a new word filter instance.
     
@@ -526,17 +621,22 @@ def create_word_filter(use_gpu: bool = True) -> IntelligentWordFilter:
     testability, and flexibility.
     
     Args:
-        use_gpu: Whether to use GPU acceleration if available
+        nlp_provider: Optional NLP provider. If None, creates default SpacyNLPProvider
+        use_gpu: Whether to use GPU acceleration (used when creating default provider)
         
     Returns:
         A new IntelligentWordFilter instance
         
     Example:
+        >>> # Use default spaCy provider
         >>> filter1 = create_word_filter(use_gpu=True)
-        >>> filter2 = create_word_filter(use_gpu=False)
-        >>> # filter1 and filter2 are independent instances
+        >>> 
+        >>> # Use custom provider
+        >>> from spelling_bee_solver.nlp import MockNLPProvider
+        >>> mock_provider = MockNLPProvider()
+        >>> filter2 = create_word_filter(nlp_provider=mock_provider)
     """
-    return IntelligentWordFilter(use_gpu=use_gpu)
+    return IntelligentWordFilter(nlp_provider=nlp_provider, use_gpu=use_gpu)
 
 
 def get_filter_instance(use_gpu: bool = True) -> IntelligentWordFilter:
