@@ -5,27 +5,58 @@
       "label": "Run Solver",
       "type": "shell",
       "command": "python",
-      "args": ["unified_solver.py", "${input:centerLetter}", "${input:outerLetters}"],
+      "args": ["-m", "src.spelling_bee_solver.unified_solver", "${input:centerLetter}", "${input:outerLetters}"],
       "problemMatcher": [],
       "group": {
         "kind": "build",
         "isDefault": true
+      },
+      "options": {
+        "cwd": "${workspaceFolder}"
       }
     },
     {
-      "label": "Run Ruff",
+      "label": "Run Tests",
+      "type": "shell",
+      "command": "python",
+      "args": ["-m", "pytest", "tests/", "-v"],
+      "problemMatcher": [],
+      "group": "test",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "Run Coverage",
+      "type": "shell",
+      "command": "coverage",
+      "args": ["run", "-m", "pytest", "tests/", "&&", "coverage", "report"],
+      "problemMatcher": [],
+      "group": "test",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "Run Ruff Check",
       "type": "shell",
       "command": "ruff",
-      "args": ["check", "unified_solver.py"],
+      "args": ["check", "src/", "tests/"],
       "problemMatcher": [],
-      "group": "test"
+      "group": "test",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
     },
     {
       "label": "Fix with Ruff",
       "type": "shell",
       "command": "ruff",
-      "args": ["check", "--fix", "unified_solver.py"],
-      "problemMatcher": []
+      "args": ["check", "--fix", "src/", "tests/"],
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
     }
   ],
   "inputs": [
