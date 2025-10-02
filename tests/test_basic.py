@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Simplified test runner for code coverage analysis.
+Basic tests with real solver and dictionaries.
 """
 
 import pytest
@@ -8,76 +8,92 @@ import pytest
 
 def test_basic_imports():
     """Test that all modules can be imported."""
+    print("\n=== Testing Module Imports ===")
+
+    from src.spelling_bee_solver.unified_solver import UnifiedSpellingBeeSolver
+    print("✓ unified_solver imported")
+
+    from src.spelling_bee_solver.word_filtering import is_likely_nyt_rejected
+    print("✓ word_filtering imported")
+
+    # GPU components (may fail on systems without GPU)
     try:
-        print("Testing imports...")
-
-        # Test unified solver
-        print("✓ unified_solver imported")
-
-        # Test word filtering
-        print("✓ word_filtering imported")
-
-        # Test GPU components (may fail on systems without GPU)
-        try:
-            print("✓ gpu_word_filtering imported")
-        except Exception as e:
-            print(f"⚠ gpu_word_filtering: {e}")
-
-        try:
-            print("✓ gpu_puzzle_solver imported")
-        except Exception as e:
-            print(f"⚠ gpu_puzzle_solver: {e}")
-
-        try:
-            print("✓ cuda_nltk imported")
-        except Exception as e:
-            print(f"⚠ cuda_nltk: {e}")
-
-        # All imports successful
-        assert True
+        from src.spelling_bee_solver.gpu.gpu_word_filtering import GPUWordFilter
+        print("✓ gpu_word_filtering imported")
     except Exception as e:
-        print(f"✗ Import test failed: {e}")
-        pytest.fail(f"Import test failed: {e}")
+        print(f"⚠ gpu_word_filtering: {e}")
+
+    try:
+        from src.spelling_bee_solver.gpu.gpu_puzzle_solver import GPUPuzzleSolver
+        print("✓ gpu_puzzle_solver imported")
+    except Exception as e:
+        print(f"⚠ gpu_puzzle_solver: {e}")
+
+    try:
+        from src.spelling_bee_solver.gpu.cuda_nltk import get_cuda_nltk_processor
+        print("✓ cuda_nltk imported")
+    except Exception as e:
+        print(f"⚠ cuda_nltk: {e}")
+
+    print("✅ All imports successful\n")
 
 
 def test_unified_solver():
     """Test unified solver functionality."""
-    try:
-        print("\nTesting unified solver...")
-        from src.spelling_bee_solver.unified_solver import (
-            UnifiedSpellingBeeSolver,
-        )
+    print("\n=== Testing Unified Solver ===")
+    from src.spelling_bee_solver.unified_solver import UnifiedSpellingBeeSolver
 
-        # Test initialization (unified mode - no mode parameter)
-        solver = UnifiedSpellingBeeSolver(verbose=False)
-        print("✓ Solver initialized")
+    # Test initialization (unified mode - no mode parameter)
+    solver = UnifiedSpellingBeeSolver(verbose=False)
+    print("✓ Solver initialized")
 
-        # Test puzzle solving
-        results = solver.solve_puzzle("NACUOTP", "N")
-        print(f"✓ Puzzle solved: {len(results)} words found")
+    # Verify solver configuration
+    assert hasattr(solver, 'DICTIONARIES'), "Should have DICTIONARIES attribute"
+    assert len(solver.DICTIONARIES) == 2, "Should have exactly 2 dictionaries"
 
-        assert len(results) >= 0, "Should return some results"
-    except Exception as e:
-        print(f"✗ Unified solver test failed: {e}")
-        pytest.fail(f"Unified solver test failed: {e}")
+    dict_names = [name for name, _ in solver.DICTIONARIES]
+    print(f"✓ Dictionaries configured: {dict_names}")
+    assert "Webster's Unabridged" in dict_names
+    assert "ASPELL American English" in dict_names
+
+    # Test puzzle solving
+    print("✓ Solving puzzle NACUOTP (required: N)...")
+    results = solver.solve_puzzle("NACUOTP", "N")
+    print(f"✓ Puzzle solved: {len(results)} words found")
+
+    if results:
+        # results is a list of (word, confidence) tuples
+        top_results = results[:10]
+        top_words = [word for word, conf in top_results]
+        print(f"✓ Top words: {top_words}")
+        for word, confidence in top_results[:3]:
+            print(f"   {word}: {confidence}% confidence")
+
+    assert len(results) >= 0, "Should return results"
+    print("✅ Unified solver test successful\n")
 
 
 def test_word_filtering():
     """Test word filtering functions."""
-    try:
-        print("\nTesting word filtering...")
-        from src.spelling_bee_solver.word_filtering import is_likely_nyt_rejected
+    print("\n=== Testing Word Filtering ===")
+    from src.spelling_bee_solver.word_filtering import is_likely_nyt_rejected
 
-        # Test rejection logic
-        rejected = is_likely_nyt_rejected("London")  # Should be rejected (proper noun)
-        accepted = is_likely_nyt_rejected("count")  # Should not be rejected
-        print(f"✓ Rejection filter: London={rejected}, count={accepted}")
+    test_cases = [
+        ("London", True, "proper noun"),
+        ("NASA", True, "acronym"),
+        ("count", False, "normal word"),
+        ("apple", False, "common word"),
+        ("cat", True, "too short"),
+    ]
 
-        assert rejected is True, "London should be rejected as proper noun"
-        assert accepted is False, "count should not be rejected"
-    except Exception as e:
-        print(f"✗ Word filtering test failed: {e}")
-        pytest.fail(f"Word filtering test failed: {e}")
+    print("Testing rejection logic:")
+    for word, expected, reason in test_cases:
+        result = is_likely_nyt_rejected(word)
+        status = "✓" if result == expected else "✗"
+        print(f"  {status} '{word}' ({reason}): expected={expected}, got={result}")
+        assert result == expected, f"'{word}' should {'be rejected' if expected else 'not be rejected'}"
+
+    print("✅ Word filtering test successful\n")
 
 
 if __name__ == "__main__":
