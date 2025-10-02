@@ -21,9 +21,9 @@ from ..constants import MIN_WORD_LENGTH
 class NYTRejectionFilter:
     """Filter for detecting words likely rejected by NYT Spelling Bee."""
 
-    # Rejection thresholds for blacklist
-    INSTANT_REJECT_THRESHOLD = 50  # Words rejected 50+ times = instant reject
-    LOW_CONFIDENCE_THRESHOLD = 10  # Words rejected 10+ times = suspicious
+    # Rejection thresholds for blacklist (data-driven from 2,615 puzzles)
+    INSTANT_REJECT_THRESHOLD = 10  # Words rejected 10+ times = instant reject (2,460 words)
+    LOW_CONFIDENCE_THRESHOLD = 5   # Words rejected 5+ times = suspicious (4,387 words)
 
     def __init__(self, nyt_rejection_blacklist: Optional[Dict[str, int]] = None):
         """Initialize the rejection filter with known proper nouns and foreign words.
@@ -39,16 +39,104 @@ class NYTRejectionFilter:
             self._load_nyt_blacklist()
 
         # Known proper nouns (people names, places) that appear in dictionaries lowercase
-        # This catches cases like "lloyd" which is a surname
+        # Comprehensive list + blacklist (threshold=10) for layered filtering
         self.known_proper_nouns = {
-            # Common surnames that appear in dictionaries
+            # Common surnames
             "lloyd", "louis", "martin", "mason", "grant", "banks", "chase",
             "ford", "dean", "frank", "jack", "miles", "scott", "lane",
-            # Place names
-            "loca", "lima", "java", "cairo", "boston", "austin", "madison",
-            "paris", "berlin", "london", "dublin", "orlando", "eugene",
-            # Common first names
+            "brown", "smith", "johnson", "williams", "jones", "garcia",
+
+            # Countries & Major Regions
+            "tanzania", "brazil", "france", "spain", "russia", "japan",
+            "china", "india", "egypt", "peru", "chile", "cuba", "haiti",
+            "kenya", "libya", "mali", "niger", "somalia", "uganda", "ghana",
+            "iraq", "iran", "syria", "yemen", "oman", "jordan", "qatar",
+            "nepal", "tibet", "burma", "laos", "vietnam", "korea",
+            "panama", "honduras", "nicaragua", "bolivia", "uruguay", "paraguay",
+            "algeria", "tunisia", "morocco", "sudan", "zambia", "zimbabwe",
+            "angola", "namibia", "botswana", "malawi", "rwanda", "senegal",
+
+            # US States & Territories
+            "alabama", "alaska", "arizona", "arkansas", "california", "colorado",
+            "connecticut", "delaware", "florida", "georgia", "hawaii", "idaho",
+            "illinois", "indiana", "iowa", "kansas", "kentucky", "louisiana",
+            "maine", "maryland", "massachusetts", "michigan", "minnesota",
+            "mississippi", "missouri", "montana", "nebraska", "nevada",
+            "ohio", "oklahoma", "oregon", "pennsylvania", "tennessee", "texas",
+            "utah", "vermont", "virginia", "washington", "wisconsin", "wyoming",
+            "guam", "samoa", "dakota", "carolina",
+
+            # Major Cities
+            "atlanta", "boston", "chicago", "dallas", "denver", "detroit",
+            "houston", "miami", "phoenix", "seattle", "portland", "austin",
+            "memphis", "nashville", "charlotte", "tampa", "orlando",
+            "baltimore", "philadelphia", "pittsburgh", "cleveland", "cincinnati",
+            "milwaukee", "minneapolis", "omaha", "wichita", "tulsa", "oakland",
+            "mesa", "raleigh", "durham", "lexington", "toledo", "buffalo",
+
+            # World Cities
+            "london", "paris", "berlin", "madrid", "rome", "athens", "vienna",
+            "prague", "warsaw", "budapest", "bucharest", "sofia", "zagreb",
+            "belgrade", "dublin", "edinburgh", "glasgow", "manchester",
+            "amsterdam", "brussels", "copenhagen", "stockholm", "oslo", "helsinki",
+            "moscow", "kiev", "minsk", "riga", "vilnius", "tallinn", "tbilisi",
+            "istanbul", "ankara", "tehran", "baghdad", "damascus", "beirut",
+            "jerusalem", "cairo", "tripoli", "tunis", "algiers", "rabat",
+            "nairobi", "lagos", "accra", "dakar", "addis", "harare", "lusaka",
+            "tokyo", "beijing", "seoul", "taipei", "bangkok", "manila", "jakarta",
+            "delhi", "mumbai", "karachi", "dhaka", "colombo", "kathmandu",
+            "lima", "bogota", "quito", "caracas", "havana", "santiago",
+            "buenos", "aires", "montevideo", "asuncion", "brasilia", "rio",
+
+            # Historical/Mythological Regions
+            "galatia", "anatolia", "iberia", "thrace", "macedonia", "illyria",
+            "phrygia", "lydia", "cappadocia", "cilicia", "bithynia",
+            "mesopotamia", "phoenicia", "judea", "galilee", "samaria",
+            "nubia", "carthage", "palmyra", "babylonia", "assyria",
+            "altai", "aztlan", "atlantis", "lemuria", "camelot", "shangri",
+
+            # Common First Names
             "john", "mary", "anna", "emma", "noah", "liam", "sophia",
+            "natalia", "anita", "tania", "tina", "nita", "maria", "julia",
+            "lucia", "elena", "isabel", "rosa", "carmen", "ana", "eva",
+            "sara", "laura", "paula", "diana", "monica", "claudia", "andrea",
+            "michael", "david", "james", "robert", "william", "richard",
+            "joseph", "thomas", "charles", "daniel", "matthew", "anthony",
+            "mark", "donald", "steven", "paul", "andrew", "joshua", "brian",
+            "ryan", "jason", "justin", "kevin", "eric", "jacob", "aaron",
+
+            # Famous People (often in dictionaries)
+            "attila", "caesar", "nero", "brutus", "cicero", "homer", "plato",
+            "aristotle", "socrates", "pythagoras", "euclid", "archimedes",
+            "ptolemy", "cleopatra", "nefertiti", "ramses", "tutankhamun",
+            "atalanta", "athena", "apollo", "zeus", "hera", "artemis",
+            "hercules", "achilles", "odysseus", "perseus", "theseus",
+
+            # Constellations & Astronomy
+            "antlia", "aquila", "aries", "cygnus", "draco", "hydra", "leo",
+            "libra", "lyra", "orion", "phoenix", "pisces", "taurus", "virgo",
+            "ursa", "vega", "sirius", "rigel", "betelgeuse", "polaris",
+
+            # Demonyms (nationalities/ethnicities)
+            "tanzanian", "brazilian", "french", "spanish", "russian", "japanese",
+            "chinese", "indian", "italian", "german", "british", "english",
+            "irish", "scottish", "welsh", "dutch", "belgian", "swiss",
+            "austrian", "czech", "polish", "romanian", "hungarian", "croatian",
+            "serbian", "greek", "turkish", "persian", "arab", "kurdish",
+            "egyptian", "moroccan", "algerian", "tunisian", "libyan",
+            "kenyan", "nigerian", "ethiopian", "somalian", "ugandan", "ghanaian",
+            "korean", "vietnamese", "thai", "filipino", "indonesian", "malaysian",
+            "pakistani", "bangladeshi", "afghan", "nepalese", "tibetan",
+            "mexican", "cuban", "puerto", "rican", "haitian", "jamaican",
+            "colombian", "venezuelan", "peruvian", "chilean", "argentinian",
+            "altaian", "galatian", "thracian", "macedonian", "spartan", "athenian",
+            "roman", "etruscan", "carthaginian", "phoenician", "babylonian",
+
+            # Brands/Companies (sometimes in dictionaries)
+            "alliant", "boeing", "ford", "tesla", "google", "amazon",
+
+            # Place name components (often parts of compound proper nouns)
+            "loca", "lima", "java", "cairo", "madison", "eugene",
         }
 
         # Known foreign words (non-English) that should be rejected
@@ -248,6 +336,32 @@ class NYTRejectionFilter:
         """
         word_lower = word.lower().strip()
         return self.nyt_rejection_blacklist.get(word_lower, 0)
+
+    def get_confidence_penalty(self, word: str) -> float:
+        """Get confidence penalty based on blacklist rejection count.
+
+        Tiered system:
+        - 10+ rejections: Word is rejected outright (penalty not used)
+        - 5-9 rejections: 40% confidence penalty (suspicious)
+        - 3-4 rejections: 20% confidence penalty (questionable)
+        - 0-2 rejections: No penalty
+
+        Args:
+            word: Word to check
+
+        Returns:
+            Confidence penalty multiplier (0.0 to 1.0)
+        """
+        rejection_count = self.get_blacklist_count(word)
+
+        if rejection_count >= self.INSTANT_REJECT_THRESHOLD:
+            return 0.0  # Rejected, but this shouldn't be called
+        elif rejection_count >= self.LOW_CONFIDENCE_THRESHOLD:
+            return 0.6  # 40% penalty for 5-9 rejections
+        elif rejection_count >= 3:
+            return 0.8  # 20% penalty for 3-4 rejections
+        else:
+            return 1.0  # No penalty
 
     def should_reject(self, word: str) -> bool:
         """Check if word should be rejected (NYT likely won't accept it).

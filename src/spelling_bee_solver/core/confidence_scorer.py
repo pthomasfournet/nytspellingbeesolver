@@ -190,6 +190,13 @@ class ConfidenceScorer:
     def judge_filter(self, word: str) -> float:
         """Filter Judge: Passes NYT rejection criteria?
 
+        Tiered scoring based on blacklist rejection count:
+        - 10+ rejections: Rejected (0.0 score)
+        - 5-9 rejections: 40% penalty (57.0 score)
+        - 3-4 rejections: 20% penalty (76.0 score)
+        - Archaic words: Low confidence (30.0 score)
+        - Clean: Full score (95.0)
+
         Args:
             word: Word to judge
 
@@ -201,7 +208,7 @@ class ConfidenceScorer:
 
         word_lower = word.lower()
 
-        # Check if rejected
+        # Check if rejected (10+ rejections or heuristic rejection)
         if self.nyt_filter.should_reject(word_lower):
             return 0.0  # Complete rejection
 
@@ -209,8 +216,19 @@ class ConfidenceScorer:
         if self.nyt_filter.is_archaic(word_lower):
             return 30.0  # Low confidence for archaic words
 
-        # Passes all checks
-        return 95.0
+        # Apply tiered confidence penalty based on blacklist rejection count
+        base_score = 95.0
+        penalty_multiplier = self.nyt_filter.get_confidence_penalty(word_lower)
+        final_score = base_score * penalty_multiplier
+
+        # Log penalty if applied
+        if penalty_multiplier < 1.0:
+            rejection_count = self.nyt_filter.get_blacklist_count(word_lower)
+            self.logger.debug(
+                f"'{word_lower}': {rejection_count} NYT rejections → {int((1-penalty_multiplier)*100)}% penalty (score: {final_score:.1f})"
+            )
+
+        return final_score
 
     def judge_nyt_frequency(self, word: str) -> float:
         """NYT Frequency Judge: Word appears in NYT Spelling Bee history?
