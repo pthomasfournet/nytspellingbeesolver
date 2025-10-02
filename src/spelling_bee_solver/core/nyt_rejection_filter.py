@@ -143,10 +143,14 @@ class NYTRejectionFilter:
         self.known_foreign_words = {
             # Spanish
             "loca", "loco", "casa", "mesa", "taco", "salsa",
+            "gitana",  # gypsy woman
+            "tiza",    # chalk
             # French
             "avec", "sans", "tres", "mais", "pour",
             # Italian
             "ciao", "bella", "pasta", "pizza",
+            "taglia",  # cut/size
+            "intagli", # engravings (plural of intaglio)
             # German
             "uber", "auto",
         }
