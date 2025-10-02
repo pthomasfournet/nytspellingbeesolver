@@ -15,11 +15,12 @@ import time
 from pathlib import Path
 from typing import List, Optional
 
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
+from starlette.types import Scope
 
 # Import our existing solver (zero code duplication!)
 from src.spelling_bee_solver.unified_solver import UnifiedSpellingBeeSolver
@@ -280,11 +281,22 @@ async def solve_puzzle(request: PuzzleRequest):
 
 # === Static File Serving ===
 
+class NoCacheStaticFiles(StaticFiles):
+    """StaticFiles with no-cache headers for development."""
+
+    async def get_response(self, path: str, scope: Scope) -> Response:
+        response = await super().get_response(path, scope)
+        # Prevent browser caching during development
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        return response
+
 # Mount static directory (for PWA frontend)
 static_dir = Path(__file__).parent / "static"
 if static_dir.exists():
-    app.mount("/", StaticFiles(directory=str(static_dir), html=True), name="static")
-    logger.info("✓ Serving static files from: %s", static_dir)
+    app.mount("/", NoCacheStaticFiles(directory=str(static_dir), html=True), name="static")
+    logger.info("✓ Serving static files from: %s (no-cache for dev)", static_dir)
 else:
     logger.warning("Static directory not found: %s", static_dir)
 
