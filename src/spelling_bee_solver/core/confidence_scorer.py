@@ -17,6 +17,8 @@ Like Olympics: Drop highest and lowest scores, average the middle judges.
 from typing import Set, Optional
 import logging
 
+from ..constants import MIN_WORD_LENGTH
+
 
 class ConfidenceScorer:
     """Multi-judge confidence scoring system."""
@@ -79,7 +81,7 @@ class ConfidenceScorer:
 
         # Length-based frequency estimation (longer words less common)
         # Most common words are 3-7 letters
-        if 4 <= len(word_lower) <= 7:
+        if MIN_WORD_LENGTH <= len(word_lower) <= 7:
             return 60.0
         elif 8 <= len(word_lower) <= 10:
             return 45.0

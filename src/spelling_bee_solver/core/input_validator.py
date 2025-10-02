@@ -19,6 +19,8 @@ Responsibilities:
 
 from typing import Tuple, Set
 
+from ..constants import PUZZLE_LETTER_COUNT, REQUIRED_LETTER_COUNT, MIN_WORD_LENGTH
+
 
 class InputValidator:
     """
@@ -27,12 +29,7 @@ class InputValidator:
     This class encapsulates all validation logic for puzzle parameters,
     ensuring consistent error handling and clear error messages.
     """
-    
-    # Constants for NYT Spelling Bee rules
-    PUZZLE_LETTER_COUNT = 7
-    REQUIRED_LETTER_COUNT = 1
-    MIN_WORD_LENGTH = 4
-    
+
     def validate_letters(self, letters: str) -> str:
         """
         Validate and normalize puzzle letters.
@@ -60,9 +57,9 @@ class InputValidator:
             raise TypeError(f"Letters must be a string, got {type(letters).__name__}")
         
         # Length validation
-        if len(letters) != self.PUZZLE_LETTER_COUNT:
+        if len(letters) != PUZZLE_LETTER_COUNT:
             raise ValueError(
-                f"Letters must be exactly {self.PUZZLE_LETTER_COUNT} characters, "
+                f"Letters must be exactly {PUZZLE_LETTER_COUNT} characters, "
                 f"got {len(letters)}"
             )
         
@@ -78,7 +75,7 @@ class InputValidator:
         
         # Uniqueness validation - NYT Spelling Bee always has 7 UNIQUE letters
         unique_letters = set(letters_lower)
-        if len(unique_letters) != self.PUZZLE_LETTER_COUNT:
+        if len(unique_letters) != PUZZLE_LETTER_COUNT:
             duplicate_count = len(letters_lower) - len(unique_letters)
             raise ValueError(
                 f"Letters must be 7 unique characters (no duplicates), "
@@ -119,9 +116,9 @@ class InputValidator:
             )
         
         # Length validation - must be exactly 1 character
-        if len(required_letter) != self.REQUIRED_LETTER_COUNT:
+        if len(required_letter) != REQUIRED_LETTER_COUNT:
             raise ValueError(
-                f"Required letter must be exactly {self.REQUIRED_LETTER_COUNT} character, "
+                f"Required letter must be exactly {REQUIRED_LETTER_COUNT} character, "
                 f"got {len(required_letter)}"
             )
         
@@ -317,7 +314,7 @@ class InputValidator:
         word_lower = word.lower()
         
         # Length check
-        if len(word_lower) < self.MIN_WORD_LENGTH:
+        if len(word_lower) < MIN_WORD_LENGTH:
             return False
         
         # Required letter check

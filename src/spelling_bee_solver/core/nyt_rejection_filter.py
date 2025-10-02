@@ -12,6 +12,8 @@ Detects words that NYT Spelling Bee typically rejects:
 from typing import Optional
 import logging
 
+from ..constants import MIN_WORD_LENGTH
+
 
 class NYTRejectionFilter:
     """Filter for detecting words likely rejected by NYT Spelling Bee."""
@@ -197,7 +199,7 @@ class NYTRejectionFilter:
         word_lower = word.lower().strip()
 
         # Length check
-        if len(word_lower) < 4:
+        if len(word_lower) < MIN_WORD_LENGTH:
             return True
 
         # Check all rejection criteria
@@ -233,7 +235,7 @@ class NYTRejectionFilter:
         """
         word_lower = word.lower().strip()
 
-        if len(word_lower) < 4:
+        if len(word_lower) < MIN_WORD_LENGTH:
             return "too_short"
 
         if self.is_proper_noun(word_lower):

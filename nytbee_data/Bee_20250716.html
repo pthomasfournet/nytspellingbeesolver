@@ -1,0 +1,2643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+    <meta name="description" content="Answers and analysis for the NYT Spelling Bee Puzzle. Updated daily.">
+
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-6RWHM9ZZEE"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-6RWHM9ZZEE');
+    </script>
+    
+    <title>Spelling Bee Answers</title>
+    <link
+    href="https://cdn.pydata.org/bokeh/release/bokeh-0.13.0.min.css"
+    rel="stylesheet" type="text/css">
+    <link
+    href="https://cdn.pydata.org/bokeh/release/bokeh-widgets-0.13.0.min.css"
+    rel="stylesheet" type="text/css">
+    <link
+    href="https://cdn.pydata.org/bokeh/release/bokeh-tables-0.13.0.min.css"
+    rel="stylesheet" type="text/css">
+    <script src="https://cdn.pydata.org/bokeh/release/bokeh-0.13.0.min.js"></script>
+    <script src="https://cdn.pydata.org/bokeh/release/bokeh-widgets-0.13.0.min.js"></script>
+    <script src="https://cdn.pydata.org/bokeh/release/bokeh-tables-0.13.0.min.js"></script>
+    <script>
+        function show_answers() {
+            var x = document.getElementById("main-answer-list");
+            var y = document.getElementById("definition-help");
+            x.style.display = "block";
+            y.style.display = "block";
+            var b = document.getElementById("answers-button");
+            b.style.display = "none";
+        }
+    </script>
+    <script>
+        function show_first_letter() {
+            var x = document.getElementById("first-letter-plot");
+            x.style.display = "block";
+            var b = document.getElementById("first-letter-pre");
+            b.style.display = "none";
+        }
+    </script>
+    <script>
+        function jump_to_page(date_in) {
+            if (date_in) {
+            let url_date = date_in.replaceAll('-','');
+            location.href = '/Bee_' + url_date + '.html';
+            }
+        }
+    </script>
+    <script>
+    function change_date() {
+        date_box = document.getElementById("date-selector");
+        jump_to_page(date_box.value);
+        }
+
+    function keypress_date(e) {
+        date_box = document.getElementById("date-selector");
+        date_box.removeEventListener("change", change_date)
+        if (e.keyCode == 13) {
+            jump_to_page(date_box.value);
+            }
+        }
+    window.addEventListener("DOMContentLoaded", (event) => {
+        date_box = document.getElementById("date-selector");
+        date_box.addEventListener("change", change_date);
+        date_box.addEventListener("keydown", keypress_date)
+         });
+    </script>
+    <script>
+    function show_definition(word) {
+        let word_div_id = "word-div-" + word;
+        let x = document.getElementById(word_div_id);
+        let d = document.getElementById("definition-container")
+        x.style.display = "block";
+        let a = document.getElementById("link-definition-" + word).getBoundingClientRect();
+        d.style.top = a.top + window.scrollY + "px"
+        d.style.left = a.left - 135 + window.scrollX + "px"
+        function close_definition(event) {
+                if (!x.contains(event.target)) {
+                    x.style.display = "none";
+                    document.removeEventListener('click', close_definition);
+                }
+        }
+
+        // Use setTimeout to delay the attachment of the click event listener
+        setTimeout(function () {
+            document.addEventListener('click', close_definition);
+        }, 0);
+    }
+    </script>
+
+    
+<script type="text/javascript">
+  (function() {
+    var fn = function() {
+      Bokeh.safely(function() {
+        (function(root) {
+          function embed_document(root) {
+            
+          var docs_json = '{"f4fba3f8-145b-4835-8645-704836d5cd1a":{"roots":{"references":[{"attributes":{},"id":"1021","type":"BasicTicker"},{"attributes":{"axis_label":"Word Length","formatter":{"id":"1050","type":"BasicTickFormatter"},"plot":{"id":"1005","subtype":"Figure","type":"Plot"},"ticker":{"id":"1016","type":"BasicTicker"}},"id":"1015","type":"LinearAxis"},{"attributes":{},"id":"1013","type":"LinearScale"},{"attributes":{"level":"glyph","plot":{"id":"1005","subtype":"Figure","type":"Plot"},"source":{"id":"1001","type":"ColumnDataSource"},"text":{"field":"barLabels"},"text_align":"center","text_color":{"value":"black"},"text_font_size":{"value":"9pt"},"text_font_style":"bold","x":{"field":"plotX"},"y":{"field":"plotY"}},"id":"1002","type":"LabelSet"},{"attributes":{"plot":{"id":"1005","subtype":"Figure","type":"Plot"},"ticker":{"id":"1016","type":"BasicTicker"}},"id":"1019","type":"Grid"},{"attributes":{},"id":"1011","type":"LinearScale"},{"attributes":{},"id":"1052","type":"BasicTickFormatter"},{"attributes":{},"id":"1054","type":"UnionRenderers"},{"attributes":{"fill_alpha":{"value":0.1},"fill_color":{"value":"#1f77b4"},"line_alpha":{"value":0.1},"line_color":{"value":"#1f77b4"},"top":{"field":"plotY"},"width":{"value":0.5833333333333334},"x":{"field":"plotX"}},"id":"1045","type":"VBar"},{"attributes":{"callback":null,"data":{"barLabels":[11,11,5,4,5,1],"color":["#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4"],"offset":[-15,-15,-15,-15,-15,-15],"plotX":{"__ndarray__":"BAAAAAUAAAAGAAAABwAAAAgAAAAJAAAA","dtype":"int32","shape":[6]},"plotY":{"__ndarray__":"bzBFPusG0z9vMEU+6wbTP8IU+awbTME/0LrBFPmsuz/CFPmsG0zBP9C6wRT5rJs/","dtype":"float64","shape":[6]},"words":[[" chew"," chic"," chin"," ghee"," hewn"," high"," inch"," nigh"," whee"," when"," whew"],[" cinch"," hence"," henge"," hinge"," neigh"," niche"," weigh"," wench"," which"," whine"," winch"],[" chichi"," heinie"," hewing"," whence"," whinge"],[" chewing"," hinging"," inching"," whining"],[" chinning"," cinching"," neighing"," weighing"," whinging"],[" whingeing"]]},"selected":{"id":"1055","type":"Selection"},"selection_policy":{"id":"1054","type":"UnionRenderers"}},"id":"1001","type":"ColumnDataSource"},{"attributes":{"callback":null,"end":0.3270270270270271},"id":"1048","type":"Range1d"},{"attributes":{"bottom_units":"screen","fill_alpha":{"value":0.5},"fill_color":{"value":"lightgrey"},"left_units":"screen","level":"overlay","line_alpha":{"value":1.0},"line_color":{"value":"black"},"line_dash":[4,4],"line_width":{"value":2},"plot":null,"render_mode":"css","right_units":"screen","top_units":"screen"},"id":"1033","type":"BoxAnnotation"},{"attributes":{"dimension":1,"plot":{"id":"1005","subtype":"Figure","type":"Plot"},"ticker":{"id":"1021","type":"BasicTicker"}},"id":"1024","type":"Grid"},{"attributes":{"callback":null},"id":"1007","type":"DataRange1d"},{"attributes":{"callback":null,"tooltips":[["words","@words"]]},"id":"1041","type":"HoverTool"},{"attributes":{},"id":"1050","type":"BasicTickFormatter"},{"attributes":{"source":{"id":"1001","type":"ColumnDataSource"}},"id":"1047","type":"CDSView"},{"attributes":{},"id":"1016","type":"BasicTicker"},{"attributes":{"plot":null,"text":"Length of Words in this Puzzle"},"id":"1004","type":"Title"},{"attributes":{},"id":"1055","type":"Selection"},{"attributes":{"data_source":{"id":"1001","type":"ColumnDataSource"},"glyph":{"id":"1044","type":"VBar"},"hover_glyph":null,"muted_glyph":null,"nonselection_glyph":{"id":"1045","type":"VBar"},"selection_glyph":null,"view":{"id":"1047","type":"CDSView"}},"id":"1046","type":"GlyphRenderer"},{"attributes":{"active_drag":"auto","active_inspect":"auto","active_multi":null,"active_scroll":"auto","active_tap":"auto","tools":[{"id":"1041","type":"HoverTool"}]},"id":"1031","type":"Toolbar"},{"attributes":{"fill_color":{"field":"color"},"line_color":{"field":"color"},"top":{"field":"plotY"},"width":{"value":0.5833333333333334},"x":{"field":"plotX"}},"id":"1044","type":"VBar"},{"attributes":{"axis_label":"Percent","formatter":{"id":"1052","type":"BasicTickFormatter"},"plot":{"id":"1005","subtype":"Figure","type":"Plot"},"ticker":{"id":"1021","type":"BasicTicker"}},"id":"1020","type":"LinearAxis"},{"attributes":{"below":[{"id":"1015","type":"LinearAxis"}],"left":[{"id":"1020","type":"LinearAxis"}],"plot_height":300,"plot_width":300,"renderers":[{"id":"1015","type":"LinearAxis"},{"id":"1019","type":"Grid"},{"id":"1020","type":"LinearAxis"},{"id":"1024","type":"Grid"},{"id":"1033","type":"BoxAnnotation"},{"id":"1046","type":"GlyphRenderer"},{"id":"1002","type":"LabelSet"}],"title":{"id":"1004","type":"Title"},"toolbar":{"id":"1031","type":"Toolbar"},"toolbar_location":null,"x_range":{"id":"1007","type":"DataRange1d"},"x_scale":{"id":"1011","type":"LinearScale"},"y_range":{"id":"1048","type":"Range1d"},"y_scale":{"id":"1013","type":"LinearScale"}},"id":"1005","subtype":"Figure","type":"Plot"}],"root_ids":["1005"]},"title":"Bokeh Application","version":"1.0.4"}}';
+          var render_items = [{"docid":"f4fba3f8-145b-4835-8645-704836d5cd1a","roots":{"1005":"6f3961ba-3be7-433f-b735-a69beb32086e"}}];
+          root.Bokeh.embed.embed_items(docs_json, render_items);
+        
+          }
+          if (root.Bokeh !== undefined) {
+            embed_document(root);
+          } else {
+            var attempts = 0;
+            var timer = setInterval(function(root) {
+              if (root.Bokeh !== undefined) {
+                embed_document(root);
+                clearInterval(timer);
+              }
+              attempts++;
+              if (attempts > 100) {
+                console.log("Bokeh: ERROR: Unable to run BokehJS code because BokehJS library is missing");
+                clearInterval(timer);
+              }
+            }, 10, root)
+          }
+        })(window);
+      });
+    };
+    if (document.readyState != "loading") fn();
+    else document.addEventListener("DOMContentLoaded", fn);
+  })();
+</script>
+    
+<script type="text/javascript">
+  (function() {
+    var fn = function() {
+      Bokeh.safely(function() {
+        (function(root) {
+          function embed_document(root) {
+            
+          var docs_json = '{"762471d9-f2c7-4db7-bdc5-31c311558951":{"roots":{"references":[{"attributes":{"fill_color":{"field":"color"},"line_color":{"field":"color"},"top":{"field":"plotY"},"width":{"value":0.5833333333333334},"x":{"field":"plotX"}},"id":"1127","type":"VBar"},{"attributes":{"level":"glyph","plot":{"id":"1088","subtype":"Figure","type":"Plot"},"source":{"id":"1084","type":"ColumnDataSource"},"text":{"field":"barLabels"},"text_align":"center","text_color":{"value":"black"},"text_font_size":{"value":"9pt"},"text_font_style":"bold","x":{"field":"plotX"},"y":{"field":"plotY"}},"id":"1085","type":"LabelSet"},{"attributes":{},"id":"1133","type":"BasicTickFormatter"},{"attributes":{"dimension":1,"plot":{"id":"1088","subtype":"Figure","type":"Plot"},"ticker":{"id":"1104","type":"BasicTicker"}},"id":"1107","type":"Grid"},{"attributes":{},"id":"1096","type":"LinearScale"},{"attributes":{},"id":"1138","type":"Selection"},{"attributes":{"axis_label":"Word Length","formatter":{"id":"1133","type":"BasicTickFormatter"},"plot":{"id":"1088","subtype":"Figure","type":"Plot"},"ticker":{"id":"1099","type":"BasicTicker"}},"id":"1098","type":"LinearAxis"},{"attributes":{"plot":null,"text":"Points Available by Length in this Puzzle"},"id":"1087","type":"Title"},{"attributes":{},"id":"1099","type":"BasicTicker"},{"attributes":{},"id":"1137","type":"UnionRenderers"},{"attributes":{"callback":null,"tooltips":[["words","@words"]]},"id":"1124","type":"HoverTool"},{"attributes":{"plot":{"id":"1088","subtype":"Figure","type":"Plot"},"ticker":{"id":"1099","type":"BasicTicker"}},"id":"1102","type":"Grid"},{"attributes":{},"id":"1135","type":"BasicTickFormatter"},{"attributes":{"axis_label":"Percent","formatter":{"id":"1135","type":"BasicTickFormatter"},"plot":{"id":"1088","subtype":"Figure","type":"Plot"},"ticker":{"id":"1104","type":"BasicTicker"}},"id":"1103","type":"LinearAxis"},{"attributes":{"fill_alpha":{"value":0.1},"fill_color":{"value":"#1f77b4"},"line_alpha":{"value":0.1},"line_color":{"value":"#1f77b4"},"top":{"field":"plotY"},"width":{"value":0.5833333333333334},"x":{"field":"plotX"}},"id":"1128","type":"VBar"},{"attributes":{"callback":null,"end":0.33611111111111114},"id":"1131","type":"Range1d"},{"attributes":{},"id":"1094","type":"LinearScale"},{"attributes":{"callback":null},"id":"1090","type":"DataRange1d"},{"attributes":{"below":[{"id":"1098","type":"LinearAxis"}],"left":[{"id":"1103","type":"LinearAxis"}],"plot_height":300,"plot_width":300,"renderers":[{"id":"1098","type":"LinearAxis"},{"id":"1102","type":"Grid"},{"id":"1103","type":"LinearAxis"},{"id":"1107","type":"Grid"},{"id":"1116","type":"BoxAnnotation"},{"id":"1129","type":"GlyphRenderer"},{"id":"1085","type":"LabelSet"}],"title":{"id":"1087","type":"Title"},"toolbar":{"id":"1114","type":"Toolbar"},"toolbar_location":null,"x_range":{"id":"1090","type":"DataRange1d"},"x_scale":{"id":"1094","type":"LinearScale"},"y_range":{"id":"1131","type":"Range1d"},"y_scale":{"id":"1096","type":"LinearScale"}},"id":"1088","subtype":"Figure","type":"Plot"},{"attributes":{"bottom_units":"screen","fill_alpha":{"value":0.5},"fill_color":{"value":"lightgrey"},"left_units":"screen","level":"overlay","line_alpha":{"value":1.0},"line_color":{"value":"black"},"line_dash":[4,4],"line_width":{"value":2},"plot":null,"render_mode":"css","right_units":"screen","top_units":"screen"},"id":"1116","type":"BoxAnnotation"},{"attributes":{"active_drag":"auto","active_inspect":"auto","active_multi":null,"active_scroll":"auto","active_tap":"auto","tools":[{"id":"1124","type":"HoverTool"}]},"id":"1114","type":"Toolbar"},{"attributes":{"source":{"id":"1084","type":"ColumnDataSource"}},"id":"1130","type":"CDSView"},{"attributes":{},"id":"1104","type":"BasicTicker"},{"attributes":{"data_source":{"id":"1084","type":"ColumnDataSource"},"glyph":{"id":"1127","type":"VBar"},"hover_glyph":null,"muted_glyph":null,"nonselection_glyph":{"id":"1128","type":"VBar"},"selection_glyph":null,"view":{"id":"1130","type":"CDSView"}},"id":"1129","type":"GlyphRenderer"},{"attributes":{"callback":null,"data":{"barLabels":[11,55,30,35,40,9],"color":["#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4"],"offset":[-15,-15,-15,-15,-15,-15],"plotX":{"__ndarray__":"BAAAAAUAAAAGAAAABwAAAAgAAAAJAAAA","dtype":"int32","shape":[6]},"plotY":[0.06111111111111111,0.3055555555555556,0.16666666666666666,0.19444444444444445,0.2222222222222222,0.05],"words":[[" chew"," chic"," chin"," ghee"," hewn"," high"," inch"," nigh"," whee"," when"," whew"],[" cinch"," hence"," henge"," hinge"," neigh"," niche"," weigh"," wench"," which"," whine"," winch"],[" chichi"," heinie"," hewing"," whence"," whinge"],[" chewing"," hinging"," inching"," whining"],[" chinning"," cinching"," neighing"," weighing"," whinging"],[" whingeing"]]},"selected":{"id":"1138","type":"Selection"},"selection_policy":{"id":"1137","type":"UnionRenderers"}},"id":"1084","type":"ColumnDataSource"}],"root_ids":["1088"]},"title":"Bokeh Application","version":"1.0.4"}}';
+          var render_items = [{"docid":"762471d9-f2c7-4db7-bdc5-31c311558951","roots":{"1088":"ba79180e-eb1d-482a-94e0-d18643dc0bdf"}}];
+          root.Bokeh.embed.embed_items(docs_json, render_items);
+        
+          }
+          if (root.Bokeh !== undefined) {
+            embed_document(root);
+          } else {
+            var attempts = 0;
+            var timer = setInterval(function(root) {
+              if (root.Bokeh !== undefined) {
+                embed_document(root);
+                clearInterval(timer);
+              }
+              attempts++;
+              if (attempts > 100) {
+                console.log("Bokeh: ERROR: Unable to run BokehJS code because BokehJS library is missing");
+                clearInterval(timer);
+              }
+            }, 10, root)
+          }
+        })(window);
+      });
+    };
+    if (document.readyState != "loading") fn();
+    else document.addEventListener("DOMContentLoaded", fn);
+  })();
+</script>
+    
+<script type="text/javascript">
+  (function() {
+    var fn = function() {
+      Bokeh.safely(function() {
+        (function(root) {
+          function embed_document(root) {
+            
+          var docs_json = '{"1aa0ab54-76e3-4ab5-b043-1570f92b5c64":{"roots":{"references":[{"attributes":{},"id":"1217","type":"BasicTickFormatter"},{"attributes":{"bottom_units":"screen","fill_alpha":{"value":0.5},"fill_color":{"value":"lightgrey"},"left_units":"screen","level":"overlay","line_alpha":{"value":1.0},"line_color":{"value":"black"},"line_dash":[4,4],"line_width":{"value":2},"plot":null,"render_mode":"css","right_units":"screen","top_units":"screen"},"id":"1198","type":"BoxAnnotation"},{"attributes":{},"id":"1215","type":"CategoricalTickFormatter"},{"attributes":{},"id":"1220","type":"Selection"},{"attributes":{"source":{"id":"1167","type":"ColumnDataSource"}},"id":"1212","type":"CDSView"},{"attributes":{"active_drag":"auto","active_inspect":"auto","active_multi":null,"active_scroll":"auto","active_tap":"auto","tools":[{"id":"1206","type":"HoverTool"}]},"id":"1196","type":"Toolbar"},{"attributes":{"callback":null,"tooltips":[["words","@words"]]},"id":"1206","type":"HoverTool"},{"attributes":{"dimension":1,"plot":{"id":"1171","subtype":"Figure","type":"Plot"},"ticker":{"id":"1186","type":"BasicTicker"}},"id":"1189","type":"Grid"},{"attributes":{"plot":{"id":"1171","subtype":"Figure","type":"Plot"},"ticker":{"id":"1182","type":"CategoricalTicker"}},"id":"1184","type":"Grid"},{"attributes":{"level":"glyph","plot":{"id":"1171","subtype":"Figure","type":"Plot"},"source":{"id":"1167","type":"ColumnDataSource"},"text":{"field":"barLabels"},"text_align":"center","text_color":{"value":"black"},"text_font_size":{"value":"9pt"},"text_font_style":"bold","x":{"field":"plotX"},"y":{"field":"plotY"}},"id":"1168","type":"LabelSet"},{"attributes":{},"id":"1182","type":"CategoricalTicker"},{"attributes":{"callback":null,"data":{"barLabels":[8,0,1,8,2,4,14],"color":["firebrick","#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4"],"offset":[-15,0,-15,-15,-15,-15,-15],"plotX":["C","E","G","H","I","N","W"],"plotY":{"__ndarray__":"0LrBFPmsyz8AAAAAAAAAANC6wRT5rJs/0LrBFPmsyz/QusEU+ayrP9C6wRT5rLs/doMp8lk32D8=","dtype":"float64","shape":[7]},"words":[[" chew"," chewing"," chic"," chichi"," chin"," chinning"," cinch"," cinching"],[],[" ghee"],[" heinie"," hence"," henge"," hewing"," hewn"," high"," hinge"," hinging"],[" inch"," inching"],[" neigh"," neighing"," niche"," nigh"],[" weigh"," weighing"," wench"," whee"," when"," whence"," whew"," which"," whine"," whinge"," whingeing"," whinging"," whining"," winch"]]},"selected":{"id":"1220","type":"Selection"},"selection_policy":{"id":"1219","type":"UnionRenderers"}},"id":"1167","type":"ColumnDataSource"},{"attributes":{"axis_label":"Percent","formatter":{"id":"1217","type":"BasicTickFormatter"},"plot":{"id":"1171","subtype":"Figure","type":"Plot"},"ticker":{"id":"1186","type":"BasicTicker"}},"id":"1185","type":"LinearAxis"},{"attributes":{"axis_label":"Letter","formatter":{"id":"1215","type":"CategoricalTickFormatter"},"plot":{"id":"1171","subtype":"Figure","type":"Plot"},"ticker":{"id":"1182","type":"CategoricalTicker"}},"id":"1181","type":"CategoricalAxis"},{"attributes":{"callback":null,"end":0.4162162162162163},"id":"1213","type":"Range1d"},{"attributes":{"plot":null,"text":"Words by First Letter"},"id":"1170","type":"Title"},{"attributes":{},"id":"1219","type":"UnionRenderers"},{"attributes":{"fill_alpha":{"value":0.1},"fill_color":{"value":"#1f77b4"},"line_alpha":{"value":0.1},"line_color":{"value":"#1f77b4"},"top":{"field":"plotY"},"width":{"value":0.5},"x":{"field":"plotX"}},"id":"1210","type":"VBar"},{"attributes":{},"id":"1177","type":"CategoricalScale"},{"attributes":{},"id":"1179","type":"LinearScale"},{"attributes":{"below":[{"id":"1181","type":"CategoricalAxis"}],"left":[{"id":"1185","type":"LinearAxis"}],"plot_height":300,"plot_width":300,"renderers":[{"id":"1181","type":"CategoricalAxis"},{"id":"1184","type":"Grid"},{"id":"1185","type":"LinearAxis"},{"id":"1189","type":"Grid"},{"id":"1198","type":"BoxAnnotation"},{"id":"1211","type":"GlyphRenderer"},{"id":"1168","type":"LabelSet"}],"title":{"id":"1170","type":"Title"},"toolbar":{"id":"1196","type":"Toolbar"},"toolbar_location":null,"x_range":{"id":"1173","type":"FactorRange"},"x_scale":{"id":"1177","type":"CategoricalScale"},"y_range":{"id":"1213","type":"Range1d"},"y_scale":{"id":"1179","type":"LinearScale"}},"id":"1171","subtype":"Figure","type":"Plot"},{"attributes":{"fill_color":{"field":"color"},"line_color":{"field":"color"},"top":{"field":"plotY"},"width":{"value":0.5},"x":{"field":"plotX"}},"id":"1209","type":"VBar"},{"attributes":{},"id":"1186","type":"BasicTicker"},{"attributes":{"data_source":{"id":"1167","type":"ColumnDataSource"},"glyph":{"id":"1209","type":"VBar"},"hover_glyph":null,"muted_glyph":null,"nonselection_glyph":{"id":"1210","type":"VBar"},"selection_glyph":null,"view":{"id":"1212","type":"CDSView"}},"id":"1211","type":"GlyphRenderer"},{"attributes":{"callback":null,"factors":["C","E","G","H","I","N","W"]},"id":"1173","type":"FactorRange"}],"root_ids":["1171"]},"title":"Bokeh Application","version":"1.0.4"}}';
+          var render_items = [{"docid":"1aa0ab54-76e3-4ab5-b043-1570f92b5c64","roots":{"1171":"bc7ea80e-9212-40f7-8ae4-06769699217b"}}];
+          root.Bokeh.embed.embed_items(docs_json, render_items);
+        
+          }
+          if (root.Bokeh !== undefined) {
+            embed_document(root);
+          } else {
+            var attempts = 0;
+            var timer = setInterval(function(root) {
+              if (root.Bokeh !== undefined) {
+                embed_document(root);
+                clearInterval(timer);
+              }
+              attempts++;
+              if (attempts > 100) {
+                console.log("Bokeh: ERROR: Unable to run BokehJS code because BokehJS library is missing");
+                clearInterval(timer);
+              }
+            }, 10, root)
+          }
+        })(window);
+      });
+    };
+    if (document.readyState != "loading") fn();
+    else document.addEventListener("DOMContentLoaded", fn);
+  })();
+</script>
+    
+<script type="text/javascript">
+  (function() {
+    var fn = function() {
+      Bokeh.safely(function() {
+        (function(root) {
+          function embed_document(root) {
+            
+          var docs_json = '{"59dc1824-a218-40d5-a8bf-6f13811de85e":{"roots":{"references":[{"attributes":{},"id":"1423","type":"LinearScale"},{"attributes":{"data_source":{"id":"1413","type":"ColumnDataSource"},"glyph":{"id":"1454","type":"VBar"},"hover_glyph":null,"muted_glyph":null,"nonselection_glyph":{"id":"1455","type":"VBar"},"selection_glyph":null,"view":{"id":"1457","type":"CDSView"}},"id":"1456","type":"GlyphRenderer"},{"attributes":{"plot":null,"text":"Max Score in All Puzzles"},"id":"1416","type":"Title"},{"attributes":{},"id":"1465","type":"Selection"},{"attributes":{},"id":"1462","type":"BasicTickFormatter"},{"attributes":{"callback":null},"id":"1419","type":"DataRange1d"},{"attributes":{},"id":"1464","type":"UnionRenderers"},{"attributes":{"active_drag":"auto","active_inspect":"auto","active_multi":null,"active_scroll":"auto","active_tap":"auto","tools":[]},"id":"1443","type":"Toolbar"},{"attributes":{"dimension":1,"plot":{"id":"1417","subtype":"Figure","type":"Plot"},"ticker":{"id":"1433","type":"BasicTicker"}},"id":"1436","type":"Grid"},{"attributes":{},"id":"1433","type":"BasicTicker"},{"attributes":{"callback":null,"end":0.28623103850641773},"id":"1458","type":"Range1d"},{"attributes":{"callback":null,"data":{"barLabels":["","","","","","","","","",""],"color":["#1f77b4","#1f77b4","firebrick","#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4"],"offset":[-15,-15,-15,-15,-15,-15,-15,-15,-15,-15],"plotX":{"__ndarray__":"AAAAAACAR0AAAAAAAABYQAAAAAAAIGJAAAAAAABAaEAAAAAAAGBuQAAAAAAAQHJAAAAAAABQdUAAAAAAAGB4QAAAAAAAcHtAAAAAAACAfkA=","dtype":"float64","shape":[10]},"plotY":{"__ndarray__":"tqBWDlAUvD+MOpz9R6fQP/KAc2gVG9A/kPFSnfylxz/GS3Xyl16+P8AL3h6e5Kg/wn3TnCsekz9IMxelUoZxP8J905wrHmM/wn3TnCseUz8=","dtype":"float64","shape":[10]}},"selected":{"id":"1465","type":"Selection"},"selection_policy":{"id":"1464","type":"UnionRenderers"}},"id":"1413","type":"ColumnDataSource"},{"attributes":{"axis_label":"Percent","formatter":{"id":"1462","type":"BasicTickFormatter"},"plot":{"id":"1417","subtype":"Figure","type":"Plot"},"ticker":{"id":"1433","type":"BasicTicker"}},"id":"1432","type":"LinearAxis"},{"attributes":{"source":{"id":"1413","type":"ColumnDataSource"}},"id":"1457","type":"CDSView"},{"attributes":{"bottom_units":"screen","fill_alpha":{"value":0.5},"fill_color":{"value":"lightgrey"},"left_units":"screen","level":"overlay","line_alpha":{"value":1.0},"line_color":{"value":"black"},"line_dash":[4,4],"line_width":{"value":2},"plot":null,"render_mode":"css","right_units":"screen","top_units":"screen"},"id":"1445","type":"BoxAnnotation"},{"attributes":{"plot":{"id":"1417","subtype":"Figure","type":"Plot"},"ticker":{"id":"1428","type":"BasicTicker"}},"id":"1431","type":"Grid"},{"attributes":{},"id":"1460","type":"BasicTickFormatter"},{"attributes":{"level":"glyph","plot":{"id":"1417","subtype":"Figure","type":"Plot"},"source":{"id":"1413","type":"ColumnDataSource"},"text":{"field":"barLabels"},"text_align":"center","text_color":{"value":"black"},"text_font_size":{"value":"9pt"},"text_font_style":"bold","x":{"field":"plotX"},"y":{"field":"plotY"}},"id":"1414","type":"LabelSet"},{"attributes":{},"id":"1428","type":"BasicTicker"},{"attributes":{"axis_label":"Puzzle Score","formatter":{"id":"1460","type":"BasicTickFormatter"},"plot":{"id":"1417","subtype":"Figure","type":"Plot"},"ticker":{"id":"1428","type":"BasicTicker"}},"id":"1427","type":"LinearAxis"},{"attributes":{"below":[{"id":"1427","type":"LinearAxis"}],"left":[{"id":"1432","type":"LinearAxis"}],"plot_height":300,"plot_width":300,"renderers":[{"id":"1427","type":"LinearAxis"},{"id":"1431","type":"Grid"},{"id":"1432","type":"LinearAxis"},{"id":"1436","type":"Grid"},{"id":"1445","type":"BoxAnnotation"},{"id":"1456","type":"GlyphRenderer"},{"id":"1414","type":"LabelSet"}],"title":{"id":"1416","type":"Title"},"toolbar":{"id":"1443","type":"Toolbar"},"toolbar_location":null,"x_range":{"id":"1419","type":"DataRange1d"},"x_scale":{"id":"1423","type":"LinearScale"},"y_range":{"id":"1458","type":"Range1d"},"y_scale":{"id":"1425","type":"LinearScale"}},"id":"1417","subtype":"Figure","type":"Plot"},{"attributes":{"fill_color":{"field":"color"},"line_color":{"field":"color"},"top":{"field":"plotY"},"width":{"value":30.869999999999997},"x":{"field":"plotX"}},"id":"1454","type":"VBar"},{"attributes":{},"id":"1425","type":"LinearScale"},{"attributes":{"fill_alpha":{"value":0.1},"fill_color":{"value":"#1f77b4"},"line_alpha":{"value":0.1},"line_color":{"value":"#1f77b4"},"top":{"field":"plotY"},"width":{"value":30.869999999999997},"x":{"field":"plotX"}},"id":"1455","type":"VBar"}],"root_ids":["1417"]},"title":"Bokeh Application","version":"1.0.4"}}';
+          var render_items = [{"docid":"59dc1824-a218-40d5-a8bf-6f13811de85e","roots":{"1417":"76fe2fe7-220f-4308-978e-8de2bb425e72"}}];
+          root.Bokeh.embed.embed_items(docs_json, render_items);
+        
+          }
+          if (root.Bokeh !== undefined) {
+            embed_document(root);
+          } else {
+            var attempts = 0;
+            var timer = setInterval(function(root) {
+              if (root.Bokeh !== undefined) {
+                embed_document(root);
+                clearInterval(timer);
+              }
+              attempts++;
+              if (attempts > 100) {
+                console.log("Bokeh: ERROR: Unable to run BokehJS code because BokehJS library is missing");
+                clearInterval(timer);
+              }
+            }, 10, root)
+          }
+        })(window);
+      });
+    };
+    if (document.readyState != "loading") fn();
+    else document.addEventListener("DOMContentLoaded", fn);
+  })();
+</script>
+    
+<script type="text/javascript">
+  (function() {
+    var fn = function() {
+      Bokeh.safely(function() {
+        (function(root) {
+          function embed_document(root) {
+            
+          var docs_json = '{"86a2cbad-e18b-48b8-9a32-f0ca27421ca8":{"roots":{"references":[{"attributes":{},"id":"1543","type":"BasicTickFormatter"},{"attributes":{"axis_label":"Number of Answers","formatter":{"id":"1541","type":"BasicTickFormatter"},"plot":{"id":"1498","subtype":"Figure","type":"Plot"},"ticker":{"id":"1509","type":"BasicTicker"}},"id":"1508","type":"LinearAxis"},{"attributes":{"bottom_units":"screen","fill_alpha":{"value":0.5},"fill_color":{"value":"lightgrey"},"left_units":"screen","level":"overlay","line_alpha":{"value":1.0},"line_color":{"value":"black"},"line_dash":[4,4],"line_width":{"value":2},"plot":null,"render_mode":"css","right_units":"screen","top_units":"screen"},"id":"1526","type":"BoxAnnotation"},{"attributes":{"plot":null,"text":"Number of Answers in All Puzzles"},"id":"1497","type":"Title"},{"attributes":{},"id":"1541","type":"BasicTickFormatter"},{"attributes":{},"id":"1545","type":"UnionRenderers"},{"attributes":{},"id":"1546","type":"Selection"},{"attributes":{"fill_color":{"field":"color"},"line_color":{"field":"color"},"top":{"field":"plotY"},"width":{"value":4.095},"x":{"field":"plotX"}},"id":"1535","type":"VBar"},{"attributes":{"dimension":1,"plot":{"id":"1498","subtype":"Figure","type":"Plot"},"ticker":{"id":"1514","type":"BasicTicker"}},"id":"1517","type":"Grid"},{"attributes":{"fill_alpha":{"value":0.1},"fill_color":{"value":"#1f77b4"},"line_alpha":{"value":0.1},"line_color":{"value":"#1f77b4"},"top":{"field":"plotY"},"width":{"value":4.095},"x":{"field":"plotX"}},"id":"1536","type":"VBar"},{"attributes":{},"id":"1509","type":"BasicTicker"},{"attributes":{"data_source":{"id":"1494","type":"ColumnDataSource"},"glyph":{"id":"1535","type":"VBar"},"hover_glyph":null,"muted_glyph":null,"nonselection_glyph":{"id":"1536","type":"VBar"},"selection_glyph":null,"view":{"id":"1538","type":"CDSView"}},"id":"1537","type":"GlyphRenderer"},{"attributes":{"axis_label":"Percent","formatter":{"id":"1543","type":"BasicTickFormatter"},"plot":{"id":"1498","subtype":"Figure","type":"Plot"},"ticker":{"id":"1514","type":"BasicTicker"}},"id":"1513","type":"LinearAxis"},{"attributes":{"callback":null},"id":"1500","type":"DataRange1d"},{"attributes":{"callback":null,"data":{"barLabels":["","","","","","","","","",""],"color":["#1f77b4","#1f77b4","#1f77b4","firebrick","#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4"],"offset":[-15,-15,-15,-15,-15,-15,-15,-15,-15,-15],"plotX":{"__ndarray__":"AAAAAAAAMEAAAAAAAIA2QAAAAAAAAD1AAAAAAADAQUAAAAAAAABFQAAAAAAAQEhAAAAAAACAS0AAAAAAAMBOQAAAAAAAAFFAAAAAAACgUkA=","dtype":"float64","shape":[10]},"plotY":{"__ndarray__":"BSpOLUtHrD+oZy2olQPEP80WMRnpccg/WN41iZrQwz+vYL86VprGPzKkDcXvyLo/i5iM9DjMtz+NUYez/+ikPw+V1T2ZF5k/rqfEe499aT8=","dtype":"float64","shape":[10]}},"selected":{"id":"1546","type":"Selection"},"selection_policy":{"id":"1545","type":"UnionRenderers"}},"id":"1494","type":"ColumnDataSource"},{"attributes":{"level":"glyph","plot":{"id":"1498","subtype":"Figure","type":"Plot"},"source":{"id":"1494","type":"ColumnDataSource"},"text":{"field":"barLabels"},"text_align":"center","text_color":{"value":"black"},"text_font_size":{"value":"9pt"},"text_font_style":"bold","x":{"field":"plotX"},"y":{"field":"plotY"}},"id":"1495","type":"LabelSet"},{"attributes":{"source":{"id":"1494","type":"ColumnDataSource"}},"id":"1538","type":"CDSView"},{"attributes":{"callback":null,"end":0.21007390120575653},"id":"1539","type":"Range1d"},{"attributes":{"plot":{"id":"1498","subtype":"Figure","type":"Plot"},"ticker":{"id":"1509","type":"BasicTicker"}},"id":"1512","type":"Grid"},{"attributes":{},"id":"1504","type":"LinearScale"},{"attributes":{"active_drag":"auto","active_inspect":"auto","active_multi":null,"active_scroll":"auto","active_tap":"auto","tools":[]},"id":"1524","type":"Toolbar"},{"attributes":{},"id":"1506","type":"LinearScale"},{"attributes":{"below":[{"id":"1508","type":"LinearAxis"}],"left":[{"id":"1513","type":"LinearAxis"}],"plot_height":300,"plot_width":300,"renderers":[{"id":"1508","type":"LinearAxis"},{"id":"1512","type":"Grid"},{"id":"1513","type":"LinearAxis"},{"id":"1517","type":"Grid"},{"id":"1526","type":"BoxAnnotation"},{"id":"1537","type":"GlyphRenderer"},{"id":"1495","type":"LabelSet"}],"title":{"id":"1497","type":"Title"},"toolbar":{"id":"1524","type":"Toolbar"},"toolbar_location":null,"x_range":{"id":"1500","type":"DataRange1d"},"x_scale":{"id":"1504","type":"LinearScale"},"y_range":{"id":"1539","type":"Range1d"},"y_scale":{"id":"1506","type":"LinearScale"}},"id":"1498","subtype":"Figure","type":"Plot"},{"attributes":{},"id":"1514","type":"BasicTicker"}],"root_ids":["1498"]},"title":"Bokeh Application","version":"1.0.4"}}';
+          var render_items = [{"docid":"86a2cbad-e18b-48b8-9a32-f0ca27421ca8","roots":{"1498":"1a782609-09cb-4012-931b-e598c8402fb6"}}];
+          root.Bokeh.embed.embed_items(docs_json, render_items);
+        
+          }
+          if (root.Bokeh !== undefined) {
+            embed_document(root);
+          } else {
+            var attempts = 0;
+            var timer = setInterval(function(root) {
+              if (root.Bokeh !== undefined) {
+                embed_document(root);
+                clearInterval(timer);
+              }
+              attempts++;
+              if (attempts > 100) {
+                console.log("Bokeh: ERROR: Unable to run BokehJS code because BokehJS library is missing");
+                clearInterval(timer);
+              }
+            }, 10, root)
+          }
+        })(window);
+      });
+    };
+    if (document.readyState != "loading") fn();
+    else document.addEventListener("DOMContentLoaded", fn);
+  })();
+</script>
+    
+<script type="text/javascript">
+  (function() {
+    var fn = function() {
+      Bokeh.safely(function() {
+        (function(root) {
+          function embed_document(root) {
+            
+          var docs_json = '{"2b3c7b63-ce57-4e55-9021-b4dfb2316aa9":{"roots":{"references":[{"attributes":{},"id":"1626","type":"UnionRenderers"},{"attributes":{"axis_label":"Percent","formatter":{"id":"1624","type":"BasicTickFormatter"},"plot":{"id":"1579","subtype":"Figure","type":"Plot"},"ticker":{"id":"1595","type":"BasicTicker"}},"id":"1594","type":"LinearAxis"},{"attributes":{"plot":null,"text":"Length for Genius"},"id":"1578","type":"Title"},{"attributes":{"bottom_units":"screen","fill_alpha":{"value":0.5},"fill_color":{"value":"lightgrey"},"left_units":"screen","level":"overlay","line_alpha":{"value":1.0},"line_color":{"value":"black"},"line_dash":[4,4],"line_width":{"value":2},"plot":null,"render_mode":"css","right_units":"screen","top_units":"screen"},"id":"1607","type":"BoxAnnotation"},{"attributes":{},"id":"1595","type":"BasicTicker"},{"attributes":{},"id":"1585","type":"LinearScale"},{"attributes":{"fill_color":{"field":"color"},"line_color":{"field":"color"},"top":{"field":"plotY"},"width":{"value":0.5833333333333334},"x":{"field":"plotX"}},"id":"1616","type":"VBar"},{"attributes":{"plot":{"id":"1579","subtype":"Figure","type":"Plot"},"ticker":{"id":"1590","type":"BasicTicker"}},"id":"1593","type":"Grid"},{"attributes":{"below":[{"id":"1589","type":"LinearAxis"}],"left":[{"id":"1594","type":"LinearAxis"}],"plot_height":300,"plot_width":300,"renderers":[{"id":"1589","type":"LinearAxis"},{"id":"1593","type":"Grid"},{"id":"1594","type":"LinearAxis"},{"id":"1598","type":"Grid"},{"id":"1607","type":"BoxAnnotation"},{"id":"1618","type":"GlyphRenderer"},{"id":"1576","type":"LabelSet"}],"title":{"id":"1578","type":"Title"},"toolbar":{"id":"1605","type":"Toolbar"},"toolbar_location":null,"x_range":{"id":"1581","type":"DataRange1d"},"x_scale":{"id":"1585","type":"LinearScale"},"y_range":{"id":"1620","type":"Range1d"},"y_scale":{"id":"1587","type":"LinearScale"}},"id":"1579","subtype":"Figure","type":"Plot"},{"attributes":{},"id":"1627","type":"Selection"},{"attributes":{},"id":"1590","type":"BasicTicker"},{"attributes":{},"id":"1624","type":"BasicTickFormatter"},{"attributes":{"callback":null,"data":{"barLabels":["","","","","",""],"color":["#1f77b4","#1f77b4","firebrick","#1f77b4","#1f77b4","#1f77b4"],"offset":[-15,-15,-15,-15,-15,-15],"plotX":{"__ndarray__":"BQAAAAYAAAAHAAAACAAAAAkAAAAKAAAA","dtype":"int32","shape":[6]},"plotY":{"__ndarray__":"cYLm/6KxiD/p5dHMRanUPxF8pmjPt94/BPx3wdvDwz/rzKL3e0maPz3Ij5QEtnQ/","dtype":"float64","shape":[6]}},"selected":{"id":"1627","type":"Selection"},"selection_policy":{"id":"1626","type":"UnionRenderers"}},"id":"1575","type":"ColumnDataSource"},{"attributes":{"dimension":1,"plot":{"id":"1579","subtype":"Figure","type":"Plot"},"ticker":{"id":"1595","type":"BasicTicker"}},"id":"1598","type":"Grid"},{"attributes":{"axis_label":"Word Length","formatter":{"id":"1622","type":"BasicTickFormatter"},"plot":{"id":"1579","subtype":"Figure","type":"Plot"},"ticker":{"id":"1590","type":"BasicTicker"}},"id":"1589","type":"LinearAxis"},{"attributes":{"callback":null,"end":0.5279657720731233},"id":"1620","type":"Range1d"},{"attributes":{"data_source":{"id":"1575","type":"ColumnDataSource"},"glyph":{"id":"1616","type":"VBar"},"hover_glyph":null,"muted_glyph":null,"nonselection_glyph":{"id":"1617","type":"VBar"},"selection_glyph":null,"view":{"id":"1619","type":"CDSView"}},"id":"1618","type":"GlyphRenderer"},{"attributes":{"callback":null},"id":"1581","type":"DataRange1d"},{"attributes":{"source":{"id":"1575","type":"ColumnDataSource"}},"id":"1619","type":"CDSView"},{"attributes":{"level":"glyph","plot":{"id":"1579","subtype":"Figure","type":"Plot"},"source":{"id":"1575","type":"ColumnDataSource"},"text":{"field":"barLabels"},"text_align":"center","text_color":{"value":"black"},"text_font_size":{"value":"9pt"},"text_font_style":"bold","x":{"field":"plotX"},"y":{"field":"plotY"}},"id":"1576","type":"LabelSet"},{"attributes":{"active_drag":"auto","active_inspect":"auto","active_multi":null,"active_scroll":"auto","active_tap":"auto","tools":[]},"id":"1605","type":"Toolbar"},{"attributes":{"fill_alpha":{"value":0.1},"fill_color":{"value":"#1f77b4"},"line_alpha":{"value":0.1},"line_color":{"value":"#1f77b4"},"top":{"field":"plotY"},"width":{"value":0.5833333333333334},"x":{"field":"plotX"}},"id":"1617","type":"VBar"},{"attributes":{},"id":"1622","type":"BasicTickFormatter"},{"attributes":{},"id":"1587","type":"LinearScale"}],"root_ids":["1579"]},"title":"Bokeh Application","version":"1.0.4"}}';
+          var render_items = [{"docid":"2b3c7b63-ce57-4e55-9021-b4dfb2316aa9","roots":{"1579":"bfaaf0cc-fc97-45cf-b331-ef9e1f683492"}}];
+          root.Bokeh.embed.embed_items(docs_json, render_items);
+        
+          }
+          if (root.Bokeh !== undefined) {
+            embed_document(root);
+          } else {
+            var attempts = 0;
+            var timer = setInterval(function(root) {
+              if (root.Bokeh !== undefined) {
+                embed_document(root);
+                clearInterval(timer);
+              }
+              attempts++;
+              if (attempts > 100) {
+                console.log("Bokeh: ERROR: Unable to run BokehJS code because BokehJS library is missing");
+                clearInterval(timer);
+              }
+            }, 10, root)
+          }
+        })(window);
+      });
+    };
+    if (document.readyState != "loading") fn();
+    else document.addEventListener("DOMContentLoaded", fn);
+  })();
+</script>
+    
+<script type="text/javascript">
+  (function() {
+    var fn = function() {
+      Bokeh.safely(function() {
+        (function(root) {
+          function embed_document(root) {
+            
+          var docs_json = '{"61f370de-88f1-4a5f-a818-d198850d5e27":{"roots":{"references":[{"attributes":{},"id":"1668","type":"LinearScale"},{"attributes":{},"id":"1703","type":"BasicTickFormatter"},{"attributes":{"plot":{"id":"1660","subtype":"Figure","type":"Plot"},"ticker":{"id":"1671","type":"BasicTicker"}},"id":"1674","type":"Grid"},{"attributes":{"axis_label":"Percent","formatter":{"id":"1705","type":"BasicTickFormatter"},"plot":{"id":"1660","subtype":"Figure","type":"Plot"},"ticker":{"id":"1676","type":"BasicTicker"}},"id":"1675","type":"LinearAxis"},{"attributes":{},"id":"1676","type":"BasicTicker"},{"attributes":{"level":"glyph","plot":{"id":"1660","subtype":"Figure","type":"Plot"},"source":{"id":"1656","type":"ColumnDataSource"},"text":{"field":"barLabels"},"text_align":"center","text_color":{"value":"black"},"text_font_size":{"value":"9pt"},"text_font_style":"bold","x":{"field":"plotX"},"y":{"field":"plotY"}},"id":"1657","type":"LabelSet"},{"attributes":{"below":[{"id":"1670","type":"LinearAxis"}],"left":[{"id":"1675","type":"LinearAxis"}],"plot_height":300,"plot_width":300,"renderers":[{"id":"1670","type":"LinearAxis"},{"id":"1674","type":"Grid"},{"id":"1675","type":"LinearAxis"},{"id":"1679","type":"Grid"},{"id":"1688","type":"BoxAnnotation"},{"id":"1699","type":"GlyphRenderer"},{"id":"1657","type":"LabelSet"}],"title":{"id":"1659","type":"Title"},"toolbar":{"id":"1686","type":"Toolbar"},"toolbar_location":null,"x_range":{"id":"1662","type":"DataRange1d"},"x_scale":{"id":"1666","type":"LinearScale"},"y_range":{"id":"1701","type":"Range1d"},"y_scale":{"id":"1668","type":"LinearScale"}},"id":"1660","subtype":"Figure","type":"Plot"},{"attributes":{},"id":"1666","type":"LinearScale"},{"attributes":{},"id":"1708","type":"Selection"},{"attributes":{"source":{"id":"1656","type":"ColumnDataSource"}},"id":"1700","type":"CDSView"},{"attributes":{},"id":"1671","type":"BasicTicker"},{"attributes":{"callback":null},"id":"1662","type":"DataRange1d"},{"attributes":{"data_source":{"id":"1656","type":"ColumnDataSource"},"glyph":{"id":"1697","type":"VBar"},"hover_glyph":null,"muted_glyph":null,"nonselection_glyph":{"id":"1698","type":"VBar"},"selection_glyph":null,"view":{"id":"1700","type":"CDSView"}},"id":"1699","type":"GlyphRenderer"},{"attributes":{"callback":null,"end":0.3076234928043563},"id":"1701","type":"Range1d"},{"attributes":{},"id":"1707","type":"UnionRenderers"},{"attributes":{"active_drag":"auto","active_inspect":"auto","active_multi":null,"active_scroll":"auto","active_tap":"auto","tools":[]},"id":"1686","type":"Toolbar"},{"attributes":{"axis_label":"Average Word Length","formatter":{"id":"1703","type":"BasicTickFormatter"},"plot":{"id":"1660","subtype":"Figure","type":"Plot"},"ticker":{"id":"1671","type":"BasicTicker"}},"id":"1670","type":"LinearAxis"},{"attributes":{"callback":null,"data":{"barLabels":["","","","","","","","","",""],"color":["#1f77b4","#1f77b4","#1f77b4","#1f77b4","firebrick","#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4"],"offset":[-15,-15,-15,-15,-15,-15,-15,-15,-15,-15],"plotX":{"__ndarray__":"AAAAAAAAEUAAAAAAACASQAAAAAAAQBNAAAAAAABgFEAAAAAAAIAVQAAAAAAAoBZAAAAAAADAF0AAAAAAAOAYQAAAAAAAABpAAAAAAAAgG0A=","dtype":"float64","shape":[10]},"plotY":{"__ndarray__":"e+1tEPGBhT/bIYQTNP+3P0pIvjv4qc8/vFQnf+nl0T8doCg45KTIPzwPldU9mbc/nEOr2IAWqj8PldU9mReZP7gSTIzdTXY/rqfEe499aT8=","dtype":"float64","shape":[10]}},"selected":{"id":"1708","type":"Selection"},"selection_policy":{"id":"1707","type":"UnionRenderers"}},"id":"1656","type":"ColumnDataSource"},{"attributes":{"dimension":1,"plot":{"id":"1660","subtype":"Figure","type":"Plot"},"ticker":{"id":"1676","type":"BasicTicker"}},"id":"1679","type":"Grid"},{"attributes":{"fill_color":{"field":"color"},"line_color":{"field":"color"},"top":{"field":"plotY"},"width":{"value":0.1771875},"x":{"field":"plotX"}},"id":"1697","type":"VBar"},{"attributes":{"bottom_units":"screen","fill_alpha":{"value":0.5},"fill_color":{"value":"lightgrey"},"left_units":"screen","level":"overlay","line_alpha":{"value":1.0},"line_color":{"value":"black"},"line_dash":[4,4],"line_width":{"value":2},"plot":null,"render_mode":"css","right_units":"screen","top_units":"screen"},"id":"1688","type":"BoxAnnotation"},{"attributes":{"plot":null,"text":"Average Length of the Words in a Bee"},"id":"1659","type":"Title"},{"attributes":{},"id":"1705","type":"BasicTickFormatter"},{"attributes":{"fill_alpha":{"value":0.1},"fill_color":{"value":"#1f77b4"},"line_alpha":{"value":0.1},"line_color":{"value":"#1f77b4"},"top":{"field":"plotY"},"width":{"value":0.1771875},"x":{"field":"plotX"}},"id":"1698","type":"VBar"}],"root_ids":["1660"]},"title":"Bokeh Application","version":"1.0.4"}}';
+          var render_items = [{"docid":"61f370de-88f1-4a5f-a818-d198850d5e27","roots":{"1660":"a77c18a6-58de-4cd5-8ef1-396e814a596b"}}];
+          root.Bokeh.embed.embed_items(docs_json, render_items);
+        
+          }
+          if (root.Bokeh !== undefined) {
+            embed_document(root);
+          } else {
+            var attempts = 0;
+            var timer = setInterval(function(root) {
+              if (root.Bokeh !== undefined) {
+                embed_document(root);
+                clearInterval(timer);
+              }
+              attempts++;
+              if (attempts > 100) {
+                console.log("Bokeh: ERROR: Unable to run BokehJS code because BokehJS library is missing");
+                clearInterval(timer);
+              }
+            }, 10, root)
+          }
+        })(window);
+      });
+    };
+    if (document.readyState != "loading") fn();
+    else document.addEventListener("DOMContentLoaded", fn);
+  })();
+</script>
+    
+<script type="text/javascript">
+  (function() {
+    var fn = function() {
+      Bokeh.safely(function() {
+        (function(root) {
+          function embed_document(root) {
+            
+          var docs_json = '{"a0dd3d54-bae7-4d87-9cd0-dea2317a8a93":{"roots":{"references":[{"attributes":{"dimension":1,"plot":{"id":"1253","subtype":"Figure","type":"Plot"},"ticker":{"id":"1268","type":"BasicTicker"}},"id":"1271","type":"Grid"},{"attributes":{},"id":"1297","type":"CategoricalTickFormatter"},{"attributes":{"callback":null,"factors":["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"]},"id":"1255","type":"FactorRange"},{"attributes":{"active_drag":"auto","active_inspect":"auto","active_multi":null,"active_scroll":"auto","active_tap":"auto","tools":[{"id":"1288","type":"HoverTool"}]},"id":"1278","type":"Toolbar"},{"attributes":{},"id":"1268","type":"BasicTicker"},{"attributes":{"formatter":{"id":"1297","type":"CategoricalTickFormatter"},"plot":{"id":"1253","subtype":"Figure","type":"Plot"},"ticker":{"id":"1264","type":"CategoricalTicker"}},"id":"1263","type":"CategoricalAxis"},{"attributes":{"callback":null,"data":{"FirstAppearance":["2018-07-06","2018-07-13","2018-07-03","2018-07-09","2018-07-19","2018-07-18","2018-10-07","2018-07-10","2018-07-31","2024-07-04","2018-08-29","2018-07-05","2018-07-12","2018-07-21","2018-07-04","2018-08-11","2023-11-17","2018-07-27","NaN","2018-06-23","2018-09-15","2018-09-14","2018-09-21","NaN","2018-07-28","2020-10-27"],"MostRecent":["2025-07-13","2025-07-01","2025-07-12","2025-06-12","2025-06-21","2025-06-25","2025-04-16","2025-07-16","2025-07-06","2024-07-04","2025-06-23","2025-07-10","2025-07-15","2025-06-18","2025-07-11","2025-06-20","2023-11-17","2025-07-05","NaN","2025-07-14","2025-06-03","2025-03-06","2025-06-06","NaN","2025-05-20","2024-08-09"],"barLabels":[190,110,175,79,113,77,64,112,183,1,32,197,140,171,241,119,1,125,0,200,83,39,37,0,76,6],"color":["#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4","firebrick","#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4"],"offset":[-15,-15,-15,-15,-15,-15,-15,-15,-15,-15,-15,-15,-15,-15,-15,-15,-15,-15,0,-15,-15,-15,-15,0,-15,-15],"plotX":["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"],"plotY":{"__ndarray__":"c/TbfTDrsj8ZAF1O5+elP6BumxXVbLE/+77GHP12nz8InEOr2ICmP72Z6KAQq54/rqfEe499mT+4EkyM3U2mP92TeZHBOLI/rqfEe499OT+up8R7j32JPwlVPmqfnbM/Zhdf71Thqz8BXKzX3gaxP9shhBM0/7c/5NMQZbuypz+up8R7j305P8AL3h6e5Kg/AAAAAAAAAAAAo7EYGOqzP7uEQQprh6A/XKzX3gYRjz/hYRvnLXmNPwAAAAAAAAAAH4f5YhpFnj/CfdOcKx5jPw==","dtype":"float64","shape":[26]}},"selected":{"id":"1302","type":"Selection"},"selection_policy":{"id":"1301","type":"UnionRenderers"}},"id":"1249","type":"ColumnDataSource"},{"attributes":{"callback":null,"tooltips":[["First Appearance","@FirstAppearance"],["Most Recent","@MostRecent"]]},"id":"1288","type":"HoverTool"},{"attributes":{"plot":{"id":"1253","subtype":"Figure","type":"Plot"},"ticker":{"id":"1264","type":"CategoricalTicker"}},"id":"1266","type":"Grid"},{"attributes":{"bottom_units":"screen","fill_alpha":{"value":0.5},"fill_color":{"value":"lightgrey"},"left_units":"screen","level":"overlay","line_alpha":{"value":1.0},"line_color":{"value":"black"},"line_dash":[4,4],"line_width":{"value":2},"plot":null,"render_mode":"css","right_units":"screen","top_units":"screen"},"id":"1280","type":"BoxAnnotation"},{"attributes":{"plot":null,"text":"Center Letter Frequency"},"id":"1252","type":"Title"},{"attributes":{},"id":"1264","type":"CategoricalTicker"},{"attributes":{"data_source":{"id":"1249","type":"ColumnDataSource"},"glyph":{"id":"1291","type":"VBar"},"hover_glyph":null,"muted_glyph":null,"nonselection_glyph":{"id":"1292","type":"VBar"},"selection_glyph":null,"view":{"id":"1294","type":"CDSView"}},"id":"1293","type":"GlyphRenderer"},{"attributes":{},"id":"1299","type":"BasicTickFormatter"},{"attributes":{"level":"glyph","plot":{"id":"1253","subtype":"Figure","type":"Plot"},"source":{"id":"1249","type":"ColumnDataSource"},"text":{"field":"barLabels"},"text_align":"center","text_color":{"value":"black"},"text_font_size":{"value":"9pt"},"text_font_style":"bold","x":{"field":"plotX"},"y":{"field":"plotY"}},"id":"1250","type":"LabelSet"},{"attributes":{"below":[{"id":"1263","type":"CategoricalAxis"}],"left":[{"id":"1267","type":"LinearAxis"}],"plot_height":220,"plot_width":350,"renderers":[{"id":"1263","type":"CategoricalAxis"},{"id":"1266","type":"Grid"},{"id":"1267","type":"LinearAxis"},{"id":"1271","type":"Grid"},{"id":"1280","type":"BoxAnnotation"},{"id":"1293","type":"GlyphRenderer"},{"id":"1250","type":"LabelSet"}],"title":{"id":"1252","type":"Title"},"toolbar":{"id":"1278","type":"Toolbar"},"toolbar_location":null,"x_range":{"id":"1255","type":"FactorRange"},"x_scale":{"id":"1259","type":"CategoricalScale"},"y_range":{"id":"1295","type":"Range1d"},"y_scale":{"id":"1261","type":"LinearScale"}},"id":"1253","subtype":"Figure","type":"Plot"},{"attributes":{},"id":"1261","type":"LinearScale"},{"attributes":{},"id":"1301","type":"UnionRenderers"},{"attributes":{},"id":"1259","type":"CategoricalScale"},{"attributes":{},"id":"1302","type":"Selection"},{"attributes":{"axis_label":"Percent","formatter":{"id":"1299","type":"BasicTickFormatter"},"plot":{"id":"1253","subtype":"Figure","type":"Plot"},"ticker":{"id":"1268","type":"BasicTicker"}},"id":"1267","type":"LinearAxis"},{"attributes":{"source":{"id":"1249","type":"ColumnDataSource"}},"id":"1294","type":"CDSView"},{"attributes":{"fill_color":{"field":"color"},"line_color":{"field":"color"},"top":{"field":"plotY"},"width":{"value":0.5},"x":{"field":"plotX"}},"id":"1291","type":"VBar"},{"attributes":{"callback":null,"end":0.1031116297160638},"id":"1295","type":"Range1d"},{"attributes":{"fill_alpha":{"value":0.1},"fill_color":{"value":"#1f77b4"},"line_alpha":{"value":0.1},"line_color":{"value":"#1f77b4"},"top":{"field":"plotY"},"width":{"value":0.5},"x":{"field":"plotX"}},"id":"1292","type":"VBar"}],"root_ids":["1253"]},"title":"Bokeh Application","version":"1.0.4"}}';
+          var render_items = [{"docid":"a0dd3d54-bae7-4d87-9cd0-dea2317a8a93","roots":{"1253":"b55876ff-7b2a-4265-8484-5f8eb0a79a3e"}}];
+          root.Bokeh.embed.embed_items(docs_json, render_items);
+        
+          }
+          if (root.Bokeh !== undefined) {
+            embed_document(root);
+          } else {
+            var attempts = 0;
+            var timer = setInterval(function(root) {
+              if (root.Bokeh !== undefined) {
+                embed_document(root);
+                clearInterval(timer);
+              }
+              attempts++;
+              if (attempts > 100) {
+                console.log("Bokeh: ERROR: Unable to run BokehJS code because BokehJS library is missing");
+                clearInterval(timer);
+              }
+            }, 10, root)
+          }
+        })(window);
+      });
+    };
+    if (document.readyState != "loading") fn();
+    else document.addEventListener("DOMContentLoaded", fn);
+  })();
+</script>
+    
+<script type="text/javascript">
+  (function() {
+    var fn = function() {
+      Bokeh.safely(function() {
+        (function(root) {
+          function embed_document(root) {
+            
+          var docs_json = '{"69dc6f0c-b283-4ff9-a184-734b22013e1d":{"roots":{"references":[{"attributes":{"dimension":1,"plot":{"id":"1335","subtype":"Figure","type":"Plot"},"ticker":{"id":"1350","type":"BasicTicker"}},"id":"1353","type":"Grid"},{"attributes":{},"id":"1343","type":"LinearScale"},{"attributes":{"below":[{"id":"1345","type":"CategoricalAxis"}],"left":[{"id":"1349","type":"LinearAxis"}],"plot_height":220,"plot_width":350,"renderers":[{"id":"1345","type":"CategoricalAxis"},{"id":"1348","type":"Grid"},{"id":"1349","type":"LinearAxis"},{"id":"1353","type":"Grid"},{"id":"1362","type":"BoxAnnotation"},{"id":"1375","type":"GlyphRenderer"},{"id":"1332","type":"LabelSet"}],"title":{"id":"1334","type":"Title"},"toolbar":{"id":"1360","type":"Toolbar"},"toolbar_location":null,"x_range":{"id":"1337","type":"FactorRange"},"x_scale":{"id":"1341","type":"CategoricalScale"},"y_range":{"id":"1377","type":"Range1d"},"y_scale":{"id":"1343","type":"LinearScale"}},"id":"1335","subtype":"Figure","type":"Plot"},{"attributes":{"formatter":{"id":"1379","type":"CategoricalTickFormatter"},"plot":{"id":"1335","subtype":"Figure","type":"Plot"},"ticker":{"id":"1346","type":"CategoricalTicker"}},"id":"1345","type":"CategoricalAxis"},{"attributes":{"plot":null,"text":"Valid Letter Frequency"},"id":"1334","type":"Title"},{"attributes":{"axis_label":"Percent","formatter":{"id":"1381","type":"BasicTickFormatter"},"plot":{"id":"1335","subtype":"Figure","type":"Plot"},"ticker":{"id":"1350","type":"BasicTicker"}},"id":"1349","type":"LinearAxis"},{"attributes":{"callback":null,"tooltips":[["First Appearance","@FirstAppearance"],["Most Recent","@MostRecent"]]},"id":"1370","type":"HoverTool"},{"attributes":{"plot":{"id":"1335","subtype":"Figure","type":"Plot"},"ticker":{"id":"1346","type":"CategoricalTicker"}},"id":"1348","type":"Grid"},{"attributes":{"level":"glyph","plot":{"id":"1335","subtype":"Figure","type":"Plot"},"source":{"id":"1331","type":"ColumnDataSource"},"text":{"field":"barLabels"},"text_align":"center","text_color":{"value":"black"},"text_font_size":{"value":"9pt"},"text_font_style":"bold","x":{"field":"plotX"},"y":{"field":"plotY"}},"id":"1332","type":"LabelSet"},{"attributes":{},"id":"1346","type":"CategoricalTicker"},{"attributes":{"callback":null,"data":{"FirstAppearance":["2018-06-23","2018-07-03","2018-07-03","2018-06-23","2018-07-03","2018-07-02","2018-07-05","2018-07-02","2018-07-04","2018-08-10","2018-07-03","2018-07-02","2018-06-23","2018-07-03","2018-06-23","2018-07-12","2018-11-23","2018-06-23","2025-03-12","2018-06-23","2018-07-02","2018-07-07","2018-07-04","2018-08-09","2018-06-23","2018-07-19"],"MostRecent":["2025-07-15","2025-07-15","2025-07-16","2025-07-13","2025-07-16","2025-07-11","2025-07-16","2025-07-16","2025-07-16","2025-06-22","2025-06-27","2025-07-12","2025-07-15","2025-07-16","2025-07-15","2025-07-11","2025-02-07","2025-07-14","2025-03-12","2025-07-14","2025-07-14","2025-07-09","2025-07-16","2025-07-08","2025-07-05","2025-06-26"],"barLabels":["","","","","","","","","","","","","","","","","","","","","","","","","",""],"color":["#1f77b4","#1f77b4","firebrick","#1f77b4","firebrick","#1f77b4","firebrick","firebrick","firebrick","#1f77b4","#1f77b4","#1f77b4","#1f77b4","firebrick","#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4","firebrick","#1f77b4","#1f77b4","#1f77b4"],"offset":[-15,-15,-15,-15,-15,-15,-15,-15,-15,-15,-15,-15,-15,-15,-15,-15,-15,-15,-15,-15,-15,-15,-15,-15,-15,-15],"plotX":["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"],"plotY":{"__ndarray__":"Ml6qk7/04j+6+Ry3E+7LP80WMRnpcdg/EgfLuyZR0z9yUsx0IRDaP2pCTyypN8M/yI+UBLYU0D8xdjdZgEXSP7O6J/Mig+E/+77GHP12nz9lXmQwjsS+P/No5qJUyuA/dn28sXVm0T8n9MSSejPhPy++3qnCN+A/z/0BRB8Szj+up8R7j315P4co25W9sNM/rqfEe499OT9rhxBO0PzfP72Z6KAQq84/TbqzuYXjuT+BLQXk6vu6P+TTEGW7sqc/qvAN3Np+0j977W0Q8YGlPw==","dtype":"float64","shape":[26]}},"selected":{"id":"1384","type":"Selection"},"selection_policy":{"id":"1383","type":"UnionRenderers"}},"id":"1331","type":"ColumnDataSource"},{"attributes":{"callback":null,"end":0.6516141579152082},"id":"1377","type":"Range1d"},{"attributes":{"fill_color":{"field":"color"},"line_color":{"field":"color"},"top":{"field":"plotY"},"width":{"value":0.5},"x":{"field":"plotX"}},"id":"1373","type":"VBar"},{"attributes":{},"id":"1384","type":"Selection"},{"attributes":{"source":{"id":"1331","type":"ColumnDataSource"}},"id":"1376","type":"CDSView"},{"attributes":{"fill_alpha":{"value":0.1},"fill_color":{"value":"#1f77b4"},"line_alpha":{"value":0.1},"line_color":{"value":"#1f77b4"},"top":{"field":"plotY"},"width":{"value":0.5},"x":{"field":"plotX"}},"id":"1374","type":"VBar"},{"attributes":{},"id":"1383","type":"UnionRenderers"},{"attributes":{},"id":"1341","type":"CategoricalScale"},{"attributes":{"data_source":{"id":"1331","type":"ColumnDataSource"},"glyph":{"id":"1373","type":"VBar"},"hover_glyph":null,"muted_glyph":null,"nonselection_glyph":{"id":"1374","type":"VBar"},"selection_glyph":null,"view":{"id":"1376","type":"CDSView"}},"id":"1375","type":"GlyphRenderer"},{"attributes":{},"id":"1381","type":"BasicTickFormatter"},{"attributes":{"bottom_units":"screen","fill_alpha":{"value":0.5},"fill_color":{"value":"lightgrey"},"left_units":"screen","level":"overlay","line_alpha":{"value":1.0},"line_color":{"value":"black"},"line_dash":[4,4],"line_width":{"value":2},"plot":null,"render_mode":"css","right_units":"screen","top_units":"screen"},"id":"1362","type":"BoxAnnotation"},{"attributes":{},"id":"1379","type":"CategoricalTickFormatter"},{"attributes":{},"id":"1350","type":"BasicTicker"},{"attributes":{"active_drag":"auto","active_inspect":"auto","active_multi":null,"active_scroll":"auto","active_tap":"auto","tools":[{"id":"1370","type":"HoverTool"}]},"id":"1360","type":"Toolbar"},{"attributes":{"callback":null,"factors":["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"]},"id":"1337","type":"FactorRange"}],"root_ids":["1335"]},"title":"Bokeh Application","version":"1.0.4"}}';
+          var render_items = [{"docid":"69dc6f0c-b283-4ff9-a184-734b22013e1d","roots":{"1335":"12d5f830-e992-4b97-ae47-2c26e9da1e55"}}];
+          root.Bokeh.embed.embed_items(docs_json, render_items);
+        
+          }
+          if (root.Bokeh !== undefined) {
+            embed_document(root);
+          } else {
+            var attempts = 0;
+            var timer = setInterval(function(root) {
+              if (root.Bokeh !== undefined) {
+                embed_document(root);
+                clearInterval(timer);
+              }
+              attempts++;
+              if (attempts > 100) {
+                console.log("Bokeh: ERROR: Unable to run BokehJS code because BokehJS library is missing");
+                clearInterval(timer);
+              }
+            }, 10, root)
+          }
+        })(window);
+      });
+    };
+    if (document.readyState != "loading") fn();
+    else document.addEventListener("DOMContentLoaded", fn);
+  })();
+</script>
+    
+<script type="text/javascript">
+  (function() {
+    var fn = function() {
+      Bokeh.safely(function() {
+        (function(root) {
+          function embed_document(root) {
+            
+          var docs_json = '{"0cddfdd9-f07b-445f-b58d-3e28d012927d":{"roots":{"references":[{"attributes":{"fill_alpha":{"value":0.1},"fill_color":{"value":"#1f77b4"},"line_alpha":{"value":0.1},"line_color":{"value":"#1f77b4"},"top":{"field":"plotY"},"width":{"value":0.6416666666666666},"x":{"field":"plotX"}},"id":"1779","type":"VBar"},{"attributes":{"axis_label":"Percent","formatter":{"id":"1786","type":"BasicTickFormatter"},"plot":{"id":"1741","subtype":"Figure","type":"Plot"},"ticker":{"id":"1757","type":"BasicTicker"}},"id":"1756","type":"LinearAxis"},{"attributes":{"plot":{"id":"1741","subtype":"Figure","type":"Plot"},"ticker":{"id":"1752","type":"BasicTicker"}},"id":"1755","type":"Grid"},{"attributes":{},"id":"1749","type":"LinearScale"},{"attributes":{"plot":null,"text":"Length of All Answers"},"id":"1740","type":"Title"},{"attributes":{"callback":null,"end":0.4180538879016378},"id":"1782","type":"Range1d"},{"attributes":{"callback":null},"id":"1743","type":"DataRange1d"},{"attributes":{"fill_color":{"field":"color"},"line_color":{"field":"color"},"top":{"field":"plotY"},"width":{"value":0.6416666666666666},"x":{"field":"plotX"}},"id":"1778","type":"VBar"},{"attributes":{},"id":"1752","type":"BasicTicker"},{"attributes":{"source":{"id":"1737","type":"ColumnDataSource"}},"id":"1781","type":"CDSView"},{"attributes":{},"id":"1789","type":"Selection"},{"attributes":{"data_source":{"id":"1737","type":"ColumnDataSource"},"glyph":{"id":"1778","type":"VBar"},"hover_glyph":null,"muted_glyph":null,"nonselection_glyph":{"id":"1779","type":"VBar"},"selection_glyph":null,"view":{"id":"1781","type":"CDSView"}},"id":"1780","type":"GlyphRenderer"},{"attributes":{"active_drag":"auto","active_inspect":"auto","active_multi":null,"active_scroll":"auto","active_tap":"auto","tools":[]},"id":"1767","type":"Toolbar"},{"attributes":{},"id":"1784","type":"BasicTickFormatter"},{"attributes":{},"id":"1786","type":"BasicTickFormatter"},{"attributes":{},"id":"1757","type":"BasicTicker"},{"attributes":{"axis_label":"Word Length","formatter":{"id":"1784","type":"BasicTickFormatter"},"plot":{"id":"1741","subtype":"Figure","type":"Plot"},"ticker":{"id":"1752","type":"BasicTicker"}},"id":"1751","type":"LinearAxis"},{"attributes":{"callback":null,"data":{"barLabels":["","","","","","","","","","","",""],"color":["#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4"],"offset":[-15,-15,-15,-15,-15,-15,-15,-15,-15,-15,-15,-15],"plotX":{"__ndarray__":"BAAAAAUAAAAGAAAABwAAAAgAAAAJAAAACgAAAAsAAAAMAAAADQAAAA4AAAAPAAAA","dtype":"int32","shape":[12]},"plotY":{"__ndarray__":"nOmo/rhS2D8JKVCaR3LPPwHm0pwSV8c/YBJQHrGduT//ZitewU2sP2VSVR+q8pY/Lmsnkk3vhT/8g5gqZi1iP0it9fU6/1A/UxDCKvTrJz98lFKCAyX0PnyUUoIDJeQ+","dtype":"float64","shape":[12]}},"selected":{"id":"1789","type":"Selection"},"selection_policy":{"id":"1788","type":"UnionRenderers"}},"id":"1737","type":"ColumnDataSource"},{"attributes":{"below":[{"id":"1751","type":"LinearAxis"}],"left":[{"id":"1756","type":"LinearAxis"}],"plot_height":300,"plot_width":300,"renderers":[{"id":"1751","type":"LinearAxis"},{"id":"1755","type":"Grid"},{"id":"1756","type":"LinearAxis"},{"id":"1760","type":"Grid"},{"id":"1769","type":"BoxAnnotation"},{"id":"1780","type":"GlyphRenderer"},{"id":"1738","type":"LabelSet"}],"title":{"id":"1740","type":"Title"},"toolbar":{"id":"1767","type":"Toolbar"},"toolbar_location":null,"x_range":{"id":"1743","type":"DataRange1d"},"x_scale":{"id":"1747","type":"LinearScale"},"y_range":{"id":"1782","type":"Range1d"},"y_scale":{"id":"1749","type":"LinearScale"}},"id":"1741","subtype":"Figure","type":"Plot"},{"attributes":{},"id":"1788","type":"UnionRenderers"},{"attributes":{"bottom_units":"screen","fill_alpha":{"value":0.5},"fill_color":{"value":"lightgrey"},"left_units":"screen","level":"overlay","line_alpha":{"value":1.0},"line_color":{"value":"black"},"line_dash":[4,4],"line_width":{"value":2},"plot":null,"render_mode":"css","right_units":"screen","top_units":"screen"},"id":"1769","type":"BoxAnnotation"},{"attributes":{"dimension":1,"plot":{"id":"1741","subtype":"Figure","type":"Plot"},"ticker":{"id":"1757","type":"BasicTicker"}},"id":"1760","type":"Grid"},{"attributes":{},"id":"1747","type":"LinearScale"},{"attributes":{"level":"glyph","plot":{"id":"1741","subtype":"Figure","type":"Plot"},"source":{"id":"1737","type":"ColumnDataSource"},"text":{"field":"barLabels"},"text_align":"center","text_color":{"value":"black"},"text_font_size":{"value":"9pt"},"text_font_style":"bold","x":{"field":"plotX"},"y":{"field":"plotY"}},"id":"1738","type":"LabelSet"}],"root_ids":["1741"]},"title":"Bokeh Application","version":"1.0.4"}}';
+          var render_items = [{"docid":"0cddfdd9-f07b-445f-b58d-3e28d012927d","roots":{"1741":"a18e1a9a-4ccd-44e5-99c9-2e0c1e76aedd"}}];
+          root.Bokeh.embed.embed_items(docs_json, render_items);
+        
+          }
+          if (root.Bokeh !== undefined) {
+            embed_document(root);
+          } else {
+            var attempts = 0;
+            var timer = setInterval(function(root) {
+              if (root.Bokeh !== undefined) {
+                embed_document(root);
+                clearInterval(timer);
+              }
+              attempts++;
+              if (attempts > 100) {
+                console.log("Bokeh: ERROR: Unable to run BokehJS code because BokehJS library is missing");
+                clearInterval(timer);
+              }
+            }, 10, root)
+          }
+        })(window);
+      });
+    };
+    if (document.readyState != "loading") fn();
+    else document.addEventListener("DOMContentLoaded", fn);
+  })();
+</script>
+    
+<script type="text/javascript">
+  (function() {
+    var fn = function() {
+      Bokeh.safely(function() {
+        (function(root) {
+          function embed_document(root) {
+            
+          var docs_json = '{"f25aaaa1-2ea7-4dac-a035-fb0c9da7da18":{"roots":{"references":[{"attributes":{"fill_color":{"field":"color"},"line_color":{"field":"color"},"top":{"field":"plotY"},"width":{"value":0.6416666666666666},"x":{"field":"plotX"}},"id":"1859","type":"VBar"},{"attributes":{"fill_alpha":{"value":0.1},"fill_color":{"value":"#1f77b4"},"line_alpha":{"value":0.1},"line_color":{"value":"#1f77b4"},"top":{"field":"plotY"},"width":{"value":0.6416666666666666},"x":{"field":"plotX"}},"id":"1860","type":"VBar"},{"attributes":{},"id":"1838","type":"BasicTicker"},{"attributes":{"callback":null,"end":0.24024173147193856},"id":"1863","type":"Range1d"},{"attributes":{},"id":"1867","type":"BasicTickFormatter"},{"attributes":{"active_drag":"auto","active_inspect":"auto","active_multi":null,"active_scroll":"auto","active_tap":"auto","tools":[]},"id":"1848","type":"Toolbar"},{"attributes":{"data_source":{"id":"1818","type":"ColumnDataSource"},"glyph":{"id":"1859","type":"VBar"},"hover_glyph":null,"muted_glyph":null,"nonselection_glyph":{"id":"1860","type":"VBar"},"selection_glyph":null,"view":{"id":"1862","type":"CDSView"}},"id":"1861","type":"GlyphRenderer"},{"attributes":{"callback":null},"id":"1824","type":"DataRange1d"},{"attributes":{"axis_label":"Word Length","formatter":{"id":"1865","type":"BasicTickFormatter"},"plot":{"id":"1822","subtype":"Figure","type":"Plot"},"ticker":{"id":"1833","type":"BasicTicker"}},"id":"1832","type":"LinearAxis"},{"attributes":{"dimension":1,"plot":{"id":"1822","subtype":"Figure","type":"Plot"},"ticker":{"id":"1838","type":"BasicTicker"}},"id":"1841","type":"Grid"},{"attributes":{"bottom_units":"screen","fill_alpha":{"value":0.5},"fill_color":{"value":"lightgrey"},"left_units":"screen","level":"overlay","line_alpha":{"value":1.0},"line_color":{"value":"black"},"line_dash":[4,4],"line_width":{"value":2},"plot":null,"render_mode":"css","right_units":"screen","top_units":"screen"},"id":"1850","type":"BoxAnnotation"},{"attributes":{"plot":null,"text":"Length of Unique Answers"},"id":"1821","type":"Title"},{"attributes":{},"id":"1869","type":"UnionRenderers"},{"attributes":{},"id":"1870","type":"Selection"},{"attributes":{"plot":{"id":"1822","subtype":"Figure","type":"Plot"},"ticker":{"id":"1833","type":"BasicTicker"}},"id":"1836","type":"Grid"},{"attributes":{"below":[{"id":"1832","type":"LinearAxis"}],"left":[{"id":"1837","type":"LinearAxis"}],"plot_height":300,"plot_width":300,"renderers":[{"id":"1832","type":"LinearAxis"},{"id":"1836","type":"Grid"},{"id":"1837","type":"LinearAxis"},{"id":"1841","type":"Grid"},{"id":"1850","type":"BoxAnnotation"},{"id":"1861","type":"GlyphRenderer"},{"id":"1819","type":"LabelSet"}],"title":{"id":"1821","type":"Title"},"toolbar":{"id":"1848","type":"Toolbar"},"toolbar_location":null,"x_range":{"id":"1824","type":"DataRange1d"},"x_scale":{"id":"1828","type":"LinearScale"},"y_range":{"id":"1863","type":"Range1d"},"y_scale":{"id":"1830","type":"LinearScale"}},"id":"1822","subtype":"Figure","type":"Plot"},{"attributes":{},"id":"1833","type":"BasicTicker"},{"attributes":{"callback":null,"data":{"barLabels":["","","","","","","","","","","",""],"color":["#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4","#1f77b4"],"offset":[-15,-15,-15,-15,-15,-15,-15,-15,-15,-15,-15,-15],"plotX":{"__ndarray__":"BAAAAAUAAAAGAAAABwAAAAgAAAAJAAAACgAAAAsAAAAMAAAADQAAAA4AAAAPAAAA","dtype":"int32","shape":[12]},"plotY":{"__ndarray__":"azLqnBJ4wj9SraZLDmzHP1q+ADGV9Ms/Y9AQM18vyT8fRGiVGyLCP7yK6HFjLrI/m2W0T5Vfnz9Z0WhOqzqCP87racDKa3I/zutpwMprQj9oOo0AuY8oP2g6jQC5jxg/","dtype":"float64","shape":[12]}},"selected":{"id":"1870","type":"Selection"},"selection_policy":{"id":"1869","type":"UnionRenderers"}},"id":"1818","type":"ColumnDataSource"},{"attributes":{},"id":"1830","type":"LinearScale"},{"attributes":{},"id":"1865","type":"BasicTickFormatter"},{"attributes":{"level":"glyph","plot":{"id":"1822","subtype":"Figure","type":"Plot"},"source":{"id":"1818","type":"ColumnDataSource"},"text":{"field":"barLabels"},"text_align":"center","text_color":{"value":"black"},"text_font_size":{"value":"9pt"},"text_font_style":"bold","x":{"field":"plotX"},"y":{"field":"plotY"}},"id":"1819","type":"LabelSet"},{"attributes":{"source":{"id":"1818","type":"ColumnDataSource"}},"id":"1862","type":"CDSView"},{"attributes":{"axis_label":"Percent","formatter":{"id":"1867","type":"BasicTickFormatter"},"plot":{"id":"1822","subtype":"Figure","type":"Plot"},"ticker":{"id":"1838","type":"BasicTicker"}},"id":"1837","type":"LinearAxis"},{"attributes":{},"id":"1828","type":"LinearScale"}],"root_ids":["1822"]},"title":"Bokeh Application","version":"1.0.4"}}';
+          var render_items = [{"docid":"f25aaaa1-2ea7-4dac-a035-fb0c9da7da18","roots":{"1822":"c7563afb-a585-4330-b191-e61e4427457d"}}];
+          root.Bokeh.embed.embed_items(docs_json, render_items);
+        
+          }
+          if (root.Bokeh !== undefined) {
+            embed_document(root);
+          } else {
+            var attempts = 0;
+            var timer = setInterval(function(root) {
+              if (root.Bokeh !== undefined) {
+                embed_document(root);
+                clearInterval(timer);
+              }
+              attempts++;
+              if (attempts > 100) {
+                console.log("Bokeh: ERROR: Unable to run BokehJS code because BokehJS library is missing");
+                clearInterval(timer);
+              }
+            }, 10, root)
+          }
+        })(window);
+      });
+    };
+    if (document.readyState != "loading") fn();
+    else document.addEventListener("DOMContentLoaded", fn);
+  })();
+</script>
+    <style>
+        body {
+            font-size: 11pt;
+            font-family: tahoma, helvetica, verdana, sans-serif;
+            }
+        #top-container {
+            display: flex;
+            flex-direction: wrap;
+            }
+        #bottom-container {
+            display: flex;
+            flex-direction: wrap;
+            }
+        #bottom-container {
+            display: block;
+            flex-direction: wrap;
+            }
+        #definition-container {
+            max-width: 300px;
+            z-index: 1;
+            position: absolute;
+            background-color: #fff;
+            margin: 5px;
+            }
+        #top-left {
+            display: flex;
+            flex-direction: wrap;
+            flex-wrap: wrap;
+            justify-content: left;
+            /*
+            width: 65%;
+            max-width: 300px;
+            */
+            min-width: 200px;
+            }
+        #puzzle-notes {
+            display: flex;
+            flex-direction: column;
+            max-width: 300px;
+            }
+        #date-and-pic {
+            display: flex;
+            flex-direction: column;
+            width: 300px;
+            }
+        #bottom-left {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            }
+        #top-right {
+            display: flex;
+            flex-direction: column;
+            justify-content: left;
+            }
+        #bee-pic {
+            /*margin-left: auto;*/
+            margin-right: auto;
+            /* if this needs to be a flexbox, set align-self: center; and justify-content: center; */
+            }
+        #this-puzzle-plots {
+            display: flex;
+            justify-content: left;
+            flex-wrap: wrap;
+            width: 80%;
+            }
+        #main-answer-list {
+            display: none;
+            margin-left: 10px;
+            margin-right: 10px;
+            }
+        .answer-list {
+            max-width: 300px;
+            min-width: 300px;
+            -webkit-column-count: 2;
+            -moz-column-count: 2;
+            column-count: 2;
+            -webkit-column-width: 100px;
+            -moz-column-width: 100px;
+            column-width: 100px;
+            -webkit-column-gap: 10px;
+            -moz-column-gap: 10px;
+            column-gap: 10px;
+              }
+
+        .flex-list-item{
+            display: flex;
+            justify-content: space-between;
+            margin-right: 5px;
+            list-style-position: inside;}
+        #intro-text {
+            max-width: 300px;
+            min-width: 300px;
+            }
+        .column-list-definitions{
+            margin-top: 0px;
+            padding-left: 10px;
+            list-style-type: disc;
+            }
+        .column-list{
+            margin-top: 0px;
+            }
+        .link-definition{
+            visited{color: white};
+            color: white;
+            background-color: steelblue;
+            }
+        .plot-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            }
+        .plot-text-col {
+            flex: 1;
+            }
+        .plot-text {
+            margin: auto 20px auto 50px;
+            }
+        #menubar {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            min-height: 80px;
+            min-width: 80%;
+            padding-left: 10px;
+            padding-top: 10px;
+            margin: 0px;
+            overflow-y: hidden;
+            background-color: rgb(247, 247, 246);
+            }
+        #menubar-last-item {
+            display: flex;
+            justify-content: right;
+            align-items: center;
+            margin-left: auto;
+            padding: 15px;
+            }
+        #menubar-item {
+            display: flex;
+            }
+        #menubar a {
+            color: #000;
+            }
+        #contact {
+            padding-right: 15px;
+            }
+        h3 {
+            padding: 0px;
+            margin: 0px;
+            }
+        h4 {
+            padding: 0px;
+            margin-bottom: 2px;
+            margin-top: 0px;
+            }
+        .word {
+            display: none;
+            border: 1px solid #ccc;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 10px;
+            }
+        .word p {
+            margin-top: 0px;
+            font-size: 12pt;
+            }
+        .word-def ol {margin-top: 2px;}
+
+        #body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        #popup {
+            display: none;
+            position: fixed;
+
+            background-color: #fff;
+            border: 1px solid #ccc;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1;
+            }
+
+        #definition-help {
+            display: none;}
+
+        #first-letter-plot {
+            display: none;}
+        #first-letter-button {
+            height: 100px;
+            margin: 85px;
+            margin-top: 25px;}
+        #first-letter-pre {
+            max-width: 300px;
+            margin: 40px;}
+    </style>
+</head>
+<body>
+<div id="menubar">
+    <div class="menubar-item">
+            <a href="/"><img src="/pics/bee-logo.png" height="80px"></a>
+    </div>
+    <div class="menubar-item">
+        <h2>NYT Spelling Bee Answers and Analysis</h2>
+    </div>
+    <div id="menubar-last-item">
+        <div id="contact">
+            <a target="new" href="mailto:chris@nytbee.com">Contact</a>
+        </div>
+        <div id="paypal">
+            <form action="https://www.paypal.com/donate" method="post" target="_top">
+                <input type="hidden" name="business" value="GH3VMHQHVGJMW" />
+                <input type="hidden" name="no_recurring" value="0" />
+                <input type="hidden" name="item_name" value="Provide daily answers and analysis about the NYT Spelling Bee. " />
+                <input type="hidden" name="currency_code" value="USD" />
+                <input type="image" src="/pics/paypal.png" border="0" name="submit" title="PayPal - The safer, easier way to pay online!" alt="Donate with PayPal button" />
+                <img alt="" border="0" src="https://www.paypal.com/en_US/i/scr/pixel.gif" width="1" height="1" />
+            </form>
+        </div>
+    </div>
+</div>
+<div id="top-container">
+    <div id="top-left">
+        <div id="date-and-pic">
+            <h2>Wednesday, July 16, 2025</h2>
+            <div id="bee-pic">
+                <img src="pics/20250716.png" width="200"> <!--width="350"-->
+            </div>
+            <div><p><a href="Bee_20250715.html">Answers to yesterday's Bee</a></p></div>
+            <div><p>Jump to answers for
+                <input type="date" id="date-selector" value="2025-07-16"
+                       min="2018-07-29" max="2025-07-16">
+                <input id="jump_date_button" type="button" value="Go!"
+                       onclick="jump_to_page(document.getElementById('date-selector').value)">
+                </p>
+            </div>
+        </div>
+
+
+
+        <div>
+            <div id="intro-text">
+                <br>
+                <p> The official answers for today's puzzle are: </p>
+                <button id=answers-button onclick="show_answers()">Show Answers</button>
+            </div>
+            <div id="definition-help">
+                    <p> <i>Click on the arrow to show the definition.
+                    <br>Click outside the pop-up to close it.</i></p>
+            </div>
+            <div id="main-answer-list" class="answer-list">
+                <ul class="column-list-definitions">
+                                        <li>
+                        <div class="flex-list-item">
+                                                    chew
+                                                <a href="javascript:void(0)" onclick="show_definition('chew')" class="link-definition" id="link-definition-chew">&nbsp;&#8599;&nbsp;</a>
+                        </div>
+                    </li>
+
+                                        <li>
+                        <div class="flex-list-item">
+                                                    <mark><strong>chewing</strong></mark>
+                                                <a href="javascript:void(0)" onclick="show_definition('chewing')" class="link-definition" id="link-definition-chewing">&nbsp;&#8599;&nbsp;</a>
+                        </div>
+                    </li>
+
+                                        <li>
+                        <div class="flex-list-item">
+                                                    chic
+                                                <a href="javascript:void(0)" onclick="show_definition('chic')" class="link-definition" id="link-definition-chic">&nbsp;&#8599;&nbsp;</a>
+                        </div>
+                    </li>
+
+                                        <li>
+                        <div class="flex-list-item">
+                                                    chichi
+                                                <a href="javascript:void(0)" onclick="show_definition('chichi')" class="link-definition" id="link-definition-chichi">&nbsp;&#8599;&nbsp;</a>
+                        </div>
+                    </li>
+
+                                        <li>
+                        <div class="flex-list-item">
+                                                    chin
+                                                <a href="javascript:void(0)" onclick="show_definition('chin')" class="link-definition" id="link-definition-chin">&nbsp;&#8599;&nbsp;</a>
+                        </div>
+                    </li>
+
+                                        <li>
+                        <div class="flex-list-item">
+                                                    chinning
+                                                <a href="javascript:void(0)" onclick="show_definition('chinning')" class="link-definition" id="link-definition-chinning">&nbsp;&#8599;&nbsp;</a>
+                        </div>
+                    </li>
+
+                                        <li>
+                        <div class="flex-list-item">
+                                                    cinch
+                                                <a href="javascript:void(0)" onclick="show_definition('cinch')" class="link-definition" id="link-definition-cinch">&nbsp;&#8599;&nbsp;</a>
+                        </div>
+                    </li>
+
+                                        <li>
+                        <div class="flex-list-item">
+                                                    cinching
+                                                <a href="javascript:void(0)" onclick="show_definition('cinching')" class="link-definition" id="link-definition-cinching">&nbsp;&#8599;&nbsp;</a>
+                        </div>
+                    </li>
+
+                                        <li>
+                        <div class="flex-list-item">
+                                                    ghee
+                                                <a href="javascript:void(0)" onclick="show_definition('ghee')" class="link-definition" id="link-definition-ghee">&nbsp;&#8599;&nbsp;</a>
+                        </div>
+                    </li>
+
+                                        <li>
+                        <div class="flex-list-item">
+                                                    heinie
+                                                <a href="javascript:void(0)" onclick="show_definition('heinie')" class="link-definition" id="link-definition-heinie">&nbsp;&#8599;&nbsp;</a>
+                        </div>
+                    </li>
+
+                                        <li>
+                        <div class="flex-list-item">
+                                                    hence
+                                                <a href="javascript:void(0)" onclick="show_definition('hence')" class="link-definition" id="link-definition-hence">&nbsp;&#8599;&nbsp;</a>
+                        </div>
+                    </li>
+
+                                        <li>
+                        <div class="flex-list-item">
+                                                    henge
+                                                <a href="javascript:void(0)" onclick="show_definition('henge')" class="link-definition" id="link-definition-henge">&nbsp;&#8599;&nbsp;</a>
+                        </div>
+                    </li>
+
+                                        <li>
+                        <div class="flex-list-item">
+                                                    hewing
+                                                <a href="javascript:void(0)" onclick="show_definition('hewing')" class="link-definition" id="link-definition-hewing">&nbsp;&#8599;&nbsp;</a>
+                        </div>
+                    </li>
+
+                                        <li>
+                        <div class="flex-list-item">
+                                                    hewn
+                                                <a href="javascript:void(0)" onclick="show_definition('hewn')" class="link-definition" id="link-definition-hewn">&nbsp;&#8599;&nbsp;</a>
+                        </div>
+                    </li>
+
+                                        <li>
+                        <div class="flex-list-item">
+                                                    high
+                                                <a href="javascript:void(0)" onclick="show_definition('high')" class="link-definition" id="link-definition-high">&nbsp;&#8599;&nbsp;</a>
+                        </div>
+                    </li>
+
+                                        <li>
+                        <div class="flex-list-item">
+                                                    hinge
+                                                <a href="javascript:void(0)" onclick="show_definition('hinge')" class="link-definition" id="link-definition-hinge">&nbsp;&#8599;&nbsp;</a>
+                        </div>
+                    </li>
+
+                                        <li>
+                        <div class="flex-list-item">
+                                                    hinging
+                                                <a href="javascript:void(0)" onclick="show_definition('hinging')" class="link-definition" id="link-definition-hinging">&nbsp;&#8599;&nbsp;</a>
+                        </div>
+                    </li>
+
+                                        <li>
+                        <div class="flex-list-item">
+                                                    inch
+                                                <a href="javascript:void(0)" onclick="show_definition('inch')" class="link-definition" id="link-definition-inch">&nbsp;&#8599;&nbsp;</a>
+                        </div>
+                    </li>
+
+                                        <li>
+                        <div class="flex-list-item">
+                                                    inching
+                                                <a href="javascript:void(0)" onclick="show_definition('inching')" class="link-definition" id="link-definition-inching">&nbsp;&#8599;&nbsp;</a>
+                        </div>
+                    </li>
+
+                                        <li>
+                        <div class="flex-list-item">
+                                                    neigh
+                                                <a href="javascript:void(0)" onclick="show_definition('neigh')" class="link-definition" id="link-definition-neigh">&nbsp;&#8599;&nbsp;</a>
+                        </div>
+                    </li>
+
+                                        <li>
+                        <div class="flex-list-item">
+                                                    neighing
+                                                <a href="javascript:void(0)" onclick="show_definition('neighing')" class="link-definition" id="link-definition-neighing">&nbsp;&#8599;&nbsp;</a>
+                        </div>
+                    </li>
+
+                                        <li>
+                        <div class="flex-list-item">
+                                                    niche
+                                                <a href="javascript:void(0)" onclick="show_definition('niche')" class="link-definition" id="link-definition-niche">&nbsp;&#8599;&nbsp;</a>
+                        </div>
+                    </li>
+
+                                        <li>
+                        <div class="flex-list-item">
+                                                    nigh
+                                                <a href="javascript:void(0)" onclick="show_definition('nigh')" class="link-definition" id="link-definition-nigh">&nbsp;&#8599;&nbsp;</a>
+                        </div>
+                    </li>
+
+                                        <li>
+                        <div class="flex-list-item">
+                                                    weigh
+                                                <a href="javascript:void(0)" onclick="show_definition('weigh')" class="link-definition" id="link-definition-weigh">&nbsp;&#8599;&nbsp;</a>
+                        </div>
+                    </li>
+
+                                        <li>
+                        <div class="flex-list-item">
+                                                    weighing
+                                                <a href="javascript:void(0)" onclick="show_definition('weighing')" class="link-definition" id="link-definition-weighing">&nbsp;&#8599;&nbsp;</a>
+                        </div>
+                    </li>
+
+                                        <li>
+                        <div class="flex-list-item">
+                                                    wench
+                                                <a href="javascript:void(0)" onclick="show_definition('wench')" class="link-definition" id="link-definition-wench">&nbsp;&#8599;&nbsp;</a>
+                        </div>
+                    </li>
+
+                                        <li>
+                        <div class="flex-list-item">
+                                                    whee
+                                                <a href="javascript:void(0)" onclick="show_definition('whee')" class="link-definition" id="link-definition-whee">&nbsp;&#8599;&nbsp;</a>
+                        </div>
+                    </li>
+
+                                        <li>
+                        <div class="flex-list-item">
+                                                    when
+                                                <a href="javascript:void(0)" onclick="show_definition('when')" class="link-definition" id="link-definition-when">&nbsp;&#8599;&nbsp;</a>
+                        </div>
+                    </li>
+
+                                        <li>
+                        <div class="flex-list-item">
+                                                    whence
+                                                <a href="javascript:void(0)" onclick="show_definition('whence')" class="link-definition" id="link-definition-whence">&nbsp;&#8599;&nbsp;</a>
+                        </div>
+                    </li>
+
+                                        <li>
+                        <div class="flex-list-item">
+                                                    whew
+                                                <a href="javascript:void(0)" onclick="show_definition('whew')" class="link-definition" id="link-definition-whew">&nbsp;&#8599;&nbsp;</a>
+                        </div>
+                    </li>
+
+                                        <li>
+                        <div class="flex-list-item">
+                                                    which
+                                                <a href="javascript:void(0)" onclick="show_definition('which')" class="link-definition" id="link-definition-which">&nbsp;&#8599;&nbsp;</a>
+                        </div>
+                    </li>
+
+                                        <li>
+                        <div class="flex-list-item">
+                                                    whine
+                                                <a href="javascript:void(0)" onclick="show_definition('whine')" class="link-definition" id="link-definition-whine">&nbsp;&#8599;&nbsp;</a>
+                        </div>
+                    </li>
+
+                                        <li>
+                        <div class="flex-list-item">
+                                                    whinge
+                                                <a href="javascript:void(0)" onclick="show_definition('whinge')" class="link-definition" id="link-definition-whinge">&nbsp;&#8599;&nbsp;</a>
+                        </div>
+                    </li>
+
+                                        <li>
+                        <div class="flex-list-item">
+                                                    whingeing
+                                                <a href="javascript:void(0)" onclick="show_definition('whingeing')" class="link-definition" id="link-definition-whingeing">&nbsp;&#8599;&nbsp;</a>
+                        </div>
+                    </li>
+
+                                        <li>
+                        <div class="flex-list-item">
+                                                    whinging
+                                                <a href="javascript:void(0)" onclick="show_definition('whinging')" class="link-definition" id="link-definition-whinging">&nbsp;&#8599;&nbsp;</a>
+                        </div>
+                    </li>
+
+                                        <li>
+                        <div class="flex-list-item">
+                                                    whining
+                                                <a href="javascript:void(0)" onclick="show_definition('whining')" class="link-definition" id="link-definition-whining">&nbsp;&#8599;&nbsp;</a>
+                        </div>
+                    </li>
+
+                                        <li>
+                        <div class="flex-list-item">
+                                                    winch
+                                                <a href="javascript:void(0)" onclick="show_definition('winch')" class="link-definition" id="link-definition-winch">&nbsp;&#8599;&nbsp;</a>
+                        </div>
+                    </li>
+
+                                    </ul>
+            </div>
+            <div id="other-words"><p><a href="#not_official">Words not in official answer list</a></p></div>
+        </div>
+        <div id="puzzle-notes">
+            <br><br>
+            <h3>Number of Pangrams: 1</h3>
+            <h3>Maximum Puzzle Score: 180</h3>
+            <h3>Number of Answers: 37</h3>
+            <h3>Points Needed for Genius: 126</h3>
+            <p>
+                Genius requires between 18 and 32 words. You need at least
+                a                7-letter word to reach genius.
+                If you don't get the pangram, you need
+                76% of the total points to reach genius. If you get the
+                pangram, you only need 67% of the
+                remaining points to reach genius.
+            </p>
+                        <p><b>Other days with this pangram: </b></p>
+                <ul>
+                                    <li>
+                        <span><a href="Bee_20220604.html">June 4, 2022</a></span>
+                        <span style="float:right; padding-right: 15px;">(Center Letter: G)</span>
+                    </li>
+                                </ul>
+            
+        </div>
+        <div id="this-puzzle-plots">
+            <div>
+<div class="bk-root" id="6f3961ba-3be7-433f-b735-a69beb32086e" data-root-id="1005"></div></div>
+            <div>
+<div class="bk-root" id="ba79180e-eb1d-482a-94e0-d18643dc0bdf" data-root-id="1088"></div></div>
+            <div id="first-letter-pre">
+                <div id="first-letter-help"><i>The button below will reveal a chart with the number of words by each letter.
+                    Red bars indicate that there is a pangram(s) starting with that letter.</i></div>
+                <button id=first-letter-button onclick="show_first_letter()">Show Counts by First Letter</button>
+            </div>
+            <div id="first-letter-plot">
+<div class="bk-root" id="bc7ea80e-9212-40f7-8ae4-06769699217b" data-root-id="1171"></div></div>
+        </div>
+    </div>
+</div>
+<div id="bottom-container">
+    <div id="bottom-left">
+        <br>
+        <br>
+        <h3>How does this puzzle compare to other puzzles?</h3>
+        <div class="plot-row">
+            <div class="plot-text-col">
+                <div class="plot-text"><p>Today's score of 180 was in the
+                        56th
+                        percentile of all puzzles. <br>
+                        The last time there was a score this high                        was on July 14, 2025. <br>
+                        The highest score ever was 537 on January 22, 2021. <br>
+                        The lowest score ever was 47 on March 27, 2023.
+
+                </p></div>
+                
+<div class="bk-root" id="76fe2fe7-220f-4308-978e-8de2bb425e72" data-root-id="1417"></div>
+            </div>
+            <div class="plot-text-col">
+                <div class="plot-text"><p>This puzzle's 37 possible answers rank it in the
+                    44th
+                    percentile of all puzzles.<br>
+                    The last time there were fewer                    answers than this was on July 15, 2025. <br>
+                    The highest number of answers was 81 on June 8, 2019. <br>
+                    The lowest number of answers was 16 on March 27, 2023.
+                </p></div>
+                
+<div class="bk-root" id="1a782609-09cb-4012-931b-e598c8402fb6" data-root-id="1498"></div>
+            </div>
+            <div class="plot-text-col">
+                <div class="plot-text"><p>It takes a                    7-letter word for genius.<br>
+                    The last time this happened was on July 12, 2025.
+                </p></div>
+                
+<div class="bk-root" id="bfaaf0cc-fc97-45cf-b331-ef9e1f683492" data-root-id="1579"></div>
+            </div>
+            <div class="plot-text-col">
+                <div class="plot-text"><p>Today's puzzle has an average word length of 5.6.<br>
+                    For all Bees, the average word length has been 5.3.
+
+                </p></div>
+                
+<div class="bk-root" id="a77c18a6-58de-4cd5-8ef1-396e814a596b" data-root-id="1660"></div>
+            </div>
+        </div>
+        <br>
+        <br>
+        <h3>Haven't I seen these letters before? </h3>
+        <p>Hover over a letter to see its first and most recent appearance in the Bee!</p>
+        <div class="plot-row">
+            
+<div class="bk-root" id="b55876ff-7b2a-4265-8484-5f8eb0a79a3e" data-root-id="1253"></div>
+            
+<div class="bk-root" id="12d5f830-e992-4b97-ae47-2c26e9da1e55" data-root-id="1335"></div>
+        </div>
+        <br>
+        <br>
+        <h3>Haven't I seen these words before? </h3>
+        <p>The most common words in the Bee are:</p>
+        <div class="answer-list">
+            <ul class="column-list">
+                                <li><span>noon</span>
+                    <span style="float:right; padding-right: 15px;">205</span></li>
+                                <li><span>loll</span>
+                    <span style="float:right; padding-right: 15px;">200</span></li>
+                                <li><span>toot</span>
+                    <span style="float:right; padding-right: 15px;">193</span></li>
+                                <li><span>naan</span>
+                    <span style="float:right; padding-right: 15px;">175</span></li>
+                                <li><span>nana</span>
+                    <span style="float:right; padding-right: 15px;">175</span></li>
+                                <li><span>lilt</span>
+                    <span style="float:right; padding-right: 15px;">142</span></li>
+                                <li><span>till</span>
+                    <span style="float:right; padding-right: 15px;">142</span></li>
+                                <li><span>tilt</span>
+                    <span style="float:right; padding-right: 15px;">142</span></li>
+                                <li><span>tint</span>
+                    <span style="float:right; padding-right: 15px;">138</span></li>
+                                <li><span>nene</span>
+                    <span style="float:right; padding-right: 15px;">135</span></li>
+                                <li><span>mama</span>
+                    <span style="float:right; padding-right: 15px;">134</span></li>
+                                <li><span>mamma</span>
+                    <span style="float:right; padding-right: 15px;">134</span></li>
+                                <li><span>acacia</span>
+                    <span style="float:right; padding-right: 15px;">128</span></li>
+                                <li><span>acai</span>
+                    <span style="float:right; padding-right: 15px;">128</span></li>
+                                <li><span>onto</span>
+                    <span style="float:right; padding-right: 15px;">127</span></li>
+                                <li><span>toon</span>
+                    <span style="float:right; padding-right: 15px;">127</span></li>
+                                <li><span>onion</span>
+                    <span style="float:right; padding-right: 15px;">123</span></li>
+                                <li><span>anon</span>
+                    <span style="float:right; padding-right: 15px;">119</span></li>
+                                <li><span>anal</span>
+                    <span style="float:right; padding-right: 15px;">118</span></li>
+                                <li><span>olio</span>
+                    <span style="float:right; padding-right: 15px;">116</span></li>
+                                <li><span>boob</span>
+                    <span style="float:right; padding-right: 15px;">113</span></li>
+                                <li><span>booboo</span>
+                    <span style="float:right; padding-right: 15px;">113</span></li>
+                                <li><span>dodo</span>
+                    <span style="float:right; padding-right: 15px;">113</span></li>
+                                <li><span>papa</span>
+                    <span style="float:right; padding-right: 15px;">111</span></li>
+                                <li><span>poop</span>
+                    <span style="float:right; padding-right: 15px;">111</span></li>
+                                <li><span>tact</span>
+                    <span style="float:right; padding-right: 15px;">111</span></li>
+                                <li><span>baba</span>
+                    <span style="float:right; padding-right: 15px;">109</span></li>
+                                <li><span>lull</span>
+                    <span style="float:right; padding-right: 15px;">108</span></li>
+                                <li><span>lulu</span>
+                    <span style="float:right; padding-right: 15px;">108</span></li>
+                                <li><span>call</span>
+                    <span style="float:right; padding-right: 15px;">107</span></li>
+                                <li><span>calla</span>
+                    <span style="float:right; padding-right: 15px;">107</span></li>
+                                <li><span>mitt</span>
+                    <span style="float:right; padding-right: 15px;">107</span></li>
+                                <li><span>ratatat</span>
+                    <span style="float:right; padding-right: 15px;">106</span></li>
+                                <li><span>tart</span>
+                    <span style="float:right; padding-right: 15px;">106</span></li>
+                                <li><span>tartar</span>
+                    <span style="float:right; padding-right: 15px;">106</span></li>
+                                <li><span>attar</span>
+                    <span style="float:right; padding-right: 15px;">105</span></li>
+                                <li><span>tattoo</span>
+                    <span style="float:right; padding-right: 15px;">104</span></li>
+                                <li><span>tatty</span>
+                    <span style="float:right; padding-right: 15px;">104</span></li>
+                                <li><span>ammo</span>
+                    <span style="float:right; padding-right: 15px;">103</span></li>
+                                <li><span>cocci</span>
+                    <span style="float:right; padding-right: 15px;">103</span></li>
+                                <li><span>momma</span>
+                    <span style="float:right; padding-right: 15px;">103</span></li>
+                                <li><span>mono</span>
+                    <span style="float:right; padding-right: 15px;">103</span></li>
+                                <li><span>moon</span>
+                    <span style="float:right; padding-right: 15px;">103</span></li>
+                                <li><span>tutu</span>
+                    <span style="float:right; padding-right: 15px;">103</span></li>
+                                <li><span>allay</span>
+                    <span style="float:right; padding-right: 15px;">102</span></li>
+                                <li><span>ally</span>
+                    <span style="float:right; padding-right: 15px;">102</span></li>
+                                <li><span>epee</span>
+                    <span style="float:right; padding-right: 15px;">100</span></li>
+                                <li><span>loon</span>
+                    <span style="float:right; padding-right: 15px;">100</span></li>
+                                <li><span>peep</span>
+                    <span style="float:right; padding-right: 15px;">100</span></li>
+                                <li><span>roar</span>
+                    <span style="float:right; padding-right: 15px;">98</span></li>
+                            </ul>
+        </div>
+        <br>
+        <br>
+        <h3>How long are words in the Bee? </h3>
+        <p>There have been 104,105 answers ever accepted in the Bee - with
+            10,673 unique words.<br>
+            Below are the distributions of the lengths of these words.</p>
+        <div class="plot-row">
+            
+<div class="bk-root" id="a18e1a9a-4ccd-44e5-99c9-2e0c1e76aedd" data-root-id="1741"></div>
+            
+<div class="bk-root" id="c7563afb-a585-4330-b191-e61e4427457d" data-root-id="1822"></div>
+        </div>
+
+        <div id="not_official">
+            <br>
+            <br>
+            <h3>Valid dictionary words not in today's official answers </h3>
+            <p>You may be wondering why these words aren't here*:</p>
+            <div class="answer-list">
+                <ul class="column-list">
+                                        <li>chinch</li>
+                                        <li>chinching</li>
+                                        <li>chine</li>
+                                        <li>ching</li>
+                                        <li>chining</li>
+                                        <li>eche</li>
+                                        <li>eching</li>
+                                        <li>echini</li>
+                                        <li>gighe</li>
+                                        <li>ginch</li>
+                                        <li>heigh</li>
+                                        <li>hieing</li>
+                                        <li>hinnie</li>
+                                        <li>niching</li>
+                                        <li>nighing</li>
+                                        <li>wenching</li>
+                                        <li>wheen</li>
+                                        <li>whig</li>
+                                        <li>whin</li>
+                                        <li>wich</li>
+                                        <li>winching</li>
+                                    </ul>
+            </div>
+            <p>*Because the New York Times considers them obscure or offensive.</p>
+        </div>
+    </div>
+
+    <div id="top-right">
+
+
+    </div>
+
+</div>
+
+<div id="definition-container">
+    <div class="word" id="word-div-chew">
+        <p><b><i>chew</i></b><br></p>
+                        <div class="etymology">
+                                                <div class="word-def">
+                        <b>noun</b>
+                        <ol>
+                                                    <li>
+                                The act of chewing; mastication with the mouth.
+                            </li>
+                                                    <li>
+                                Level of chewiness.
+                            </li>
+                                                    <li>
+                                A small sweet, such as a taffy, that is eaten by chewing.
+                            </li>
+                                                    <li>
+                                Chewing tobacco.
+                            </li>
+                                                    <li>
+                                A plug or wad of chewing tobacco; chaw or a chaw.
+                            </li>
+                                                    <li>
+                                The condition of something being torn or ground up mechanically.
+                            </li>
+                                                </ol>
+                    </div>
+                                    <div class="word-def">
+                        <b>verb</b>
+                        <ol>
+                                                    <li>
+                                To crush with the teeth by repeated closing and opening of the jaws; done to food to soften it and break it down by the action of saliva before it is swallowed.
+                            </li>
+                                                    <li>
+                                To grind, tear, or otherwise degrade or demolish something with teeth or as with teeth.
+                            </li>
+                                                    <li>
+                                To think about something; to ponder; to chew over.
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                </div>
+    <div class="word" id="word-div-chewing">
+        <p><b><i>chewing</i></b><br></p>
+                        <div class="etymology">
+                            <h4>Etymology 1</h4>
+                                                <div class="word-def">
+                        <b>verb</b>
+                        <ol>
+                                                    <li>
+                                To crush with the teeth by repeated closing and opening of the jaws; done to food to soften it and break it down by the action of saliva before it is swallowed.
+                            </li>
+                                                    <li>
+                                To grind, tear, or otherwise degrade or demolish something with teeth or as with teeth.
+                            </li>
+                                                    <li>
+                                To think about something; to ponder; to chew over.
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                    <div class="etymology">
+                            <h4>Etymology 2</h4>
+                                                <div class="word-def">
+                        <b>noun</b>
+                        <ol>
+                                                    <li>
+                                The act by which something is chewed on; mastication.
+                            </li>
+                                                    <li>
+                                The consumption of (the juice from) the khat plant.
+                            </li>
+                                                    <li>
+                                The consumption of loose leaf tobacco juice from tobacco plants by chewing leaves near the cheek.
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                </div>
+    <div class="word" id="word-div-chic">
+        <p><b><i>chic</i></b><br></p>
+                        <div class="etymology">
+                            <h4>Etymology 1</h4>
+                                                <div class="word-def">
+                        <b>noun</b>
+                        <ol>
+                                                    <li>
+                                Good form; style.
+                            </li>
+                                                    <li>
+                                A person with (a particular type of) chic.
+                            </li>
+                                                </ol>
+                    </div>
+                                    <div class="word-def">
+                        <b>adjective</b>
+                        <ol>
+                                                    <li>
+                                Elegant, stylish.
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                    <div class="etymology">
+                            <h4>Etymology 2</h4>
+                                                <div class="word-def">
+                        <b>noun</b>
+                        <ol>
+                                                    <li>
+                                A kind of ritual buffoon or clown in Yucatec Maya culture.
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                </div>
+    <div class="word" id="word-div-chichi">
+        <p><b><i>chichi</i></b><br></p>
+                        <div class="etymology">
+                            <h4>Etymology 1</h4>
+                                                <div class="word-def">
+                        <b>adjective</b>
+                        <ol>
+                                                    <li>
+                                Affectedly trendy; chic and stylish
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                    <div class="etymology">
+                            <h4>Etymology 2</h4>
+                                                <div class="word-def">
+                        <b>noun</b>
+                        <ol>
+                                                    <li>
+                                (Latin America, chiefly in the plural) A woman&#39;s breast.
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                </div>
+    <div class="word" id="word-div-chin">
+        <p><b><i>chin</i></b><br></p>
+                        <div class="etymology">
+                            <h4>Etymology 1</h4>
+                                                <div class="word-def">
+                        <b>noun</b>
+                        <ol>
+                                                    <li>
+                                The bottom of a face, (specifically) the typically jutting jawline below the mouth.
+                            </li>
+                                                    <li>
+                                Talk.
+                            </li>
+                                                    <li>
+                                A lie, a falsehood.
+                            </li>
+                                                    <li>
+                                The ability to withstand being punched in the chin without being knocked out.
+                            </li>
+                                                    <li>
+                                The lower part of the front of an aircraft, below the nose.
+                            </li>
+                                                    <li>
+                                The bottom part of a mobile phone, below the screen.
+                            </li>
+                                                </ol>
+                    </div>
+                                    <div class="word-def">
+                        <b>verb</b>
+                        <ol>
+                                                    <li>
+                                To talk.
+                            </li>
+                                                    <li>
+                                To talk to or with (someone).
+                            </li>
+                                                    <li>
+                                To perform a chin-up (exercise in which one lifts one&#39;s own weight while hanging from a bar).
+                            </li>
+                                                    <li>
+                                To punch or hit (someone)&#39;s chin (part of the body).
+                            </li>
+                                                    <li>
+                                To put or hold (a musical instrument) up to one&#39;s chin.
+                            </li>
+                                                    <li>
+                                To turn on or operate (a device) using one&#39;s chin; to select (a particular setting) using one&#39;s chin.
+                            </li>
+                                                    <li>
+                                To put one&#39;s chin on (something).
+                            </li>
+                                                    <li>
+                                To indicate or point toward (someone or something) with one&#39;s chin.
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                    <div class="etymology">
+                            <h4>Etymology 2</h4>
+                                                <div class="word-def">
+                        <b>noun</b>
+                        <ol>
+                                                    <li>
+                                A chinchilla.
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                </div>
+    <div class="word" id="word-div-chinning">
+        <p><b><i>chinning</i></b><br></p>
+                        <div class="etymology">
+                                                <div class="word-def">
+                        <b>verb</b>
+                        <ol>
+                                                    <li>
+                                To talk.
+                            </li>
+                                                    <li>
+                                To talk to or with (someone).
+                            </li>
+                                                    <li>
+                                To perform a chin-up (exercise in which one lifts one&#39;s own weight while hanging from a bar).
+                            </li>
+                                                    <li>
+                                To punch or hit (someone)&#39;s chin (part of the body).
+                            </li>
+                                                    <li>
+                                To put or hold (a musical instrument) up to one&#39;s chin.
+                            </li>
+                                                    <li>
+                                To turn on or operate (a device) using one&#39;s chin; to select (a particular setting) using one&#39;s chin.
+                            </li>
+                                                    <li>
+                                To put one&#39;s chin on (something).
+                            </li>
+                                                    <li>
+                                To indicate or point toward (someone or something) with one&#39;s chin.
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                </div>
+    <div class="word" id="word-div-cinch">
+        <p><b><i>cinch</i></b><br></p>
+                        <div class="etymology">
+                            <h4>Etymology 1</h4>
+                                                <div class="word-def">
+                        <b>noun</b>
+                        <ol>
+                                                    <li>
+                                A simple saddle girth used in Mexico.
+                            </li>
+                                                    <li>
+                                Something that is very easy to do.
+                            </li>
+                                                    <li>
+                                A firm hold.
+                            </li>
+                                                </ol>
+                    </div>
+                                    <div class="word-def">
+                        <b>verb</b>
+                        <ol>
+                                                    <li>
+                                To bring to certain conclusion.
+                            </li>
+                                                    <li>
+                                To tighten down.
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                    <div class="etymology">
+                            <h4>Etymology 2</h4>
+                                                <div class="word-def">
+                        <b>noun</b>
+                        <ol>
+                                                    <li>
+                                A variety of auction pitch in which a draw to improve the hand is added, and the five of trumps (called &#34;right Pedro&#34;) and the five of the same colour (called &#34;left Pedro&#34;, and ranking between the five and the four of trumps) are each worth five. Fifty-one points make a game.
+                            </li>
+                                                </ol>
+                    </div>
+                                    <div class="word-def">
+                        <b>verb</b>
+                        <ol>
+                                                    <li>
+                                In the game of cinch, to protect (a trick) by playing a higher trump than the five.
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                </div>
+    <div class="word" id="word-div-cinching">
+        <p><b><i>cinching</i></b><br></p>
+                        <div class="etymology">
+                                                <div class="word-def">
+                        <b>verb</b>
+                        <ol>
+                                                    <li>
+                                To bring to certain conclusion.
+                            </li>
+                                                    <li>
+                                To tighten down.
+                            </li>
+                                                </ol>
+                    </div>
+                                    <div class="word-def">
+                        <b>verb</b>
+                        <ol>
+                                                    <li>
+                                In the game of cinch, to protect (a trick) by playing a higher trump than the five.
+                            </li>
+                                                </ol>
+                    </div>
+                                    <div class="word-def">
+                        <b>noun</b>
+                        <ol>
+                                                    <li>
+                                A fastening.
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                </div>
+    <div class="word" id="word-div-ghee">
+        <p><b><i>ghee</i></b><br></p>
+                        <div class="etymology">
+                                                <div class="word-def">
+                        <b>noun</b>
+                        <ol>
+                                                    <li>
+                                A type of clarified butter used in South Asian cooking; usli ghee.
+                            </li>
+                                                    <li>
+                                Vegetable oil for cooking.
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                </div>
+    <div class="word" id="word-div-heinie">
+        <p><b><i>heinie</i></b><br></p>
+                        <div class="etymology">
+                                                <div class="word-def">
+                        <b>noun</b>
+                        <ol>
+                                                    <li>
+                                The buttocks.
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                </div>
+    <div class="word" id="word-div-hence">
+        <p><b><i>hence</i></b><br></p>
+                        <div class="etymology">
+                                                <div class="word-def">
+                        <b>adverb</b>
+                        <ol>
+                                                    <li>
+                                From here, from this place, away
+                            </li>
+                                                    <li>
+                                From the living or from this world
+                            </li>
+                                                    <li>
+                                (of a length of time) in the future from now
+                            </li>
+                                                    <li>
+                                As a result; therefore, for this reason
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                </div>
+    <div class="word" id="word-div-henge">
+        <p><b><i>henge</i></b><br></p>
+                        <div class="etymology">
+                                                <div class="word-def">
+                        <b>noun</b>
+                        <ol>
+                                                    <li>
+                                A prehistoric enclosure in the form of a circle or circular arc defined by a raised circular bank and a circular ditch usually running inside the bank, with one or more entrances leading into the enclosed open space.
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                </div>
+    <div class="word" id="word-div-hewing">
+        <p><b><i>hewing</i></b><br></p>
+                        <div class="etymology">
+                                                <div class="word-def">
+                        <b>verb</b>
+                        <ol>
+                                                    <li>
+                                To chop away at; to whittle down; to mow down.
+                            </li>
+                                                    <li>
+                                To shape; to form.
+                            </li>
+                                                    <li>
+                                To act according to, to conform to; usually construed with to.
+                            </li>
+                                                </ol>
+                    </div>
+                                    <div class="word-def">
+                        <b>noun</b>
+                        <ol>
+                                                    <li>
+                                The act of one who hews or chops.
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                </div>
+    <div class="word" id="word-div-hewn">
+        <p><b><i>hewn</i></b><br></p>
+                        <div class="etymology">
+                                                <div class="word-def">
+                        <b>verb</b>
+                        <ol>
+                                                    <li>
+                                To chop away at; to whittle down; to mow down.
+                            </li>
+                                                    <li>
+                                To shape; to form.
+                            </li>
+                                                    <li>
+                                To act according to, to conform to; usually construed with to.
+                            </li>
+                                                </ol>
+                    </div>
+                                    <div class="word-def">
+                        <b>adjective</b>
+                        <ol>
+                                                    <li>
+                                Made or crafted by cutting, whittling down.
+                            </li>
+                                                    <li>
+                                Having been cut or mown down.
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                </div>
+    <div class="word" id="word-div-high">
+        <p><b><i>high</i></b><br></p>
+                        <div class="etymology">
+                            <h4>Etymology 1</h4>
+                                                <div class="word-def">
+                        <b>noun</b>
+                        <ol>
+                                                    <li>
+                                A high point or position, literally or figuratively; an elevated place; a superior region; a height; the sky; heaven.
+                            </li>
+                                                    <li>
+                                A point of success or achievement; a time when things are at their best.
+                            </li>
+                                                    <li>
+                                A period of euphoria, from excitement or from an intake of drugs.
+                            </li>
+                                                    <li>
+                                A drug that gives such a high.
+                            </li>
+                                                    <li>
+                                A large area of elevated atmospheric pressure; an anticyclone.
+                            </li>
+                                                    <li>
+                                The maximum value attained by some quantity within a specified period.
+                            </li>
+                                                    <li>
+                                The maximum atmospheric temperature recorded at a particular location, especially during one 24-hour period.
+                            </li>
+                                                    <li>
+                                The highest card dealt or drawn.
+                            </li>
+                                                </ol>
+                    </div>
+                                    <div class="word-def">
+                        <b>verb</b>
+                        <ol>
+                                                    <li>
+                                To rise.
+                            </li>
+                                                </ol>
+                    </div>
+                                    <div class="word-def">
+                        <b>adjective</b>
+                        <ol>
+                                                    <li>
+                                Very elevated; extending or being far above a base; tall; lofty.
+                            </li>
+                                                    <li>
+                                Relatively elevated; rising or raised above the average or normal level from which elevation is measured.
+                            </li>
+                                                    <li>
+                                Having a specified elevation or height; tall.
+                            </li>
+                                                    <li>
+                                Elevated in status, esteem, prestige; exalted in rank, station, or character.
+                            </li>
+                                                    <li>
+                                Of great importance and consequence: grave (if negative) or solemn (if positive).
+                            </li>
+                                                    <li>
+                                Consummate; advanced (e.g. in development) to the utmost extent or culmination, or possessing a quality in its supreme degree, at its zenith.
+                            </li>
+                                                    <li>
+                                (in several set phrases) Remote in distance or time.
+                            </li>
+                                                    <li>
+                                (in several set phrases) Very traditionalist and conservative, especially in favoring older ways of doing things; see e.g. high church, High Tory.
+                            </li>
+                                                    <li>
+                                Elevated in mood; marked by great merriment, excitement, etc.
+                            </li>
+                                                    <li>
+                                (of a lifestyle) Luxurious; rich.
+                            </li>
+                                                    <li>
+                                Lofty, often to the point of arrogant, haughty, boastful, proud.
+                            </li>
+                                                    <li>
+                                (with &#34;on&#34; or &#34;about&#34;) Keen, enthused.
+                            </li>
+                                                    <li>
+                                (of a body of water) With tall waves.
+                            </li>
+                                                    <li>
+                                Large, great (in amount or quantity, value, force, energy, etc).
+                            </li>
+                                                    <li>
+                                (acoustics) Acute or shrill in pitch, due to being of greater frequency, i.e. produced by more rapid vibrations (wave oscillations).
+                            </li>
+                                                    <li>
+                                Made with some part of the tongue positioned high in the mouth, relatively close to the palate.
+                            </li>
+                                                    <li>
+                                Greater in value than other cards, denominations, suits, etc.
+                            </li>
+                                                    <li>
+                                (of meat, especially venison) Strong-scented; slightly tainted/spoiled; beginning to decompose.
+                            </li>
+                                                    <li>
+                                Intoxicated; under the influence of a mood-altering drug, formerly usually alcohol, but now (from the mid-20th century) usually not alcohol but rather marijuana, cocaine, heroin, etc.
+                            </li>
+                                                    <li>
+                                (of a sailing ship) Near, in its direction of travel, to the (direction of the) wind.
+                            </li>
+                                                </ol>
+                    </div>
+                                    <div class="word-def">
+                        <b>adverb</b>
+                        <ol>
+                                                    <li>
+                                In or to an elevated position.
+                            </li>
+                                                    <li>
+                                In or at a great value.
+                            </li>
+                                                    <li>
+                                At a pitch of great frequency.
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                    <div class="etymology">
+                            <h4>Etymology 2</h4>
+                                                <div class="word-def">
+                        <b>noun</b>
+                        <ol>
+                                                    <li>
+                                Thought; intention; determination; purpose.
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                    <div class="etymology">
+                            <h4>Etymology 3</h4>
+                                                <div class="word-def">
+                        <b>verb</b>
+                        <ol>
+                                                    <li>
+                                To hie; to hasten.
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                </div>
+    <div class="word" id="word-div-hinge">
+        <p><b><i>hinge</i></b><br></p>
+                        <div class="etymology">
+                                                <div class="word-def">
+                        <b>noun</b>
+                        <ol>
+                                                    <li>
+                                A jointed or flexible device that allows the pivoting of a door etc.
+                            </li>
+                                                    <li>
+                                A naturally occurring joint resembling such hardware in form or action, as in the shell of a bivalve.
+                            </li>
+                                                    <li>
+                                A stamp hinge, a folded and gummed paper rectangle for affixing postage stamps in an album.
+                            </li>
+                                                    <li>
+                                A principle, or a point in time, on which subsequent reasonings or events depend.
+                            </li>
+                                                    <li>
+                                The median of the upper or lower half of a batch, sample, or probability distribution.
+                            </li>
+                                                    <li>
+                                One of the four cardinal points, east, west, north, or south.
+                            </li>
+                                                </ol>
+                    </div>
+                                    <div class="word-def">
+                        <b>verb</b>
+                        <ol>
+                                                    <li>
+                                To attach by, or equip with a hinge.
+                            </li>
+                                                    <li>
+                                (with on or upon) To depend on something.
+                            </li>
+                                                    <li>
+                                The breaking off of the distal end of a knapped stone flake whose presumed course across the face of the stone core was truncated prematurely, leaving not a feathered distal end but instead the scar of a nearly perpendicular break.
+                            </li>
+                                                    <li>
+                                To bend.
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                </div>
+    <div class="word" id="word-div-hinging">
+        <p><b><i>hinging</i></b><br></p>
+                        <div class="etymology">
+                                                <div class="word-def">
+                        <b>verb</b>
+                        <ol>
+                                                    <li>
+                                To attach by, or equip with a hinge.
+                            </li>
+                                                    <li>
+                                (with on or upon) To depend on something.
+                            </li>
+                                                    <li>
+                                The breaking off of the distal end of a knapped stone flake whose presumed course across the face of the stone core was truncated prematurely, leaving not a feathered distal end but instead the scar of a nearly perpendicular break.
+                            </li>
+                                                    <li>
+                                To bend.
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                </div>
+    <div class="word" id="word-div-inch">
+        <p><b><i>inch</i></b><br></p>
+                        <div class="etymology">
+                            <h4>Etymology 1</h4>
+                                                <div class="word-def">
+                        <b>noun</b>
+                        <ol>
+                                                    <li>
+                                A unit of length equal to one twelfth of a foot, or exactly 2.54 centimetres.
+                            </li>
+                                                    <li>
+                                The amount of water which would cover a surface to the depth of an inch, used as a measurement of rainfall.
+                            </li>
+                                                    <li>
+                                The amount of an alcoholic beverage which would fill a glass or bottle to the depth of an inch.
+                            </li>
+                                                    <li>
+                                A very short distance.
+                            </li>
+                                                </ol>
+                    </div>
+                                    <div class="word-def">
+                        <b>verb</b>
+                        <ol>
+                                                    <li>
+                                (followed by a preposition) To advance very slowly, or by a small amount (in a particular direction).
+                            </li>
+                                                    <li>
+                                To drive by inches, or small degrees.
+                            </li>
+                                                    <li>
+                                To deal out by inches; to give sparingly.
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                    <div class="etymology">
+                            <h4>Etymology 2</h4>
+                                                <div class="word-def">
+                        <b>noun</b>
+                        <ol>
+                                                    <li>
+                                A small island
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                </div>
+    <div class="word" id="word-div-inching">
+        <p><b><i>inching</i></b><br></p>
+                        <div class="etymology">
+                                                <div class="word-def">
+                        <b>verb</b>
+                        <ol>
+                                                    <li>
+                                (followed by a preposition) To advance very slowly, or by a small amount (in a particular direction).
+                            </li>
+                                                    <li>
+                                To drive by inches, or small degrees.
+                            </li>
+                                                    <li>
+                                To deal out by inches; to give sparingly.
+                            </li>
+                                                </ol>
+                    </div>
+                                    <div class="word-def">
+                        <b>noun</b>
+                        <ol>
+                                                    <li>
+                                Very gradual movement.
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                </div>
+    <div class="word" id="word-div-neigh">
+        <p><b><i>neigh</i></b><br></p>
+                        <div class="etymology">
+                                                <div class="word-def">
+                        <b>noun</b>
+                        <ol>
+                                                    <li>
+                                The cry of a horse.
+                            </li>
+                                                </ol>
+                    </div>
+                                    <div class="word-def">
+                        <b>verb</b>
+                        <ol>
+                                                    <li>
+                                (of a horse) To make its cry.
+                            </li>
+                                                    <li>
+                                To make a sound similar to a horse&#39;s cry.
+                            </li>
+                                                    <li>
+                                To scoff or sneer.
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                </div>
+    <div class="word" id="word-div-neighing">
+        <p><b><i>neighing</i></b><br></p>
+                        <div class="etymology">
+                                                <div class="word-def">
+                        <b>verb</b>
+                        <ol>
+                                                    <li>
+                                (of a horse) To make its cry.
+                            </li>
+                                                    <li>
+                                To make a sound similar to a horse&#39;s cry.
+                            </li>
+                                                    <li>
+                                To scoff or sneer.
+                            </li>
+                                                </ol>
+                    </div>
+                                    <div class="word-def">
+                        <b>noun</b>
+                        <ol>
+                                                    <li>
+                                The sound made by a horse; an act or instance of the verb neigh.
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                </div>
+    <div class="word" id="word-div-niche">
+        <p><b><i>niche</i></b><br></p>
+                        <div class="etymology">
+                                                <div class="word-def">
+                        <b>noun</b>
+                        <ol>
+                                                    <li>
+                                A cavity, hollow, or recess, generally within the thickness of a wall, for a statue, bust, or other erect ornament. Hence, any similar position, literal or figurative.
+                            </li>
+                                                    <li>
+                                A function within an ecological system to which an organism is especially suited.
+                            </li>
+                                                    <li>
+                                (by extension) Any position of opportunity for which one is well-suited, such as a particular market in business.
+                            </li>
+                                                    <li>
+                                An arrow woven into a prayer rug pointing in the direction of qibla.
+                            </li>
+                                                </ol>
+                    </div>
+                                    <div class="word-def">
+                        <b>verb</b>
+                        <ol>
+                                                    <li>
+                                To place in a niche.
+                            </li>
+                                                    <li>
+                                To specialize in a niche, or particular narrow section of the market.
+                            </li>
+                                                </ol>
+                    </div>
+                                    <div class="word-def">
+                        <b>adjective</b>
+                        <ol>
+                                                    <li>
+                                Pertaining to or intended for a market niche; having specific appeal.
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                </div>
+    <div class="word" id="word-div-nigh">
+        <p><b><i>nigh</i></b><br></p>
+                        <div class="etymology">
+                                                <div class="word-def">
+                        <b>verb</b>
+                        <ol>
+                                                    <li>
+                                To draw nigh (to); to approach; to come near
+                            </li>
+                                                </ol>
+                    </div>
+                                    <div class="word-def">
+                        <b>adjective</b>
+                        <ol>
+                                                    <li>
+                                Near, close by
+                            </li>
+                                                    <li>
+                                Not remote in degree, kindred, circumstances, etc.; closely allied; intimate.
+                            </li>
+                                                </ol>
+                    </div>
+                                    <div class="word-def">
+                        <b>adverb</b>
+                        <ol>
+                                                    <li>
+                                Almost, nearly.
+                            </li>
+                                                </ol>
+                    </div>
+                                    <div class="word-def">
+                        <b>preposition</b>
+                        <ol>
+                                                    <li>
+                                Near; close to
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                </div>
+    <div class="word" id="word-div-weigh">
+        <p><b><i>weigh</i></b><br></p>
+                        <div class="etymology">
+                                                <div class="word-def">
+                        <b>verb</b>
+                        <ol>
+                                                    <li>
+                                To determine the weight of an object.
+                            </li>
+                                                    <li>
+                                Often with &#34;out&#34;, to measure a certain amount of something by its weight, e.g. for sale.
+                            </li>
+                                                    <li>
+                                To determine the intrinsic value or merit of an object, to evaluate.
+                            </li>
+                                                    <li>
+                                To judge; to estimate.
+                            </li>
+                                                    <li>
+                                To consider a subject.
+                            </li>
+                                                    <li>
+                                To have a certain weight.
+                            </li>
+                                                    <li>
+                                To have weight; to be heavy; to press down.
+                            </li>
+                                                    <li>
+                                To be considered as important; to have weight in the intellectual balance.
+                            </li>
+                                                    <li>
+                                To raise an anchor free of the seabed.
+                            </li>
+                                                    <li>
+                                To weigh anchor.
+                            </li>
+                                                    <li>
+                                To bear up; to raise; to lift into the air; to swing up.
+                            </li>
+                                                    <li>
+                                To consider as worthy of notice; to regard.
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                </div>
+    <div class="word" id="word-div-weighing">
+        <p><b><i>weighing</i></b><br></p>
+                        <div class="etymology">
+                                                <div class="word-def">
+                        <b>verb</b>
+                        <ol>
+                                                    <li>
+                                To determine the weight of an object.
+                            </li>
+                                                    <li>
+                                Often with &#34;out&#34;, to measure a certain amount of something by its weight, e.g. for sale.
+                            </li>
+                                                    <li>
+                                To determine the intrinsic value or merit of an object, to evaluate.
+                            </li>
+                                                    <li>
+                                To judge; to estimate.
+                            </li>
+                                                    <li>
+                                To consider a subject.
+                            </li>
+                                                    <li>
+                                To have a certain weight.
+                            </li>
+                                                    <li>
+                                To have weight; to be heavy; to press down.
+                            </li>
+                                                    <li>
+                                To be considered as important; to have weight in the intellectual balance.
+                            </li>
+                                                    <li>
+                                To raise an anchor free of the seabed.
+                            </li>
+                                                    <li>
+                                To weigh anchor.
+                            </li>
+                                                    <li>
+                                To bear up; to raise; to lift into the air; to swing up.
+                            </li>
+                                                    <li>
+                                To consider as worthy of notice; to regard.
+                            </li>
+                                                </ol>
+                    </div>
+                                    <div class="word-def">
+                        <b>noun</b>
+                        <ol>
+                                                    <li>
+                                The process by which something is weighed.
+                            </li>
+                                                </ol>
+                    </div>
+                                    <div class="word-def">
+                        <b>adjective</b>
+                        <ol>
+                                                    <li>
+                                That weighs or burdens.
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                </div>
+    <div class="word" id="word-div-wench">
+        <p><b><i>wench</i></b><br></p>
+                        <div class="etymology">
+                                                <div class="word-def">
+                        <b>noun</b>
+                        <ol>
+                                                    <li>
+                                (possibly offensive) A girl or young woman, especially a buxom or lively one.
+                            </li>
+                                                    <li>
+                                Used as a term of endearment for a female person, especially a wife, daughter, or girlfriend: darling, sweetheart.
+                            </li>
+                                                    <li>
+                                A woman servant; a maidservant.
+                            </li>
+                                                    <li>
+                                A promiscuous woman; a mistress.
+                            </li>
+                                                    <li>
+                                A prostitute.
+                            </li>
+                                                    <li>
+                                A black woman (of any age), especially if in a condition of servitude.
+                            </li>
+                                                </ol>
+                    </div>
+                                    <div class="word-def">
+                        <b>verb</b>
+                        <ol>
+                                                    <li>
+                                To frequent prostitutes; to whore; also, to womanize.
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                </div>
+    <div class="word" id="word-div-whee">
+        <p><b><i>whee</i></b><br></p>
+                        <div class="etymology">
+                                                <div class="word-def">
+                        <b>interjection</b>
+                        <ol>
+                                                    <li>
+                                An expression of pleasure or enjoyment, mostly from rapid physical motion.
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                </div>
+    <div class="word" id="word-div-when">
+        <p><b><i>when</i></b><br></p>
+                        <div class="etymology">
+                                                <div class="word-def">
+                        <b>noun</b>
+                        <ol>
+                                                    <li>
+                                The time at which something happens.
+                            </li>
+                                                </ol>
+                    </div>
+                                    <div class="word-def">
+                        <b>adverb</b>
+                        <ol>
+                                                    <li>
+                                (interrogative) At what time? At which time? Upon which occasion or circumstance? Used to introduce direct or indirect questions about time.
+                            </li>
+                                                    <li>
+                                At an earlier time and under different, usually less favorable, circumstances.
+                            </li>
+                                                    <li>
+                                (relative) At which, on which, during which: often omitted or replaced with that.
+                            </li>
+                                                </ol>
+                    </div>
+                                    <div class="word-def">
+                        <b>pronoun</b>
+                        <ol>
+                                                    <li>
+                                (interrogative) What time; which time.
+                            </li>
+                                                    <li>
+                                The time that.
+                            </li>
+                                                </ol>
+                    </div>
+                                    <div class="word-def">
+                        <b>conjunction</b>
+                        <ol>
+                                                    <li>
+                                At (or as soon as) that time that; at the (or any and every) time that; if.
+                            </li>
+                                                    <li>
+                                During the time that; at the time of the action of the following clause or participle phrase.
+                            </li>
+                                                    <li>
+                                At what time; at which time.
+                            </li>
+                                                    <li>
+                                Since; given the fact that; considering that.
+                            </li>
+                                                    <li>
+                                Whereas; although; at the same time as; in spite of the fact that.
+                            </li>
+                                                </ol>
+                    </div>
+                                    <div class="word-def">
+                        <b>interjection</b>
+                        <ol>
+                                                    <li>
+                                That&#39;s enough, a command to stop adding something, especially an ingredient of food or drink.
+                            </li>
+                                                    <li>
+                                Expressing impatience. (Compare what.)
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                </div>
+    <div class="word" id="word-div-whence">
+        <p><b><i>whence</i></b><br></p>
+                        <div class="etymology">
+                                                <div class="word-def">
+                        <b>adverb</b>
+                        <ol>
+                                                    <li>
+                                From where; from which place or source.
+                            </li>
+                                                </ol>
+                    </div>
+                                    <div class="word-def">
+                        <b>conjunction</b>
+                        <ol>
+                                                    <li>
+                                Used for introducing the result of a fact that has just been stated.
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                </div>
+    <div class="word" id="word-div-whew">
+        <p><b><i>whew</i></b><br></p>
+                        <div class="etymology">
+                            <h4>Etymology 1</h4>
+                                                <div class="word-def">
+                        <b>verb</b>
+                        <ol>
+                                                    <li>
+                                To whistle with a shrill pipe, like a plover.
+                            </li>
+                                                </ol>
+                    </div>
+                                    <div class="word-def">
+                        <b>interjection</b>
+                        <ol>
+                                                    <li>
+                                An expressive sound made indicating the release of one&#39;s inner tension; the release of breath; an expression of relief.
+                            </li>
+                                                    <li>
+                                An expression of amazement or surprise.
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                    <div class="etymology">
+                            <h4>Etymology 2</h4>
+                                                <div class="word-def">
+                        <b>verb</b>
+                        <ol>
+                                                    <li>
+                                To bustle about.
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                </div>
+    <div class="word" id="word-div-which">
+        <p><b><i>which</i></b><br></p>
+                        <div class="etymology">
+                                                <div class="word-def">
+                        <b>pronoun</b>
+                        <ol>
+                                                    <li>
+                                (interrogative) What one or ones (of those mentioned or implied).
+                            </li>
+                                                    <li>
+                                The/Any ones that; whichever.
+                            </li>
+                                                    <li>
+                                (relative) Introduces a relative clause giving further information about something previously mentioned.
+                            </li>
+                                                    <li>
+                                (relative) Used of people (now generally who, whom or that).
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                </div>
+    <div class="word" id="word-div-whine">
+        <p><b><i>whine</i></b><br></p>
+                        <div class="etymology">
+                                                <div class="word-def">
+                        <b>noun</b>
+                        <ol>
+                                                    <li>
+                                A long-drawn, high-pitched complaining cry or sound
+                            </li>
+                                                    <li>
+                                A complaint or criticism
+                            </li>
+                                                </ol>
+                    </div>
+                                    <div class="word-def">
+                        <b>verb</b>
+                        <ol>
+                                                    <li>
+                                To utter a high-pitched cry.
+                            </li>
+                                                    <li>
+                                To make a sound resembling such a cry.
+                            </li>
+                                                    <li>
+                                To complain or protest with a whine or as if with a whine.
+                            </li>
+                                                    <li>
+                                To move with a whining sound.
+                            </li>
+                                                    <li>
+                                To utter with the sound of a whine.
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                </div>
+    <div class="word" id="word-div-whinge">
+        <p><b><i>whinge</i></b><br></p>
+                        <div class="etymology">
+                                                <div class="word-def">
+                        <b>noun</b>
+                        <ol>
+                                                    <li>
+                                A cry.
+                            </li>
+                                                    <li>
+                                A peevish complaint.
+                            </li>
+                                                </ol>
+                    </div>
+                                    <div class="word-def">
+                        <b>verb</b>
+                        <ol>
+                                                    <li>
+                                To complain, especially in an annoying or persistent manner.
+                            </li>
+                                                    <li>
+                                To whine.
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                </div>
+    <div class="word" id="word-div-whingeing">
+        <p><b><i>whingeing</i></b><br></p>
+                        <div class="etymology">
+                                                <div class="word-def">
+                        <b>verb</b>
+                        <ol>
+                                                    <li>
+                                To complain, especially in an annoying or persistent manner.
+                            </li>
+                                                    <li>
+                                To whine.
+                            </li>
+                                                </ol>
+                    </div>
+                                    <div class="word-def">
+                        <b>noun</b>
+                        <ol>
+                                                    <li>
+                                A peevish complaint.
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                </div>
+    <div class="word" id="word-div-whinging">
+        <p><b><i>whinging</i></b><br></p>
+                        <div class="etymology">
+                            <h4>Etymology 1</h4>
+                                                <div class="word-def">
+                        <b>verb</b>
+                        <ol>
+                                                    <li>
+                                To move with great force or speed.
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                    <div class="etymology">
+                            <h4>Etymology 2</h4>
+                                                <div class="word-def">
+                        <b>verb</b>
+                        <ol>
+                                                    <li>
+                                To complain, especially in an annoying or persistent manner.
+                            </li>
+                                                    <li>
+                                To whine.
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                </div>
+    <div class="word" id="word-div-whining">
+        <p><b><i>whining</i></b><br></p>
+                        <div class="etymology">
+                                                <div class="word-def">
+                        <b>noun</b>
+                        <ol>
+                                                    <li>
+                                A long-drawn, high-pitched complaining cry or sound
+                            </li>
+                                                    <li>
+                                A complaint or criticism
+                            </li>
+                                                </ol>
+                    </div>
+                                    <div class="word-def">
+                        <b>verb</b>
+                        <ol>
+                                                    <li>
+                                To utter a high-pitched cry.
+                            </li>
+                                                    <li>
+                                To make a sound resembling such a cry.
+                            </li>
+                                                    <li>
+                                To complain or protest with a whine or as if with a whine.
+                            </li>
+                                                    <li>
+                                To move with a whining sound.
+                            </li>
+                                                    <li>
+                                To utter with the sound of a whine.
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                </div>
+    <div class="word" id="word-div-winch">
+        <p><b><i>winch</i></b><br></p>
+                        <div class="etymology">
+                            <h4>Etymology 1</h4>
+                                                <div class="word-def">
+                        <b>noun</b>
+                        <ol>
+                                                    <li>
+                                A machine consisting of a drum on an axle, a friction brake or ratchet and pawl, and a crank handle or prime mover (often an electric or hydraulic motor), with or without gearing, to give increased mechanical advantage when hauling on a rope or cable.
+                            </li>
+                                                    <li>
+                                A hoisting machine used for loading or discharging cargo, or for hauling in lines. (FM 55-501).
+                            </li>
+                                                    <li>
+                                A wince (machine used in dyeing or steeping cloth).
+                            </li>
+                                                    <li>
+                                A kick, as of an animal, from impatience or uneasiness.
+                            </li>
+                                                </ol>
+                    </div>
+                                    <div class="word-def">
+                        <b>verb</b>
+                        <ol>
+                                                    <li>
+                                To use a winch
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                    <div class="etymology">
+                            <h4>Etymology 2</h4>
+                                                <div class="word-def">
+                        <b>verb</b>
+                        <ol>
+                                                    <li>
+                                To wince; to shrink
+                            </li>
+                                                    <li>
+                                To kick with impatience or uneasiness.
+                            </li>
+                                                </ol>
+                    </div>
+                            </div>
+                </div>
+</div>
+
+<!--
+
+
+-->
+</body>
+</html>

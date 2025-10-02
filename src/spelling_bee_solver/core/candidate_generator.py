@@ -50,6 +50,7 @@ Functions:
 from typing import Set, List, Optional, Callable
 import logging
 from .phonotactic_filter import create_phonotactic_filter
+from ..constants import MIN_WORD_LENGTH
 
 logger = logging.getLogger(__name__)
 
@@ -74,9 +75,6 @@ class CandidateGenerator:
         CandidateGenerator instances are thread-safe for read operations.
         The advanced_filter callback must be thread-safe if used in multi-threaded contexts.
     """
-
-    # Class constant for minimum word length
-    MIN_WORD_LENGTH = 4
 
     def __init__(
         self,
@@ -407,7 +405,7 @@ class CandidateGenerator:
 
 
 def create_candidate_generator(
-    min_word_length: int = CandidateGenerator.MIN_WORD_LENGTH,
+    min_word_length: int = MIN_WORD_LENGTH,
     advanced_filter: Optional[Callable[[List[str]], List[str]]] = None,
     enable_phonotactic_filter: bool = True
 ) -> CandidateGenerator:

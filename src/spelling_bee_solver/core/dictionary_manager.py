@@ -22,6 +22,8 @@ from urllib.parse import urlparse
 
 import requests
 
+from ..constants import MIN_WORD_LENGTH, CACHE_EXPIRY_SECONDS, DOWNLOAD_TIMEOUT
+
 
 class DictionaryManager:
     """
@@ -30,12 +32,7 @@ class DictionaryManager:
     This class encapsulates all dictionary operations, providing a clean
     interface for loading words from various sources with intelligent caching.
     """
-    
-    # Constants
-    MIN_WORD_LENGTH = 4
-    CACHE_EXPIRY_SECONDS = 30 * 24 * 3600  # 30 days
-    DOWNLOAD_TIMEOUT = 30  # seconds
-    
+
     def __init__(
         self,
         cache_dir: Optional[Path] = None,
@@ -174,7 +171,7 @@ class DictionaryManager:
         # Check if cached version exists and is recent
         if cache_path.exists():
             cache_age = time.time() - cache_path.stat().st_mtime
-            if cache_age < self.CACHE_EXPIRY_SECONDS:
+            if cache_age < CACHE_EXPIRY_SECONDS:
                 self.logger.info("Using cached dictionary: %s", cache_path.name)
                 return self._load_from_cache(cache_path)
         
@@ -233,7 +230,7 @@ class DictionaryManager:
         """
         try:
             self.logger.info("Downloading dictionary from: %s", url)
-            response = requests.get(url, timeout=self.DOWNLOAD_TIMEOUT)
+            response = requests.get(url, timeout=DOWNLOAD_TIMEOUT)
             response.raise_for_status()
             
             # Parse the downloaded content
@@ -288,14 +285,14 @@ class DictionaryManager:
                 return {
                     word.lower()
                     for word in data.keys()
-                    if word and word.isalpha() and len(word) >= self.MIN_WORD_LENGTH
+                    if word and word.isalpha() and len(word) >= MIN_WORD_LENGTH
                 }
             elif isinstance(data, list):
                 # JSON array of words
                 return {
                     word.lower()
                     for word in data
-                    if word and word.isalpha() and len(word) >= self.MIN_WORD_LENGTH
+                    if word and word.isalpha() and len(word) >= MIN_WORD_LENGTH
                 }
             else:
                 self.logger.warning("Unexpected JSON structure: %s", type(data))

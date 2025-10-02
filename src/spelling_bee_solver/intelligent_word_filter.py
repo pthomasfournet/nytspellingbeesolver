@@ -22,6 +22,8 @@ import time
 from pathlib import Path
 from typing import List, Set, Tuple, Dict, Any, Optional
 
+from .constants import MIN_WORD_LENGTH, ENTITY_TYPES
+
 # Import NLP abstraction layer
 try:
     from .nlp import NLPProvider, SpacyNLPProvider, MockNLPProvider
@@ -207,7 +209,7 @@ class IntelligentWordFilter:
                 return True
             
             # Check named entity recognition
-            if doc.has_entity_type(word, ["PERSON", "ORG", "GPE", "NORP", "FACILITY", "LOC"]):
+            if doc.has_entity_type(word, ENTITY_TYPES):
                 return True
             
             # Additional checks for capitalized words
@@ -247,7 +249,7 @@ class IntelligentWordFilter:
             for ent in doc.ents:
                 if word.lower() in ent.text.lower():
                     # These entity types are typically proper nouns
-                    if ent.label_ in ["PERSON", "ORG", "GPE", "NORP", "FACILITY", "LOC"]:
+                    if ent.label_ in ENTITY_TYPES:
                         return True
             
             # Additional checks for capitalized words
@@ -470,7 +472,7 @@ class IntelligentWordFilter:
             return []
         
         # First filter: Remove words that are too short (Spelling Bee requires 4+ letters)
-        valid_length_words = [word for word in words if len(word) >= 4]
+        valid_length_words = [word for word in words if len(word) >= MIN_WORD_LENGTH]
         
         if not valid_length_words:
             logger.info("No words meet minimum length requirement (4+ letters)")
@@ -567,7 +569,7 @@ class IntelligentWordFilter:
                 # Check named entities
                 for ent in doc.ents:
                     if word.lower() in ent.text.lower():
-                        if ent.label_ in ["PERSON", "ORG", "GPE", "NORP", "FACILITY", "LOC"]:
+                        if ent.label_ in ENTITY_TYPES:
                             return True
                 
                 # Check if it's an uncommon capitalized word

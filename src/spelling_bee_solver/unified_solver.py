@@ -118,6 +118,8 @@ from urllib.parse import urlparse
 
 import requests
 
+from .constants import MIN_WORD_LENGTH, CACHE_EXPIRY_SECONDS
+
 # Import core components for dependency injection
 from .core import (
     InputValidator,
@@ -183,10 +185,6 @@ class UnifiedSpellingBeeSolver:
         GPU acceleration requires CUDA-compatible hardware and appropriate drivers.
         The solver gracefully falls back to CPU processing when GPU is unavailable.
     """
-
-    # Class constants for performance
-    MIN_WORD_LENGTH = 4
-    CACHE_EXPIRY_SECONDS = 30 * 24 * 3600  # 30 days
 
     def __init__(
         self,
@@ -489,7 +487,7 @@ class UnifiedSpellingBeeSolver:
         req_letter = required_letter.lower()
 
         # Check basic requirements
-        if len(word) < self.MIN_WORD_LENGTH:
+        if len(word) < MIN_WORD_LENGTH:
             return False
 
         if req_letter not in word:
