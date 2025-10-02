@@ -9,6 +9,8 @@ from .dictionary_manager import DictionaryManager, create_dictionary_manager
 from .confidence_scorer import ConfidenceScorer, create_confidence_scorer
 from .candidate_generator import CandidateGenerator, create_candidate_generator
 from .result_formatter import ResultFormatter, create_result_formatter, OutputFormat
+from .nyt_rejection_filter import NYTRejectionFilter
+from .phonotactic_filter import PhonotacticFilter, PhonotacticRules, create_phonotactic_filter
 
 __all__ = [
     'InputValidator',
@@ -22,4 +24,8 @@ __all__ = [
     'ResultFormatter',
     'create_result_formatter',
     'OutputFormat',
+    'NYTRejectionFilter',
+    'PhonotacticFilter',
+    'PhonotacticRules',
+    'create_phonotactic_filter',
 ]

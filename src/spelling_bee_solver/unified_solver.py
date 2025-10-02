@@ -313,16 +313,15 @@ class UnifiedSpellingBeeSolver:
         self.result_formatter = result_formatter or create_result_formatter()
 
         # Initialize NYT rejection filter (Phase 3)
-        from .core.nyt_rejection_filter import NYTRejectionFilter
+        from .core import NYTRejectionFilter
         self.nyt_filter = NYTRejectionFilter()
 
-        # Initialize confidence scorer (Phase 4: EnhancedConfidenceScorer with Olympic judges)
+        # Initialize confidence scorer (Olympic judges system)
         if confidence_scorer is None:
-            from .core.enhanced_confidence_scorer import create_enhanced_confidence_scorer
-            self.confidence_scorer = create_enhanced_confidence_scorer(
+            self.confidence_scorer = create_confidence_scorer(
                 nyt_filter=self.nyt_filter
             )
-            self.logger.debug("Using EnhancedConfidenceScorer (Olympic judges system)")
+            self.logger.debug("Using ConfidenceScorer (Olympic judges system)")
         else:
             # Use injected confidence scorer
             self.confidence_scorer = confidence_scorer
@@ -994,9 +993,8 @@ class UnifiedSpellingBeeSolver:
         if self.use_gpu and self.gpu_filter:
             self.logger.info("Applying GPU filtering to %d candidates", len(candidates))
             start_time = time.time()
-            from .unified_word_filtering import get_unified_filter
-            unified_filter = get_unified_filter()
-            candidates = unified_filter.comprehensive_filter(candidates)
+            from .intelligent_word_filter import filter_words_intelligent
+            candidates = filter_words_intelligent(candidates, use_gpu=True)
             filter_time = time.time() - start_time
             self.logger.info(
                 "GPU filtered to %d words in %.3fs", len(candidates), filter_time

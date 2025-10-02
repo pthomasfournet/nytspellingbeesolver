@@ -21,7 +21,7 @@ def test_extreme_edge_cases():
 
     # Test with valid puzzle that has many solutions
     print("Testing complex puzzle...")
-    results = solver.solve_puzzle("ACTIONS", "A")
+    results = solver.solve_puzzle("A", "CTIONS")  # required_letter, other_letters
     print(f"Complex puzzle results: {len(results)}")
 
     # Test dictionary downloading (if available)
@@ -41,20 +41,21 @@ def test_extreme_edge_cases():
         print("Google common words not available")
 
     # Test config validation
-    config_valid = solver._validate_active_dictionaries()
+    config_valid = solver._validate_dictionaries()
     print(f"Config validation: {config_valid}")
 
     # Test with different letter combinations
+    # Format: (required_letter, other_6_letters)
     edge_puzzles = [
-        ("ABCDEFG", "A"),
-        ("QWERTYU", "Q"),
-        ("ZYXWVUT", "Z"),
+        ("A", "BCDEFG"),
+        ("Q", "WERTYU"),
+        ("Z", "YXWVUT"),
     ]
 
-    for letters, req in edge_puzzles:
+    for req, letters in edge_puzzles:
         try:
-            results = solver.solve_puzzle(letters, req)
-            print(f"Edge puzzle {letters}-{req}: {len(results)} words")
+            results = solver.solve_puzzle(req, letters)
+            print(f"Edge puzzle {req}{letters}-{req}: {len(results)} words")
         except Exception as e:
             print(f"Edge puzzle failed: {e}")
 

@@ -1,14 +1,25 @@
 """
 Word filtering logic for NYT Spelling Bee solver.
 Contains intelligent detection of proper nouns, place names, acronyms, and non - English words.
+
+DEPRECATED: This module is deprecated. Use core.NYTRejectionFilter instead.
 """
+
+import warnings
 
 
 def is_likely_nyt_rejected(word):
     """
     Check if a word is likely to be rejected by NYT Spelling Bee using intelligent detection.
     Returns True if the word should be filtered out.
+
+    DEPRECATED: Use core.NYTRejectionFilter.should_reject() instead.
     """
+    warnings.warn(
+        "is_likely_nyt_rejected() is deprecated. Use core.NYTRejectionFilter.should_reject() instead.",
+        DeprecationWarning,
+        stacklevel=2
+    )
     # Preserve original case for proper noun detection
     original_word = word
     word_lower = word.lower()
@@ -165,7 +176,14 @@ def filter_words(words, letters, required_letter):
 
     Returns:
         List of filtered words that should be valid for the puzzle
+
+    DEPRECATED: Use core.CandidateGenerator.generate_candidates() instead.
     """
+    warnings.warn(
+        "filter_words() is deprecated. Use core.CandidateGenerator.generate_candidates() instead.",
+        DeprecationWarning,
+        stacklevel=2
+    )
     filtered = []
     letters_set = set(letters.lower())
     required = required_letter.lower()
@@ -203,7 +221,14 @@ def get_word_confidence(word, google_common_words=None):
 
     Returns:
         Float confidence score (0.0 to 1.0)
+
+    DEPRECATED: Use core.ConfidenceScorer.calculate_confidence() instead.
     """
+    warnings.warn(
+        "get_word_confidence() is deprecated. Use core.ConfidenceScorer.calculate_confidence() instead.",
+        DeprecationWarning,
+        stacklevel=2
+    )
     confidence = 0.5  # Base confidence
 
     # Length bonus (longer words often more valuable)
@@ -229,10 +254,26 @@ def get_word_confidence(word, google_common_words=None):
 
 # Legacy support functions
 def is_proper_noun(word):
-    """Legacy function - now handled by is_likely_nyt_rejected."""
+    """Legacy function - now handled by is_likely_nyt_rejected.
+
+    DEPRECATED: Use core.NYTRejectionFilter.is_proper_noun() instead.
+    """
+    warnings.warn(
+        "is_proper_noun() is deprecated. Use core.NYTRejectionFilter.should_reject() instead.",
+        DeprecationWarning,
+        stacklevel=2
+    )
     return is_likely_nyt_rejected(word)
 
 
 def filter_inappropriate_words(words):
-    """Legacy function for filtering inappropriate content."""
+    """Legacy function for filtering inappropriate content.
+
+    DEPRECATED: Use core.NYTRejectionFilter instead.
+    """
+    warnings.warn(
+        "filter_inappropriate_words() is deprecated. Use core.NYTRejectionFilter instead.",
+        DeprecationWarning,
+        stacklevel=2
+    )
     return [word for word in words if not is_likely_nyt_rejected(word)]
