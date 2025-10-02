@@ -42,9 +42,9 @@ def test_word_filtering_comprehensive():
     print("\nRunning comprehensive word filtering tests...")
 
     from src.spelling_bee_solver.core import (
-        NYTRejectionFilter,
-        ConfidenceScorer,
         CandidateGenerator,
+        ConfidenceScorer,
+        NYTRejectionFilter,
     )
 
     nyt_filter = NYTRejectionFilter()
@@ -91,7 +91,10 @@ def test_gpu_components_comprehensive():
 
     # Test IntelligentWordFilter (the actual GPU filtering system)
     try:
-        from src.spelling_bee_solver.intelligent_word_filter import IntelligentWordFilter, filter_words_intelligent
+        from src.spelling_bee_solver.intelligent_word_filter import (
+            IntelligentWordFilter,
+            filter_words_intelligent,
+        )
 
         filter_obj = IntelligentWordFilter(use_gpu=False)  # Use CPU for testing
         print("✓ IntelligentWordFilter initialized")
@@ -153,7 +156,7 @@ def test_configuration_and_edge_cases():
 
         # Test confidence edge cases
         try:
-            conf_empty = solver.calculate_confidence("")
+            solver.calculate_confidence("")
             print("✗ Should have failed with empty confidence input")
         except ValueError:
             print("✓ Correctly rejects empty confidence input")

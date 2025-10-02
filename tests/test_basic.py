@@ -3,22 +3,18 @@
 Basic tests with real solver and dictionaries.
 """
 
-import pytest
 
 
 def test_basic_imports():
     """Test that all modules can be imported."""
     print("\n=== Testing Module Imports ===")
 
-    from src.spelling_bee_solver.unified_solver import UnifiedSpellingBeeSolver
     print("✓ unified_solver imported")
 
-    from src.spelling_bee_solver.core import NYTRejectionFilter
     print("✓ core.NYTRejectionFilter imported")
 
     # GPU/NLP components (may fail on systems without dependencies)
     try:
-        from src.spelling_bee_solver.intelligent_word_filter import IntelligentWordFilter, filter_words_intelligent
         print("✓ intelligent_word_filter imported")
     except Exception as e:
         print(f"⚠ intelligent_word_filter: {e}")
@@ -38,10 +34,10 @@ def test_unified_solver():
     print("✓ Solver initialized")
 
     # Verify solver configuration
-    assert hasattr(solver, 'DICTIONARIES'), "Should have DICTIONARIES attribute"
-    assert len(solver.DICTIONARIES) == 2, "Should have exactly 2 dictionaries"
+    assert hasattr(solver, 'dictionaries'), "Should have dictionaries attribute"
+    assert len(solver.dictionaries) == 2, "Should have exactly 2 dictionaries"
 
-    dict_names = [name for name, _ in solver.DICTIONARIES]
+    dict_names = [name for name, _ in solver.dictionaries]
     print(f"✓ Dictionaries configured: {dict_names}")
     assert "Webster's Unabridged" in dict_names
     assert "ASPELL American English" in dict_names

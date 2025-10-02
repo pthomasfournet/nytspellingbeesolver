@@ -7,10 +7,10 @@ Uses multiprocessing for lightning-fast parallel parsing of 2,618 puzzles.
 
 import json
 import re
-from pathlib import Path
-from typing import Dict, List, Set
-from multiprocessing import Pool, cpu_count
 import time
+from multiprocessing import Pool, cpu_count
+from pathlib import Path
+from typing import Dict
 
 
 def parse_single_puzzle(html_path: Path) -> Dict:
@@ -26,7 +26,7 @@ def parse_single_puzzle(html_path: Path) -> Dict:
     - All letters (inferred from words)
     """
     try:
-        with open(html_path) as f:
+        with open(html_path, encoding='utf-8') as f:
             content = f.read()
 
         # Extract date from filename
@@ -151,7 +151,7 @@ def main():
 
     # Save full dataset
     output_file = Path('nyt_puzzles_dataset.json')
-    with open(output_file, 'w') as f:
+    with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(puzzles, f, indent=2)
     print(f"💾 Saved dataset to {output_file}")
     print()
@@ -167,11 +167,11 @@ def main():
     sorted_freq = sorted(word_freq.items(), key=lambda x: x[1], reverse=True)
 
     freq_output = Path('nyt_word_frequency.json')
-    with open(freq_output, 'w') as f:
+    with open(freq_output, 'w', encoding='utf-8') as f:
         json.dump(dict(sorted_freq), f, indent=2)
 
     print(f"💾 Saved frequency database to {freq_output}")
-    print(f"   Top 10 most common words:")
+    print("   Top 10 most common words:")
     for word, count in sorted_freq[:10]:
         print(f"     {word:15} {count:3} appearances")
     print()
@@ -188,12 +188,12 @@ def main():
     sorted_blacklist = sorted(blacklist.items(), key=lambda x: x[1], reverse=True)
 
     blacklist_output = Path('nyt_rejection_blacklist.json')
-    with open(blacklist_output, 'w') as f:
+    with open(blacklist_output, 'w', encoding='utf-8') as f:
         json.dump(dict(sorted_blacklist), f, indent=2)
 
     print(f"💾 Saved blacklist to {blacklist_output}")
     print(f"   {len(blacklist)} words rejected 3+ times")
-    print(f"   Top 10 most rejected words:")
+    print("   Top 10 most rejected words:")
     for word, count in sorted_blacklist[:10]:
         print(f"     {word:15} {count:3} rejections")
     print()

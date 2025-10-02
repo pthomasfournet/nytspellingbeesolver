@@ -47,10 +47,11 @@ Functions:
     create_candidate_generator: Factory function for creating CandidateGenerator instances
 """
 
-from typing import Set, List, Optional, Callable
 import logging
-from .phonotactic_filter import create_phonotactic_filter
+from typing import Callable, List, Optional, Set
+
 from ..constants import MIN_WORD_LENGTH
+from .phonotactic_filter import create_phonotactic_filter
 
 logger = logging.getLogger(__name__)
 
@@ -87,11 +88,11 @@ class CandidateGenerator:
         Args:
             min_word_length (int, optional): Minimum length for valid words.
                 Must be >= 1. Defaults to 4 (NYT Spelling Bee standard).
-            advanced_filter (Callable[[List[str]], List[str]], optional): 
+            advanced_filter (Callable[[List[str]], List[str]], optional):
                 Optional callback function for advanced filtering. Should accept
                 a list of candidate words and return a filtered list. Use for
                 GPU filtering, NLP processing, etc. Defaults to None.
-            enable_phonotactic_filter (bool, optional): Enable phonotactic 
+            enable_phonotactic_filter (bool, optional): Enable phonotactic
                 pre-filtering to reject impossible letter sequences before
                 dictionary lookup. Improves performance by 30-50%. Defaults to True.
 
@@ -115,14 +116,14 @@ class CandidateGenerator:
 
         self.min_word_length = min_word_length
         self._advanced_filter = advanced_filter
-        
+
         # Initialize phonotactic filter for performance optimization
         self.enable_phonotactic_filter = enable_phonotactic_filter
         if enable_phonotactic_filter:
             self.phonotactic_filter = create_phonotactic_filter()
         else:
             self.phonotactic_filter = None
-        
+
 
     def is_valid_word_basic(
         self, word: str, letters: str, required_letter: str
@@ -220,16 +221,16 @@ class CandidateGenerator:
         required_letter: str
     ) -> List[str]:
         """Generate candidates using dictionary scan mode.
-        
+
         Scans entire dictionary, filtering by letter constraints and
         optional phonotactic rules.
-        
+
         Args:
             dictionary: Dictionary to scan
             letters: Puzzle letters (lowercase)
             letters_set: Set of puzzle letters
             required_letter: Required letter (lowercase)
-        
+
         Returns:
             List of valid candidate words
         """
@@ -242,11 +243,11 @@ class CandidateGenerator:
                 and required_letter in word.lower()
                 and set(word.lower()).issubset(letters_set)
                 # Apply phonotactic filter if enabled
-                and (not self.enable_phonotactic_filter or 
+                and (not self.enable_phonotactic_filter or
                      self.phonotactic_filter.is_valid_sequence(word.lower()))
             )
         ]
-        
+
         # Log phonotactic filter statistics if enabled
         if self.enable_phonotactic_filter and self.phonotactic_filter:
             stats = self.phonotactic_filter.get_stats()
@@ -255,7 +256,7 @@ class CandidateGenerator:
                     "Dictionary scan: checked=%d, accepted=%d (%s)",
                     stats["checked"], stats["accepted"], stats["acceptance_rate"]
                 )
-        
+
         return candidates
 
     def generate_candidates(
@@ -422,7 +423,7 @@ def create_candidate_generator(
         advanced_filter (Callable[[List[str]], List[str]], optional):
             Optional callback for advanced filtering. Defaults to None.
         enable_phonotactic_filter (bool, optional): Whether to enable phonotactic
-            filtering to reject impossible letter sequences (e.g., 'aaa', 'jj', 
+            filtering to reject impossible letter sequences (e.g., 'aaa', 'jj',
             invalid consonant clusters). Defaults to True. Disabling can be useful
             for testing or non-English dictionaries.
 
@@ -441,7 +442,7 @@ def create_candidate_generator(
         >>> def my_filter(words):
         ...     return [w for w in words if not w.startswith('x')]
         >>> generator = create_candidate_generator(advanced_filter=my_filter)
-        
+
         >>> # Disable phonotactic filtering for testing
         >>> generator = create_candidate_generator(enable_phonotactic_filter=False)
     """

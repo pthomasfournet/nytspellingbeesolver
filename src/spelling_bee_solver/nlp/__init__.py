@@ -12,9 +12,9 @@ Public API:
 - Factory functions: create_spacy_provider, create_mock_provider
 """
 
-from .nlp_provider import NLPProvider, Document, Token, Entity
-from .spacy_provider import SpacyNLPProvider, create_spacy_provider
 from .mock_provider import MockNLPProvider, create_mock_provider
+from .nlp_provider import Document, Entity, NLPProvider, Token
+from .spacy_provider import SpacyNLPProvider, create_spacy_provider
 
 __all__ = [
     # Abstract interfaces

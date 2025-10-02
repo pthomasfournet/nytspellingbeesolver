@@ -11,7 +11,7 @@ named entity recognition, part-of-speech tagging, and GPU acceleration.
 import logging
 from typing import List, Optional
 
-from .nlp_provider import NLPProvider, Document, Token, Entity
+from .nlp_provider import Document, Entity, NLPProvider, Token
 
 logger = logging.getLogger(__name__)
 
@@ -19,19 +19,19 @@ logger = logging.getLogger(__name__)
 class SpacyDocument(Document):
     """
     spaCy implementation of the Document interface.
-    
+
     Wraps a spaCy Doc object and provides the abstract interface.
     """
-    
+
     def __init__(self, spacy_doc):
         """
         Initialize with a spaCy Doc object.
-        
+
         Args:
             spacy_doc: A spacy.tokens.Doc object
         """
         self._doc = spacy_doc
-    
+
     def get_tokens(self) -> List[Token]:
         """Get list of tokens from spaCy doc"""
         return [
@@ -44,7 +44,7 @@ class SpacyDocument(Document):
             )
             for token in self._doc
         ]
-    
+
     def get_entities(self) -> List[Entity]:
         """Get list of named entities from spaCy doc"""
         return [
@@ -56,7 +56,7 @@ class SpacyDocument(Document):
             )
             for ent in self._doc.ents
         ]
-    
+
     def find_token(self, text: str) -> Optional[Token]:
         """Find a specific token by text (case-insensitive)"""
         text_lower = text.lower()
@@ -70,12 +70,12 @@ class SpacyDocument(Document):
                     lemma=token.lemma_
                 )
         return None
-    
+
     def has_proper_noun(self, word: str) -> bool:
         """Check if a specific word is tagged as a proper noun"""
         token = self.find_token(word)
         return token is not None and token.is_proper_noun
-    
+
     def has_entity_type(self, word: str, entity_types: List[str]) -> bool:
         """Check if a word is part of an entity with one of the given types"""
         word_lower = word.lower()
@@ -89,13 +89,13 @@ class SpacyDocument(Document):
 class SpacyNLPProvider(NLPProvider):
     """
     spaCy implementation of the NLP provider.
-    
+
     This provider uses spaCy models for NLP processing. It supports:
     - Multiple spaCy models (sm, md, lg)
     - GPU acceleration via spacy.require_gpu()
     - Lazy loading of models
     - Configurable max text length
-    
+
     Example:
         >>> provider = SpacyNLPProvider(model_name="en_core_web_md", use_gpu=True)
         >>> doc = provider.process_text("Apple Inc. is in California.")
@@ -103,7 +103,7 @@ class SpacyNLPProvider(NLPProvider):
         >>> print([(e.text, e.label) for e in entities])
         [('Apple Inc.', 'ORG'), ('California', 'GPE')]
     """
-    
+
     def __init__(
         self,
         model_name: str = "en_core_web_md",
@@ -112,7 +112,7 @@ class SpacyNLPProvider(NLPProvider):
     ):
         """
         Initialize the spaCy NLP provider.
-        
+
         Args:
             model_name: Name of the spaCy model to load (e.g., 'en_core_web_md')
             use_gpu: Whether to attempt GPU acceleration
@@ -123,15 +123,15 @@ class SpacyNLPProvider(NLPProvider):
         self.max_length = max_length
         self._nlp = None
         self._gpu_attempted = False
-    
+
     def _load_model(self):
         """Lazy load the spaCy model"""
         if self._nlp is not None:
             return
-        
+
         try:
             import spacy
-            
+
             # Attempt GPU acceleration if requested
             if self.use_gpu and not self._gpu_attempted:
                 try:
@@ -141,13 +141,13 @@ class SpacyNLPProvider(NLPProvider):
                     logger.info("✗ GPU acceleration not available: %s", e)
                 finally:
                     self._gpu_attempted = True
-            
+
             # Load the model
             logger.info("Loading spaCy model: %s", self.model_name)
             self._nlp = spacy.load(self.model_name)
             self._nlp.max_length = self.max_length
             logger.info("✓ Loaded %s model", self.model_name)
-            
+
         except ImportError:
             logger.debug("spaCy is not installed. Install with: pip install spacy")
             raise
@@ -158,30 +158,30 @@ class SpacyNLPProvider(NLPProvider):
                 self.model_name
             )
             raise
-    
+
     def process_text(self, text: str) -> Document:
         """
         Process text using spaCy and return a Document.
-        
+
         Args:
             text: The text to process
-            
+
         Returns:
             A SpacyDocument wrapping the spaCy Doc object
         """
         self._load_model()
-        
+
         if not text or not text.strip():
             # Handle empty text gracefully
             text = "empty"
-        
+
         doc = self._nlp(text)
         return SpacyDocument(doc)
-    
+
     def is_available(self) -> bool:
         """
         Check if spaCy and the model are available.
-        
+
         Returns:
             True if spaCy can be imported and the model loaded
         """
@@ -190,7 +190,7 @@ class SpacyNLPProvider(NLPProvider):
             return self._nlp is not None
         except Exception:
             return False
-    
+
     def get_name(self) -> str:
         """Get the name of this provider"""
         gpu_status = " (GPU)" if self.use_gpu else " (CPU)"
@@ -203,11 +203,11 @@ def create_spacy_provider(
 ) -> SpacyNLPProvider:
     """
     Factory function to create a spaCy NLP provider.
-    
+
     Args:
         model_name: Name of the spaCy model to use
         use_gpu: Whether to attempt GPU acceleration
-        
+
     Returns:
         A configured SpacyNLPProvider instance
     """

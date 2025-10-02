@@ -3,7 +3,6 @@
 Simple test script to exercise core functionality for code coverage analysis.
 """
 
-import pytest
 
 import os
 import sys
@@ -30,8 +29,8 @@ def test_unified_solver():
         print("✓ Configuration loading successful")
 
         # Test dictionary loading
-        if solver.DICTIONARIES:
-            first_dict_name, first_dict_path = solver.DICTIONARIES[0]
+        if solver.dictionaries:
+            first_dict_name, first_dict_path = solver.dictionaries[0]
             if os.path.exists(first_dict_path):
                 words = solver.dictionary_manager.load_dictionary(first_dict_path)
                 print(
@@ -61,9 +60,9 @@ def test_word_filtering():
 
     try:
         from src.spelling_bee_solver.core import (
-            NYTRejectionFilter,
-            ConfidenceScorer,
             CandidateGenerator,
+            ConfidenceScorer,
+            NYTRejectionFilter,
         )
 
         # Test rejection detection
@@ -97,7 +96,9 @@ def test_gpu_components():
     try:
         # Test IntelligentWordFilter (the actual GPU filtering system)
         try:
-            from src.spelling_bee_solver.intelligent_word_filter import filter_words_intelligent
+            from src.spelling_bee_solver.intelligent_word_filter import (
+                filter_words_intelligent,
+            )
 
             # Test basic filtering
             test_words = ["count", "apple", "London", "NASA"]

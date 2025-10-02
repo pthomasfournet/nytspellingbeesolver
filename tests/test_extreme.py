@@ -3,11 +3,11 @@
 Edge case test to push coverage to maximum.
 """
 
-from src.spelling_bee_solver.unified_solver import UnifiedSpellingBeeSolver
 from src.spelling_bee_solver.core import (
-    NYTRejectionFilter,
     ConfidenceScorer,
+    NYTRejectionFilter,
 )
+from src.spelling_bee_solver.unified_solver import UnifiedSpellingBeeSolver
 
 
 def test_extreme_edge_cases():
@@ -91,7 +91,9 @@ def test_extreme_edge_cases():
     print("\nTesting IntelligentWordFilter edge cases...")
 
     try:
-        from src.spelling_bee_solver.intelligent_word_filter import filter_words_intelligent
+        from src.spelling_bee_solver.intelligent_word_filter import (
+            filter_words_intelligent,
+        )
 
         # Test with empty lists
         empty_results = filter_words_intelligent([], use_gpu=False)

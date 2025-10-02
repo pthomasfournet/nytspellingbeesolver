@@ -10,10 +10,10 @@ Detects words that NYT Spelling Bee typically rejects:
 - Blacklisted words (data-driven from 2,615 historical puzzles)
 """
 
-from typing import Optional, Dict
-import logging
 import json
+import logging
 from pathlib import Path
+from typing import Dict, Optional
 
 from ..constants import MIN_WORD_LENGTH
 
@@ -87,12 +87,12 @@ class NYTRejectionFilter:
         """
         blacklist_path = Path(__file__).parent.parent.parent.parent / 'nytbee_parser' / 'nyt_rejection_blacklist.json'
         if blacklist_path.exists():
-            with open(blacklist_path) as f:
+            with open(blacklist_path, encoding='utf-8') as f:
                 self.nyt_rejection_blacklist = json.load(f)
-            self.logger.info(f"✓ Loaded {len(self.nyt_rejection_blacklist)} blacklisted words from NYT data")
+            self.logger.info("✓ Loaded %d blacklisted words from NYT data", len(self.nyt_rejection_blacklist))
         else:
             self.nyt_rejection_blacklist = {}
-            self.logger.debug(f"NYT blacklist file not found: {blacklist_path}")
+            self.logger.debug("NYT blacklist file not found: %s", blacklist_path)
 
     def is_proper_noun(self, word: str) -> bool:
         """Check if word is a proper noun.
@@ -269,24 +269,24 @@ class NYTRejectionFilter:
         # Check NYT blacklist first (data-driven)
         if self.is_blacklisted(word_lower):
             rejection_count = self.get_blacklist_count(word_lower)
-            self.logger.debug(f"Rejecting '{word_lower}': NYT blacklist ({rejection_count} rejections)")
+            self.logger.debug("Rejecting '%s': NYT blacklist (%d rejections)", word_lower, rejection_count)
             return True
 
         # Check all heuristic rejection criteria
         if self.is_proper_noun(word_lower):
-            self.logger.debug(f"Rejecting '{word_lower}': proper noun")
+            self.logger.debug("Rejecting '%s': proper noun", word_lower)
             return True
 
         if self.is_foreign_word(word_lower):
-            self.logger.debug(f"Rejecting '{word_lower}': foreign word")
+            self.logger.debug("Rejecting '%s': foreign word", word_lower)
             return True
 
         if self.is_abbreviation(word_lower):
-            self.logger.debug(f"Rejecting '{word_lower}': abbreviation")
+            self.logger.debug("Rejecting '%s': abbreviation", word_lower)
             return True
 
         if self.is_technical_term(word_lower):
-            self.logger.debug(f"Rejecting '{word_lower}': technical term")
+            self.logger.debug("Rejecting '%s': technical term", word_lower)
             return True
 
         # Note: Archaic words are NOT rejected here

@@ -113,24 +113,21 @@ import json
 import logging
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
-from urllib.parse import urlparse
+from typing import Any, Dict, List, Optional, Tuple
 
-import requests
-
-from .constants import MIN_WORD_LENGTH, CACHE_EXPIRY_SECONDS
+from .constants import MIN_WORD_LENGTH
 
 # Import core components for dependency injection
 from .core import (
-    InputValidator,
-    DictionaryManager,
     CandidateGenerator,
     ConfidenceScorer,
+    DictionaryManager,
+    InputValidator,
     ResultFormatter,
-    create_input_validator,
-    create_dictionary_manager,
     create_candidate_generator,
     create_confidence_scorer,
+    create_dictionary_manager,
+    create_input_validator,
     create_result_formatter,
 )
 
@@ -251,7 +248,7 @@ class UnifiedSpellingBeeSolver:
 
         # Unified dictionary configuration (2 high-quality sources only)
         # User requirement: "we should have webster and aspell and call it a day"
-        self.DICTIONARIES = tuple(
+        self.dictionaries = tuple(
             [
                 (
                     "Webster's Unabridged",
@@ -397,7 +394,7 @@ class UnifiedSpellingBeeSolver:
         """Validate the 2 configured dictionaries."""
         integrity_issues = []
 
-        for dict_name, dict_path in self.DICTIONARIES:
+        for dict_name, dict_path in self.dictionaries:
             if dict_path.startswith(("http://", "https://")):
                 continue  # Skip URLs (will be validated on download)
 
@@ -541,7 +538,7 @@ class UnifiedSpellingBeeSolver:
         # Method 1: Dictionary scan (fast, high precision)
         self.logger.info("Generating candidates via dictionary scan...")
 
-        for dict_name, dict_path in self.DICTIONARIES:
+        for dict_name, dict_path in self.dictionaries:
             self.logger.info("Processing %s", dict_name)
 
             # Load dictionary
@@ -643,7 +640,7 @@ class UnifiedSpellingBeeSolver:
 
         # Use InputValidator component for validation and normalization
         # Validator expects full 7-letter string + required letter
-        all_letters, required_letter, letters_set = self.input_validator.validate_and_normalize(
+        all_letters, required_letter, _ = self.input_validator.validate_and_normalize(
             all_letters, required_letter
         )
 

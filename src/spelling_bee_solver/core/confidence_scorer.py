@@ -15,10 +15,10 @@ Judges:
 Like Olympics: Drop highest and lowest scores, average the middle judges.
 """
 
-from typing import Set, Optional, Dict
-import logging
 import json
+import logging
 from pathlib import Path
+from typing import Dict, Optional, Set
 
 from ..constants import MIN_WORD_LENGTH
 
@@ -56,20 +56,20 @@ class ConfidenceScorer:
             "time", "person", "year", "way", "day", "thing", "man", "world",
             "life", "hand", "part", "child", "eye", "woman", "place", "work",
             "week", "case", "point", "government", "company", "number", "group",
-            "problem", "fact", "count", "account", "point", "action"
+            "problem", "fact", "count", "account", "action"
         }
-        self.logger.debug(f"Loaded {len(self.google_common_words)} common words")
+        self.logger.debug("Loaded %d common words", len(self.google_common_words))
 
     def _load_nyt_frequencies(self):
         """Load NYT word frequency database from scraped puzzle data."""
         freq_path = Path(__file__).parent.parent.parent.parent / 'nytbee_parser' / 'nyt_word_frequency.json'
         if freq_path.exists():
-            with open(freq_path) as f:
+            with open(freq_path, encoding='utf-8') as f:
                 self.nyt_word_freq = json.load(f)
-            self.logger.info(f"✓ Loaded {len(self.nyt_word_freq)} NYT word frequencies")
+            self.logger.info("✓ Loaded %d NYT word frequencies", len(self.nyt_word_freq))
         else:
             self.nyt_word_freq = {}
-            self.logger.debug(f"NYT frequency file not found: {freq_path}")
+            self.logger.debug("NYT frequency file not found: %s", freq_path)
 
     def judge_dictionary(self, word: str, in_dictionary: bool = True) -> float:
         """Dictionary Judge: Word found in high-quality dictionary?
@@ -104,10 +104,9 @@ class ConfidenceScorer:
         # Most common words are 3-7 letters
         if MIN_WORD_LENGTH <= len(word_lower) <= 7:
             return 60.0
-        elif 8 <= len(word_lower) <= 10:
+        if 8 <= len(word_lower) <= 10:
             return 45.0
-        else:
-            return 30.0
+        return 30.0
 
     def judge_length(self, word: str) -> float:
         """Length Judge: Word length (longer words worth more in Spelling Bee).
@@ -125,18 +124,17 @@ class ConfidenceScorer:
         # But longer words are also valuable
         if length == 4:
             return 40.0  # Minimum length
-        elif length == 5:
+        if length == 5:
             return 55.0
-        elif length == 6:
+        if length == 6:
             return 70.0
-        elif length == 7:
+        if length == 7:
             return 90.0  # Potential pangram
-        elif length == 8:
+        if length == 8:
             return 85.0
-        elif length >= 9:
+        if length >= 9:
             return 80.0
-        else:
-            return 0.0  # Too short
+        return 0.0  # Too short
 
     def judge_pattern(self, word: str) -> float:
         """Pattern Judge: English letter patterns and phonotactics.
@@ -232,20 +230,19 @@ class ConfidenceScorer:
         # Data-driven scoring based on actual NYT acceptance
         if freq >= 150:
             return 100.0  # noon=213, loll=198 - NYT loves these
-        elif freq >= 100:
+        if freq >= 100:
             return 95.0
-        elif freq >= 50:
+        if freq >= 50:
             return 90.0
-        elif freq >= 20:
+        if freq >= 20:
             return 85.0
-        elif freq >= 10:
+        if freq >= 10:
             return 80.0
-        elif freq >= 5:
+        if freq >= 5:
             return 75.0
-        elif freq >= 1:
+        if freq >= 1:
             return 70.0  # Appears at least once in NYT
-        else:
-            return 30.0  # Never seen in 2,615 puzzles - suspicious
+        return 30.0  # Never seen in 2,615 puzzles - suspicious
 
     def calculate_confidence(self, word: str, in_dictionary: bool = True) -> float:
         """Calculate confidence using Olympic judges system.

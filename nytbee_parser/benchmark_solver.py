@@ -16,14 +16,14 @@ Usage:
     --verbose: Show detailed logs for each puzzle
 """
 
+import argparse
 import json
+import random
 import sys
 import time
-import random
-import argparse
-from pathlib import Path
-from typing import Dict, List, Tuple, Set
 from collections import defaultdict
+from pathlib import Path
+from typing import Dict, List, Set, Tuple
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -66,7 +66,7 @@ class SolverBenchmark:
     def load_dataset(self) -> List[Dict]:
         """Load NYT puzzles dataset."""
         print(f"Loading dataset from {self.dataset_path}...")
-        with open(self.dataset_path) as f:
+        with open(self.dataset_path, encoding='utf-8') as f:
             dataset = json.load(f)
         print(f"✓ Loaded {len(dataset)} puzzles")
         return dataset
@@ -325,7 +325,7 @@ class SolverBenchmark:
             )[:50]),
         }
 
-        with open(output_path, 'w') as f:
+        with open(output_path, 'w', encoding='utf-8') as f:
             json.dump(results, f, indent=2)
 
         print(f"\n✓ Detailed results saved to {output_path}")

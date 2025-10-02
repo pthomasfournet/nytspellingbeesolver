@@ -18,7 +18,7 @@ Example:
 
         formatter = create_result_formatter()
         results = [('count', 90.0), ('upon', 85.0), ('noun', 80.0)]
-        
+
         formatter.print_results(
             results=results,
             letters='nacuotp',
@@ -44,8 +44,8 @@ Functions:
 """
 
 import json
-from typing import List, Tuple, Dict, Any, Optional
 from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
 
 class OutputFormat(Enum):
@@ -196,10 +196,10 @@ class ResultFormatter:
 
         if fmt == OutputFormat.JSON:
             return self._format_json(results, letters, required_letter, solve_time, mode)
-        elif fmt == OutputFormat.COMPACT:
+        if fmt == OutputFormat.COMPACT:
             return self._format_compact(results, letters, required_letter)
-        else:  # CONSOLE
-            return self._format_console(results, letters, required_letter, solve_time, mode)
+        # CONSOLE
+        return self._format_console(results, letters, required_letter, solve_time, mode)
 
     def print_results(
         self,
@@ -245,22 +245,22 @@ class ResultFormatter:
     ) -> str:
         """Format results for console display with grouping and highlighting."""
         lines = []
-        
+
         # Header
         lines.append("=" * 60)
         lines.append("SPELLING BEE SOLVER RESULTS")
         lines.append("=" * 60)
         lines.append(f"Letters: {letters.upper()}")
         lines.append(f"Required: {required_letter.upper()}")
-        
+
         if mode:
             lines.append(f"Mode: {mode.upper()}")
-        
+
         lines.append(f"Total words found: {len(results)}")
-        
+
         if solve_time is not None:
             lines.append(f"Solve time: {solve_time:.3f}s")
-        
+
         lines.append("=" * 60)
 
         if not results:
@@ -327,16 +327,16 @@ class ResultFormatter:
         """Format results in compact format (single line per word)."""
         lines = []
         lines.append(f"Puzzle: {letters.upper()} (required: {required_letter.upper()}) - {len(results)} words")
-        
+
         if not results:
             return lines[0]
-        
+
         for word, confidence in results:
             if self.show_confidence:
                 lines.append(f"{word} ({confidence:.0f}%)")
             else:
                 lines.append(word)
-        
+
         return "\n".join(lines)
 
     def _format_json(
@@ -354,7 +354,7 @@ class ResultFormatter:
 
         for word, confidence in results:
             word_dict = {"word": word, "confidence": confidence}
-            
+
             if len(set(word.lower())) == 7:
                 pangrams.append(word_dict)
 
@@ -386,7 +386,7 @@ class ResultFormatter:
 
         if self.group_by_length:
             output["by_length"] = {
-                str(length): words 
+                str(length): words
                 for length, words in sorted(by_length.items(), reverse=True)
             }
 
@@ -447,7 +447,7 @@ class ResultFormatter:
         for word, confidence in results:
             if len(set(word.lower())) == 7:
                 pangram_count += 1
-            
+
             length = len(word)
             by_length[length] = by_length.get(length, 0) + 1
             confidences.append(confidence)
