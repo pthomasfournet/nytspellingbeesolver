@@ -3,11 +3,17 @@
 
 echo "🔍 Checking for existing server instances..."
 
-# Kill any existing uvicorn processes
-pkill -f "uvicorn web_server:app" 2>/dev/null && echo "✓ Stopped existing server" || echo "✓ No existing server found"
+# Kill any existing uvicorn processes (force kill with -9)
+pkill -9 -f "uvicorn web_server:app" 2>/dev/null && echo "✓ Stopped existing server" || echo "✓ No existing server found"
 
-# Wait a moment for processes to clean up
-sleep 1
+# Also check for anything on port 8000
+if lsof -i:8000 -t >/dev/null 2>&1; then
+    echo "⚠️  Port 8000 still in use, force killing..."
+    kill -9 $(lsof -i:8000 -t) 2>/dev/null
+fi
+
+# Wait for port to be released
+sleep 2
 
 # Start fresh server
 echo "🚀 Starting web server..."
