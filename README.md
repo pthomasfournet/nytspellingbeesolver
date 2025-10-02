@@ -4,6 +4,7 @@ A Python-based solver for the New York Times Spelling Bee puzzle with intelligen
 
 ## Features
 
+### Core Solver
 - **Exclude Known Words**: Filter out words you've already found to see only remaining words
 - **Progress Tracking**: Shows your puzzle completion percentage
 - **Unified Architecture**: Single mode that uses all solving methods automatically
@@ -13,8 +14,26 @@ A Python-based solver for the New York Times Spelling Bee puzzle with intelligen
 - **GPU Acceleration**: Optional CUDA/CuPy support with automatic CPU fallback
 - **Clean Output**: Formatted results with confidence percentages and word grouping
 
+### Web & Mobile App (NEW!)
+- **📱 Progressive Web App**: Install on phone/desktop, works offline
+- **🎨 Mobile-First Design**: Beautiful NYT Spelling Bee-inspired UI
+- **💾 Auto-Save**: Remembers your puzzle and found words
+- **📋 Smart Copy**: Click any word to copy, or export entire list
+- **⚡ Real-time Solving**: Instant results with progress tracking
+- **🌐 RESTful API**: JSON API for integrations
+
 ## Quick Start
 
+### Web/Mobile App (Recommended)
+```bash
+# Start the web server
+python3 -m uvicorn web_server:app --host 0.0.0.0 --port 8000
+
+# Open in browser: http://localhost:8000
+# Or on phone: http://<your-ip>:8000
+```
+
+### Command Line
 ```bash
 # Solve a puzzle directly
 ./bee N ACUOTP
@@ -37,14 +56,43 @@ cd spelling_bee_solver_project
 python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# Install dependencies (optional GPU support)
+# Install core dependencies
 pip install requests
-pip install cupy-cuda12x  # Optional: for GPU acceleration
+
+# Install web app dependencies (for PWA/mobile)
+pip install fastapi uvicorn httpx
+
+# Optional: GPU acceleration
+pip install cupy-cuda12x
 ```
 
 ## Usage
 
-### Direct Solving
+### Web App (Recommended)
+
+1. **Start the server:**
+   ```bash
+   python3 -m uvicorn web_server:app --host 0.0.0.0 --port 8000
+   ```
+
+2. **Open in browser:**
+   - Desktop: http://localhost:8000
+   - Mobile (same network): http://<your-computer-ip>:8000
+   - API Docs: http://localhost:8000/api/docs
+
+3. **Use the interface:**
+   - Enter center letter and other 6 letters
+   - Optionally add words you've already found
+   - Click "Solve Puzzle" to see remaining words
+   - Click any word to copy it
+   - Use "Copy All" or "Copy List" to export results
+
+4. **PWA Features:**
+   - Install to home screen (Add to Home Screen in mobile browser)
+   - Works offline after first visit
+   - Auto-saves your puzzle state
+
+### CLI - Direct Solving
 
 ```bash
 # Basic usage
@@ -161,6 +209,27 @@ Sorted Results (by confidence, then length, then alphabetically)
 
 5. **Result Formatter**: Clean console output with grouping
 
+### Web App Stack
+
+**Backend (FastAPI):**
+- `web_server.py`: RESTful API with `/api/solve` and `/api/health` endpoints
+- Pydantic models for request/response validation
+- Singleton solver pattern for performance
+- CORS enabled for cross-origin requests
+
+**Frontend (Vanilla JS):**
+- `index.html`: Mobile-first semantic HTML5
+- `styles.css`: NYT Spelling Bee-inspired design with CSS variables
+- `app.js`: Vanilla JavaScript (no frameworks)
+- LocalStorage for state persistence
+- Service Worker for offline PWA support
+
+**PWA Features:**
+- `manifest.json`: App metadata for installation
+- `service-worker.js`: Cache-first static assets, network-first API
+- Installable on iOS, Android, and desktop
+- Works offline after first visit
+
 ### Dictionary Sources
 
 - **Webster's Unabridged Dictionary**: ~85K words (high-quality, authoritative)
@@ -206,21 +275,36 @@ Edit `solver_config.json` to customize:
 ### Running Tests
 
 ```bash
-# Run basic tests
+# Run basic solver tests
 ./venv/bin/pytest tests/test_basic.py -v
 
-# Run all working tests
+# Run all solver tests
 ./venv/bin/pytest tests/test_basic.py tests/test_coverage.py tests/test_comprehensive.py -v
 
-# All tests should pass (11/11)
+# Run exclude feature tests
+./venv/bin/pytest tests/test_exclude_feature.py -v
+
+# Run web API tests
+./venv/bin/pytest tests/test_web_api.py -v
+
+# Run all tests
+./venv/bin/pytest tests/ -v
 ```
 
 ### Project Structure
 
 ```
 spelling_bee_solver_project/
-├── bee                          # Wrapper script
+├── bee                          # CLI wrapper script
+├── web_server.py                # FastAPI web server
 ├── solver_config.json           # Configuration
+├── static/                      # PWA frontend
+│   ├── index.html              # Main HTML
+│   ├── styles.css              # Styling
+│   ├── app.js                  # JavaScript logic
+│   ├── manifest.json           # PWA manifest
+│   ├── service-worker.js       # Offline support
+│   └── ICONS_README.md         # Icon instructions
 ├── src/
 │   └── spelling_bee_solver/
 │       ├── unified_solver.py    # Main solver
@@ -232,6 +316,9 @@ spelling_bee_solver_project/
 │       │   └── ...
 │       └── gpu/                 # Optional GPU components
 └── tests/                       # Test suite
+    ├── test_basic.py           # Core solver tests
+    ├── test_exclude_feature.py # Exclude words tests
+    └── test_web_api.py         # Web API tests
 ```
 
 ## Recent Improvements (Phases 1-7)
@@ -257,6 +344,22 @@ spelling_bee_solver_project/
 - Removed 23 temporary files (6,951 lines)
 - Restored configuration
 - All tests passing (11/11 in 9.78s)
+
+### Phase 7: Exclude Known Words Feature
+- Added `--exclude` and `--exclude-file` CLI options
+- Interactive mode prompts for known words
+- Progress tracking (X/Y found, Z% complete)
+- Stats display in results
+- 13/13 tests passing
+
+### Phase 8: Progressive Web App
+- **FastAPI Backend**: RESTful `/api/solve` endpoint with Pydantic validation
+- **Mobile-First UI**: NYT Spelling Bee-inspired design with honeycomb theme
+- **LocalStorage Persistence**: Auto-saves puzzle state, 7-day expiry
+- **PWA Features**: Installable, offline-capable, service worker caching
+- **Smart Export**: Copy words as comma-separated or newline-separated list
+- **Enhanced UX**: Click-to-copy words, empty states, keyboard shortcuts
+- 26/26 tests passing (16 web API + 10 exclude feature)
 
 ## NYT Spelling Bee Rules
 

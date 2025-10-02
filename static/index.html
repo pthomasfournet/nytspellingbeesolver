@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="NYT Spelling Bee Solver - Find remaining words in your puzzle">
+    <meta name="theme-color" content="#f7da21">
+
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icon-192.png">
+
+    <title>🐝 Spelling Bee Solver</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div>
+                    <h1 class="title">🐝 Spelling Bee Solver</h1>
+                    <p class="subtitle">Find your missing words</p>
+                </div>
+                <button class="new-puzzle-btn" id="newPuzzleBtn" title="Clear and start new puzzle">
+                    🔄 New Puzzle
+                </button>
+            </div>
+        </header>
+
+        <!-- Input Section -->
+        <section class="input-section">
+            <div class="honeycomb-container">
+                <!-- Center Letter -->
+                <div class="letter-input center-letter">
+                    <label for="center">Center</label>
+                    <input
+                        type="text"
+                        id="center"
+                        maxlength="1"
+                        placeholder="N"
+                        autocomplete="off"
+                        autocapitalize="characters"
+                    >
+                </div>
+
+                <!-- Other Letters -->
+                <div class="letter-input other-letters">
+                    <label for="others">Other Letters</label>
+                    <input
+                        type="text"
+                        id="others"
+                        maxlength="6"
+                        placeholder="ACUOTP"
+                        autocomplete="off"
+                        autocapitalize="characters"
+                    >
+                </div>
+            </div>
+
+            <!-- Known Words Section (Collapsible) -->
+            <div class="known-words-section">
+                <button class="toggle-known" id="toggleKnown">
+                    <span>➕</span> Add words you've found (optional)
+                </button>
+                <div class="known-words-input hidden" id="knownWordsInput">
+                    <label for="knownWords">Words you've already found (comma-separated):</label>
+                    <textarea
+                        id="knownWords"
+                        rows="3"
+                        placeholder="count, upon, coat..."
+                        autocomplete="off"
+                    ></textarea>
+                    <small>Tip: Paste your found words to see only remaining ones</small>
+                </div>
+            </div>
+
+            <!-- Solve Button -->
+            <button class="solve-btn" id="solveBtn">
+                <span class="btn-text">Solve Puzzle</span>
+                <span class="btn-loading hidden">Solving...</span>
+            </button>
+
+            <!-- Keyboard Hints -->
+            <div class="keyboard-hints">
+                <small>💡 <strong>Tips:</strong> Press Enter to move between fields | Click any word to copy it</small>
+            </div>
+        </section>
+
+        <!-- Stats Section -->
+        <section class="stats-section hidden" id="statsSection">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalFound">0</div>
+                    <div class="stat-label">Total Found</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="remaining">0</div>
+                    <div class="stat-label">Remaining</div>
+                </div>
+                <div class="stat-card progress-card">
+                    <div class="stat-value" id="progress">0%</div>
+                    <div class="stat-label">Progress</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="pangrams">0</div>
+                    <div class="stat-label">Pangrams</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Results Section -->
+        <section class="results-section hidden" id="resultsSection">
+            <div class="results-header">
+                <h2>Results</h2>
+                <div class="results-controls">
+                    <button class="toggle-confidence" id="toggleConfidence" title="Show/hide confidence scores">
+                        📊 Confidence
+                    </button>
+                    <button class="copy-all" id="copyAll" title="Copy all words (comma-separated)">
+                        📋 Copy All
+                    </button>
+                    <button class="copy-list" id="copyList" title="Copy as list (one per line)">
+                        📄 Copy List
+                    </button>
+                </div>
+            </div>
+
+            <!-- Empty State -->
+            <div class="empty-state hidden" id="emptyState">
+                <div class="empty-icon">🔍</div>
+                <h3>No words found</h3>
+                <p>All words from the puzzle have been found!</p>
+            </div>
+
+            <!-- Pangrams -->
+            <div class="word-group pangrams-group hidden" id="pangramsGroup">
+                <h3 class="group-title">🌟 Pangrams</h3>
+                <div class="word-list" id="pangramsList"></div>
+            </div>
+
+            <!-- Words by Length -->
+            <div class="words-container" id="wordsContainer">
+                <!-- Word groups will be inserted here -->
+            </div>
+        </section>
+
+        <!-- Error Section -->
+        <section class="error-section hidden" id="errorSection">
+            <div class="error-message" id="errorMessage"></div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>
+                Made with ❤️ |
+                <a href="/api/docs" target="_blank">API Docs</a> |
+                <a href="https://github.com" target="_blank">GitHub</a>
+            </p>
+        </footer>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast hidden" id="toast"></div>
+
+    <script src="/app.js"></script>
+</body>
+</html>
