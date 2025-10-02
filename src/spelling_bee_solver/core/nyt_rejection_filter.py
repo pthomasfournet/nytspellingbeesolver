@@ -7,10 +7,13 @@ Detects words that NYT Spelling Bee typically rejects:
 - Archaic/obsolete words (flagged but not rejected - low confidence instead)
 - Abbreviations
 - Technical/scientific terms
+- Blacklisted words (data-driven from 2,615 historical puzzles)
 """
 
-from typing import Optional
+from typing import Optional, Dict
 import logging
+import json
+from pathlib import Path
 
 from ..constants import MIN_WORD_LENGTH
 
@@ -18,9 +21,22 @@ from ..constants import MIN_WORD_LENGTH
 class NYTRejectionFilter:
     """Filter for detecting words likely rejected by NYT Spelling Bee."""
 
-    def __init__(self):
-        """Initialize the rejection filter with known proper nouns and foreign words."""
+    # Rejection thresholds for blacklist
+    INSTANT_REJECT_THRESHOLD = 50  # Words rejected 50+ times = instant reject
+    LOW_CONFIDENCE_THRESHOLD = 10  # Words rejected 10+ times = suspicious
+
+    def __init__(self, nyt_rejection_blacklist: Optional[Dict[str, int]] = None):
+        """Initialize the rejection filter with known proper nouns and foreign words.
+
+        Args:
+            nyt_rejection_blacklist: Dict of {word: rejection_count} from historical puzzles
+        """
         self.logger = logging.getLogger(__name__)
+        self.nyt_rejection_blacklist = nyt_rejection_blacklist or {}
+
+        # Load NYT rejection blacklist if not provided
+        if not self.nyt_rejection_blacklist:
+            self._load_nyt_blacklist()
 
         # Known proper nouns (people names, places) that appear in dictionaries lowercase
         # This catches cases like "lloyd" which is a surname
@@ -62,6 +78,21 @@ class NYTRejectionFilter:
             "univ", "inst", "assoc", "incl", "misc", "temp", "approx",
             "est", "max", "min", "avg", "std",
         }
+
+    def _load_nyt_blacklist(self):
+        """Load NYT rejection blacklist from scraped puzzle data.
+
+        Blacklist contains words rejected 3+ times across 2,615 puzzles.
+        Top rejected words: titi=206, lall=176, otto=176, caca=171, anna=167
+        """
+        blacklist_path = Path(__file__).parent.parent.parent.parent / 'nytbee_parser' / 'nyt_rejection_blacklist.json'
+        if blacklist_path.exists():
+            with open(blacklist_path) as f:
+                self.nyt_rejection_blacklist = json.load(f)
+            self.logger.info(f"✓ Loaded {len(self.nyt_rejection_blacklist)} blacklisted words from NYT data")
+        else:
+            self.nyt_rejection_blacklist = {}
+            self.logger.debug(f"NYT blacklist file not found: {blacklist_path}")
 
     def is_proper_noun(self, word: str) -> bool:
         """Check if word is a proper noun.
@@ -185,6 +216,39 @@ class NYTRejectionFilter:
 
         return False
 
+    def is_blacklisted(self, word: str) -> bool:
+        """Check if word is in NYT rejection blacklist.
+
+        Data-driven rejection based on 2,615 historical puzzles.
+        Words rejected 50+ times are considered definitively rejected.
+
+        Args:
+            word: Word to check (should be lowercase)
+
+        Returns:
+            True if word should be rejected based on blacklist
+        """
+        word_lower = word.lower().strip()
+        rejection_count = self.nyt_rejection_blacklist.get(word_lower, 0)
+
+        # Instant reject if word rejected many times
+        if rejection_count >= self.INSTANT_REJECT_THRESHOLD:
+            return True
+
+        return False
+
+    def get_blacklist_count(self, word: str) -> int:
+        """Get the number of times a word was rejected in NYT history.
+
+        Args:
+            word: Word to check
+
+        Returns:
+            Rejection count (0 if not in blacklist)
+        """
+        word_lower = word.lower().strip()
+        return self.nyt_rejection_blacklist.get(word_lower, 0)
+
     def should_reject(self, word: str) -> bool:
         """Check if word should be rejected (NYT likely won't accept it).
 
@@ -202,7 +266,13 @@ class NYTRejectionFilter:
         if len(word_lower) < MIN_WORD_LENGTH:
             return True
 
-        # Check all rejection criteria
+        # Check NYT blacklist first (data-driven)
+        if self.is_blacklisted(word_lower):
+            rejection_count = self.get_blacklist_count(word_lower)
+            self.logger.debug(f"Rejecting '{word_lower}': NYT blacklist ({rejection_count} rejections)")
+            return True
+
+        # Check all heuristic rejection criteria
         if self.is_proper_noun(word_lower):
             self.logger.debug(f"Rejecting '{word_lower}': proper noun")
             return True
@@ -237,6 +307,9 @@ class NYTRejectionFilter:
 
         if len(word_lower) < MIN_WORD_LENGTH:
             return "too_short"
+
+        if self.is_blacklisted(word_lower):
+            return "nyt_blacklist"
 
         if self.is_proper_noun(word_lower):
             return "proper_noun"

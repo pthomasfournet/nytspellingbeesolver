@@ -10,12 +10,15 @@ Judges:
 3. Length Judge: Word length (longer = better for Spelling Bee)
 4. Pattern Judge: English letter patterns and phonotactics
 5. Filter Judge: Passes NYT rejection criteria?
+6. NYT Frequency Judge: Word appears in NYT Spelling Bee historical data?
 
 Like Olympics: Drop highest and lowest scores, average the middle judges.
 """
 
-from typing import Set, Optional
+from typing import Set, Optional, Dict
 import logging
+import json
+from pathlib import Path
 
 from ..constants import MIN_WORD_LENGTH
 
@@ -23,16 +26,23 @@ from ..constants import MIN_WORD_LENGTH
 class ConfidenceScorer:
     """Multi-judge confidence scoring system."""
 
-    def __init__(self, nyt_filter=None, google_common_words: Optional[Set[str]] = None):
+    def __init__(self, nyt_filter=None, google_common_words: Optional[Set[str]] = None,
+                 nyt_word_freq: Optional[Dict[str, int]] = None):
         """Initialize the scorer with multi-judge system.
 
         Args:
             nyt_filter: NYTRejectionFilter instance (optional)
             google_common_words: Set of common words for frequency judging
+            nyt_word_freq: NYT word frequency dictionary (optional)
         """
         self.logger = logging.getLogger(__name__)
         self.nyt_filter = nyt_filter
         self.google_common_words = google_common_words or set()
+        self.nyt_word_freq = nyt_word_freq or {}
+
+        # Load NYT frequencies if not provided
+        if not self.nyt_word_freq:
+            self._load_nyt_frequencies()
 
         # Load common words if not provided
         if not self.google_common_words:
@@ -49,6 +59,17 @@ class ConfidenceScorer:
             "problem", "fact", "count", "account", "point", "action"
         }
         self.logger.debug(f"Loaded {len(self.google_common_words)} common words")
+
+    def _load_nyt_frequencies(self):
+        """Load NYT word frequency database from scraped puzzle data."""
+        freq_path = Path(__file__).parent.parent.parent.parent / 'nytbee_parser' / 'nyt_word_frequency.json'
+        if freq_path.exists():
+            with open(freq_path) as f:
+                self.nyt_word_freq = json.load(f)
+            self.logger.info(f"✓ Loaded {len(self.nyt_word_freq)} NYT word frequencies")
+        else:
+            self.nyt_word_freq = {}
+            self.logger.debug(f"NYT frequency file not found: {freq_path}")
 
     def judge_dictionary(self, word: str, in_dictionary: bool = True) -> float:
         """Dictionary Judge: Word found in high-quality dictionary?
@@ -193,6 +214,39 @@ class ConfidenceScorer:
         # Passes all checks
         return 95.0
 
+    def judge_nyt_frequency(self, word: str) -> float:
+        """NYT Frequency Judge: Word appears in NYT Spelling Bee history?
+
+        Data-driven scoring based on 2,615 historical puzzles (2018-2025).
+        Top words: noon=213, loll=198, toot=192
+
+        Args:
+            word: Word to judge
+
+        Returns:
+            Score 0-100
+        """
+        word_lower = word.lower()
+        freq = self.nyt_word_freq.get(word_lower, 0)
+
+        # Data-driven scoring based on actual NYT acceptance
+        if freq >= 150:
+            return 100.0  # noon=213, loll=198 - NYT loves these
+        elif freq >= 100:
+            return 95.0
+        elif freq >= 50:
+            return 90.0
+        elif freq >= 20:
+            return 85.0
+        elif freq >= 10:
+            return 80.0
+        elif freq >= 5:
+            return 75.0
+        elif freq >= 1:
+            return 70.0  # Appears at least once in NYT
+        else:
+            return 30.0  # Never seen in 2,615 puzzles - suspicious
+
     def calculate_confidence(self, word: str, in_dictionary: bool = True) -> float:
         """Calculate confidence using Olympic judges system.
 
@@ -203,13 +257,14 @@ class ConfidenceScorer:
         Returns:
             Confidence score 0-100
         """
-        # Get scores from all 5 judges
+        # Get scores from all 6 judges
         judges_scores = [
             ("Dictionary", self.judge_dictionary(word, in_dictionary)),
             ("Frequency", self.judge_frequency(word)),
             ("Length", self.judge_length(word)),
             ("Pattern", self.judge_pattern(word)),
             ("Filter", self.judge_filter(word)),
+            ("NYT", self.judge_nyt_frequency(word)),
         ]
 
         # Olympic scoring: drop highest and lowest, average the middle
@@ -219,7 +274,7 @@ class ConfidenceScorer:
         # Drop highest and lowest
         middle_scores = scores_sorted[1:-1]  # Drop first and last
 
-        # Average the middle 3 judges
+        # Average the middle 4 judges (6 judges - 2 dropped = 4)
         final_score = sum(middle_scores) / len(middle_scores)
 
         # Log judge breakdown in debug mode
@@ -232,17 +287,19 @@ class ConfidenceScorer:
         return round(final_score, 1)
 
 
-def create_confidence_scorer(nyt_filter=None, google_common_words=None):
+def create_confidence_scorer(nyt_filter=None, google_common_words=None, nyt_word_freq=None):
     """Factory function to create ConfidenceScorer.
 
     Args:
         nyt_filter: NYTRejectionFilter instance
         google_common_words: Set of common words
+        nyt_word_freq: NYT word frequency dictionary
 
     Returns:
         ConfidenceScorer instance
     """
     return ConfidenceScorer(
         nyt_filter=nyt_filter,
-        google_common_words=google_common_words
+        google_common_words=google_common_words,
+        nyt_word_freq=nyt_word_freq
     )
