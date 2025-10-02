@@ -14,9 +14,8 @@ Judges:
 Like Olympics: Drop highest and lowest scores, average the middle judges.
 """
 
-from typing import Set, Optional, List
+from typing import Set, Optional
 import logging
-from pathlib import Path
 
 
 class ConfidenceScorer:

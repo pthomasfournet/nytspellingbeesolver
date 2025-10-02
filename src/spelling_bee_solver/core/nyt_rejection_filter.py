@@ -9,7 +9,7 @@ Detects words that NYT Spelling Bee typically rejects:
 - Technical/scientific terms
 """
 
-from typing import Set, Optional
+from typing import Optional
 import logging
 
 

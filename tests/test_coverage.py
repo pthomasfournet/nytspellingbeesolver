@@ -45,7 +45,7 @@ def test_unified_solver():
         )
 
         # Test confidence calculation
-        confidence = solver.calculate_confidence("count")
+        confidence = solver.confidence_scorer.calculate_confidence("count")
         print(f"✓ Confidence calculation successful: {confidence}%")
 
         return True

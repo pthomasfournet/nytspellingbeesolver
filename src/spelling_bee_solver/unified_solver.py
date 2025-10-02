@@ -152,9 +152,6 @@ class UnifiedSpellingBeeSolver:
 
     Attributes:
         MIN_WORD_LENGTH (int): Minimum word length for Spelling Bee (4 letters).
-        CONFIDENCE_BASE (float): Base confidence score for all words.
-        CONFIDENCE_LENGTH_BONUS (float): Bonus for longer words (6+ letters).
-        CONFIDENCE_REJECTION_PENALTY (float): Penalty for likely rejected words.
         CACHE_EXPIRY_SECONDS (int): Cache expiration time for downloaded dictionaries.
 
     Example:
@@ -189,9 +186,6 @@ class UnifiedSpellingBeeSolver:
 
     # Class constants for performance
     MIN_WORD_LENGTH = 4
-    CONFIDENCE_BASE = 50.0
-    CONFIDENCE_LENGTH_BONUS = 10.0
-    CONFIDENCE_REJECTION_PENALTY = 30.0
     CACHE_EXPIRY_SECONDS = 30 * 24 * 3600  # 30 days
 
     def __init__(
@@ -702,40 +696,6 @@ class UnifiedSpellingBeeSolver:
             bool: True if the word is likely to be rejected, False if likely to be accepted.
         """
         return self.nyt_filter.should_reject(word)
-
-    def calculate_confidence(self, word: str) -> float:
-        """Calculate confidence score for a word.
-
-        Args:
-            word: The word to score
-
-        Returns:
-            Confidence score between 0.0 and 100.0
-
-        Raises:
-            TypeError: If word is not a string
-            ValueError: If word is empty or contains non-alphabetic characters
-        """
-        # Input validation
-        if not isinstance(word, str):
-            raise TypeError(f"Word must be a string, got {type(word).__name__}")
-        if not word.strip():
-            raise ValueError("Word cannot be empty or whitespace")
-        if not word.isalpha():
-            raise ValueError(f"Word must contain only alphabetic characters: '{word}'")
-
-        word = word.lower()
-        confidence = self.CONFIDENCE_BASE
-
-        # Length-based confidence
-        if len(word) >= 6:
-            confidence += self.CONFIDENCE_LENGTH_BONUS
-
-        # Penalize likely rejected words
-        if self.is_likely_nyt_rejected(word):
-            confidence -= self.CONFIDENCE_REJECTION_PENALTY
-
-        return min(100.0, max(0.0, confidence))
 
     def _generate_candidates_comprehensive(
         self, letters: str, required_letter: str

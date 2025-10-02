@@ -49,7 +49,7 @@ Functions:
 
 from typing import Set, List, Optional, Callable
 import logging
-from .phonotactic_filter import create_phonotactic_filter, PhonotacticFilter
+from .phonotactic_filter import create_phonotactic_filter
 
 logger = logging.getLogger(__name__)
 
