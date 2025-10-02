@@ -58,7 +58,7 @@ def test_unified_solver():
 
     # Test puzzle solving
     print("✓ Solving puzzle NACUOTP (required: N)...")
-    results = solver.solve_puzzle("NACUOTP", "N")
+    results = solver.solve_puzzle("N", "ACUOTP")
     print(f"✓ Puzzle solved: {len(results)} words found")
 
     if results:

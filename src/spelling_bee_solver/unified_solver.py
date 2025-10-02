@@ -842,7 +842,7 @@ class UnifiedSpellingBeeSolver:
         return list(all_candidates)
 
     def solve_puzzle(
-        self, letters: str, required_letter: Optional[str] = None
+        self, required_letter: str, letters: str
     ) -> List[Tuple[str, float]]:
         """Solve a New York Times Spelling Bee puzzle with comprehensive analysis.
 
@@ -860,11 +860,11 @@ class UnifiedSpellingBeeSolver:
         7. Result sorting and return
 
         Args:
-            letters (str): The 7 letters available for the puzzle. Must contain exactly
-                7 alphabetic characters. Case insensitive - will be normalized to lowercase.
-            required_letter (str, optional): The letter that must appear in all valid words.
-                Must be exactly 1 alphabetic character and must be one of the 7 puzzle letters.
-                If None, defaults to the first letter in the letters string.
+            required_letter (str): The required center letter that must appear in all valid words.
+                Must be exactly 1 alphabetic character. Case insensitive - will be normalized to lowercase.
+            letters (str): The other 6 letters available for the puzzle.
+                Must contain exactly 6 alphabetic characters (total 7 including required_letter).
+                Case insensitive - will be normalized to lowercase.
 
         Returns:
             List[Tuple[str, float]]: Sorted list of (word, confidence_score) tuples.
@@ -873,32 +873,27 @@ class UnifiedSpellingBeeSolver:
 
         Raises:
             TypeError: If letters or required_letter are not strings.
-            ValueError: If letters is not exactly 7 characters, contains non-alphabetic
-                characters, or if required_letter is not in the puzzle letters.
+            ValueError: If total letters is not exactly 7, contains non-alphabetic
+                characters, or if required_letter is not unique.
 
         Performance:
             Typical solving times:
-            - PRODUCTION mode: 2-5 seconds for most puzzles
-            - DEBUG_SINGLE mode: 0.5-1 second for testing
-            - DEBUG_ALL mode: 10-30 seconds for comprehensive results
+            - Unified mode: 2-5 seconds for most puzzles
+            - With GPU: 1-3 seconds
+            - CPU-only: 3-10 seconds
 
         Example:
             Basic usage::
 
-                results = solver.solve_puzzle("NACUOTP", "N")
+                results = solver.solve_puzzle("N", "ACUOTP")
                 print(f"Found {len(results)} words")
                 for word, confidence in results[:5]:  # Top 5 results
                     print(f"{word}: {confidence:.1f}%")
 
-            With automatic required letter::
-
-                # Uses first letter "N" as required letter
-                results = solver.solve_puzzle("NACUOTP")
-
             Error handling::
 
                 try:
-                    results = solver.solve_puzzle("ABC", "A")  # Too short
+                    results = solver.solve_puzzle("A", "BC")  # Too short
                 except ValueError as e:
                     print(f"Invalid input: {e}")
 
@@ -909,23 +904,28 @@ class UnifiedSpellingBeeSolver:
             - The required letter must appear in every word
             - Proper nouns, abbreviations, and obscure words are filtered out
         """
+        # Combine required letter with other letters for validation
+        # New API: required_letter (1 char) + letters (6 chars) = 7 total
+        all_letters = required_letter + letters
+
         # Use InputValidator component for validation and normalization
-        letters, required_letter, letters_set = self.input_validator.validate_and_normalize(
-            letters, required_letter
+        # Validator expects full 7-letter string + required letter
+        all_letters, required_letter, letters_set = self.input_validator.validate_and_normalize(
+            all_letters, required_letter
         )
 
         start_time = time.time()
 
         self.logger.info(
             "Solving puzzle: letters='%s', required='%s'",
-            letters,
+            all_letters,
             required_letter,
         )
 
         # Generate candidates using all methods (unified approach)
         # Currently: dictionary scan from all sources with deduplication
         # Phase 5: Will add anagram permutation generation
-        all_candidates = self._generate_candidates_comprehensive(letters, required_letter)
+        all_candidates = self._generate_candidates_comprehensive(all_letters, required_letter)
 
         if not all_candidates:
             self.logger.warning("No candidates generated")
@@ -1173,9 +1173,14 @@ class UnifiedSpellingBeeSolver:
                     print("❌ Required letter must be one of the 7 letters")
                     continue
 
-                # Solve puzzle
-                results = self.solve_puzzle(letters, required)
-                self.print_results(results, letters, required)
+                # Extract other letters (remove required letter from the 7-letter string)
+                other_letters = letters.replace(required, '', 1)  # Remove first occurrence
+
+                # Solve puzzle (new API: required_letter first, then other letters)
+                results = self.solve_puzzle(required, other_letters)
+                # print_results still expects full letters, so reconstruct
+                all_letters_for_display = required + other_letters
+                self.print_results(results, all_letters_for_display, required)
 
             except KeyboardInterrupt:
                 print("\n👋 Goodbye!")
@@ -1263,12 +1268,14 @@ def main():
     """
     parser = argparse.ArgumentParser(description="Unified NYT Spelling Bee Solver")
 
-    # Puzzle input
+    # Puzzle input (new API: required letter first, then other 6 letters)
     parser.add_argument(
-        "letters", nargs="?", default=None, help="The 7 letters for the puzzle"
+        "required_letter", nargs="?", default=None,
+        help="Required center letter (1 character)"
     )
     parser.add_argument(
-        "--required", "-r", help="Required letter (default: first letter)"
+        "letters", nargs="?", default=None,
+        help="The other 6 letters for the puzzle"
     )
 
     # Options
@@ -1293,24 +1300,30 @@ def main():
     )
 
     # Interactive mode
-    if args.interactive or args.letters is None:
+    if args.interactive or args.required_letter is None:
         solver.interactive_mode()
         return
 
-    # Command-line mode
+    # Command-line mode (new API: required letter first, then other 6 letters)
+    required_letter = args.required_letter.lower()
+    if len(required_letter) != 1:
+        print(f"❌ Error: Required letter must be exactly 1 character (got {len(required_letter)})")
+        return
+
+    if args.letters is None:
+        print("❌ Error: Please provide the other 6 letters")
+        return
+
     letters = args.letters.lower()
-    if len(letters) != 7:
-        print(f"❌ Error: Please provide exactly 7 letters (got {len(letters)})")
+    if len(letters) != 6:
+        print(f"❌ Error: Please provide exactly 6 other letters (got {len(letters)})")
         return
 
-    required_letter = args.required.lower() if args.required else letters[0]
-    if required_letter not in letters:
-        print("❌ Error: Required letter must be one of the 7 letters")
-        return
-
-    # Solve puzzle
-    results = solver.solve_puzzle(letters, required_letter)
-    solver.print_results(results, letters, required_letter)
+    # Solve puzzle (new API: required_letter, letters)
+    results = solver.solve_puzzle(required_letter, letters)
+    # print_results expects full 7-letter string
+    all_letters = required_letter + letters
+    solver.print_results(results, all_letters, required_letter)
 
 
 if __name__ == "__main__":

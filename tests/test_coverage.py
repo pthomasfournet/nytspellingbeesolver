@@ -23,7 +23,7 @@ def test_unified_solver():
         print("✓ Solver initialization successful")
 
         # Test basic puzzle solving
-        results = solver.solve_puzzle("NACUOTP", "N")
+        results = solver.solve_puzzle("N", "ACUOTP")
         print(f"✓ Puzzle solving successful: found {len(results)} words")
 
         # Test configuration loading (public method test)

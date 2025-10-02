@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""Quick puzzle solver for ANAGRAM mode."""
+"""Quick puzzle solver wrapper."""
 
 import sys
 import time
-from unified_solver import UnifiedSpellingBeeSolver, SolverMode
+from unified_solver import UnifiedSpellingBeeSolver
 
 def solve_puzzle(letters, required):
-    """Solve a spelling bee puzzle using ANAGRAM mode."""
+    """Solve a spelling bee puzzle using unified mode."""
     print("=" * 70)
-    print("SPELLING BEE SOLVER - ANAGRAM MODE")
+    print("SPELLING BEE SOLVER - UNIFIED MODE")
     print("=" * 70)
     
     # Normalize input
@@ -17,7 +17,7 @@ def solve_puzzle(letters, required):
     
     print(f"\nPuzzle Letters: {letters.upper()}")
     print(f"Required Letter: {required.upper()}")
-    print(f"Mode: GPU Brute Force (max_length=8)\n")
+    print(f"Mode: UNIFIED\n")
     
     # Validate
     if len(letters) != 7:
@@ -30,10 +30,12 @@ def solve_puzzle(letters, required):
         return
     
     # Solve
-    solver = UnifiedSpellingBeeSolver(mode=SolverMode.ANAGRAM)
-    
+    solver = UnifiedSpellingBeeSolver()
+
     start = time.time()
-    results = solver.solve_puzzle(letters, required)
+    # Extract other letters (remove required letter from the 7-letter string)
+    other_letters = letters.replace(required, '', 1)
+    results = solver.solve_puzzle(required, other_letters)
     elapsed = time.time() - start
     
     print(f"\n{'=' * 70}")

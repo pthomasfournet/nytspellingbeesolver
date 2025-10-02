@@ -55,7 +55,7 @@ Formatted Output (grouped by length, with pangrams highlighted)
 
 **Key Methods:**
 - `__init__()`: Initialize with no mode parameter (unified by default)
-- `solve_puzzle(letters, required_letter)`: Main entry point, returns `List[Tuple[str, float]]`
+- `solve_puzzle(required_letter, letters)`: Main entry point, returns `List[Tuple[str, float]]`
 - `_generate_candidates_comprehensive()`: Unified generation from all dictionaries
 - `_apply_comprehensive_filter()`: Multi-stage filtering pipeline
 - `print_results()`: Formatted console output
@@ -91,7 +91,7 @@ Formatted Output (grouped by length, with pangrams highlighted)
 - `archaic_words`: Old English terms (get low confidence, not rejected)
 - `abbreviations`: Common abbreviations
 
-**Example Results for NACUOTP:**
+**Example Results for N ACUOTP:**
 - Filters: anna (proper noun), canaan (place), naacp/ncaa (abbreviations)
 - 102 candidates → 98 after filtering
 
@@ -257,7 +257,7 @@ final_score = average(middle_scores)  # Average of middle 3
 ### Direct Solve
 
 ```bash
-./bee NACUOTP -r N
+./bee N ACUOTP
 ```
 
 ### Interactive Mode
@@ -272,7 +272,7 @@ final_score = average(middle_scores)  # Average of middle 3
 from src.spelling_bee_solver.unified_solver import UnifiedSpellingBeeSolver
 
 solver = UnifiedSpellingBeeSolver(verbose=False)
-results = solver.solve_puzzle("NACUOTP", "N")  # Returns List[Tuple[str, float]]
+results = solver.solve_puzzle("N", "ACUOTP")  # Returns List[Tuple[str, float]]
 
 # results = [("account", 86.7), ("annotto", 80.0), ...]
 ```

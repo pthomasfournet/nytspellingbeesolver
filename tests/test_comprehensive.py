@@ -18,7 +18,7 @@ def test_unified_solver_comprehensive():
         print("✓ Unified solver initialized")
 
         # Test basic solving
-        results = solver.solve_puzzle("NACUOTP", "N")
+        results = solver.solve_puzzle("N", "ACUOTP")
         print(f"✓ Solving: {len(results)} words")
 
         # Test confidence calculation

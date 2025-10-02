@@ -15,7 +15,7 @@ A Python-based solver for the New York Times Spelling Bee puzzle with intelligen
 
 ```bash
 # Solve a puzzle directly
-./bee NACUOTP -r N
+./bee N ACUOTP
 
 # Interactive mode (prompts for letters)
 ./bee -i
@@ -46,13 +46,13 @@ pip install cupy-cuda12x  # Optional: for GPU acceleration
 
 ```bash
 # Basic usage
-./bee NACUOTP -r N
+./bee N ACUOTP
 
 # Verbose output (shows filtering steps)
-./bee NACUOTP -r N --verbose
+./bee N ACUOTP --verbose
 
 # Custom config file
-./bee NACUOTP -r N --config my_config.json
+./bee N ACUOTP --config my_config.json
 ```
 
 ### Interactive Mode
@@ -211,7 +211,7 @@ spelling_bee_solver_project/
 - Proper noun detection (names, places)
 - Foreign word detection (non-English)
 - Archaic word flagging (low confidence, not rejected)
-- Example: anna, canaan, naacp, ncaa filtered from NACUOTP puzzle
+- Example: anna, canaan, naacp, ncaa filtered from N ACUOTP puzzle
 
 ### Phase 4: Olympic Judges Scoring
 - 5 independent judges with different criteria
