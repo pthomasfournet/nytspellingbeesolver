@@ -8,6 +8,7 @@ Detects words that NYT Spelling Bee typically rejects:
 - Abbreviations
 - Technical/scientific terms
 - Blacklisted words (data-driven from 2,615 historical puzzles)
+- Wiktionary metadata (Layer 4: comprehensive automated detection)
 """
 
 import json
@@ -16,6 +17,7 @@ from pathlib import Path
 from typing import Dict, Optional
 
 from ..constants import MIN_WORD_LENGTH
+from .wiktionary_metadata import load_wiktionary_metadata
 
 
 class NYTRejectionFilter:
@@ -25,11 +27,13 @@ class NYTRejectionFilter:
     INSTANT_REJECT_THRESHOLD = 10  # Words rejected 10+ times = instant reject (2,460 words)
     LOW_CONFIDENCE_THRESHOLD = 5   # Words rejected 5+ times = suspicious (4,387 words)
 
-    def __init__(self, nyt_rejection_blacklist: Optional[Dict[str, int]] = None):
+    def __init__(self, nyt_rejection_blacklist: Optional[Dict[str, int]] = None,
+                 enable_wiktionary: bool = True):
         """Initialize the rejection filter with known proper nouns and foreign words.
 
         Args:
             nyt_rejection_blacklist: Dict of {word: rejection_count} from historical puzzles
+            enable_wiktionary: Enable Layer 4 Wiktionary metadata filtering
         """
         self.logger = logging.getLogger(__name__)
         self.nyt_rejection_blacklist = nyt_rejection_blacklist or {}
@@ -37,6 +41,13 @@ class NYTRejectionFilter:
         # Load NYT rejection blacklist if not provided
         if not self.nyt_rejection_blacklist:
             self._load_nyt_blacklist()
+
+        # Load Wiktionary metadata (Layer 4)
+        self.wiktionary = None
+        if enable_wiktionary:
+            self.wiktionary = load_wiktionary_metadata()
+            if not self.wiktionary.loaded:
+                self.logger.debug("Wiktionary Layer 4 disabled (metadata not found)")
 
         # Known proper nouns (people names, places) that appear in dictionaries lowercase
         # Comprehensive list + blacklist (threshold=10) for layered filtering
@@ -246,6 +257,7 @@ class NYTRejectionFilter:
         """Check if word is archaic/obsolete.
 
         Note: Archaic words are NOT rejected, just flagged for low confidence.
+        Checks both manual list and Wiktionary metadata.
 
         Args:
             word: Word to check (should be lowercase)
@@ -254,7 +266,17 @@ class NYTRejectionFilter:
             True if word is archaic
         """
         word_lower = word.lower().strip()
-        return word_lower in self.archaic_words
+
+        # Check manual archaic words list
+        if word_lower in self.archaic_words:
+            return True
+
+        # Check Wiktionary metadata (Layer 4)
+        if self.wiktionary and self.wiktionary.loaded:
+            if self.wiktionary.is_archaic(word_lower) or self.wiktionary.is_rare(word_lower):
+                return True
+
+        return False
 
     def is_abbreviation(self, word: str) -> bool:
         """Check if word is an abbreviation.
@@ -406,6 +428,23 @@ class NYTRejectionFilter:
         if self.is_technical_term(word_lower):
             self.logger.debug("Rejecting '%s': technical term", word_lower)
             return True
+
+        # Layer 4: Wiktionary metadata (comprehensive automated detection)
+        if self.wiktionary and self.wiktionary.loaded:
+            # Check proper nouns via Wiktionary
+            if self.wiktionary.is_proper_noun_wiktionary(word_lower):
+                self.logger.debug("Rejecting '%s': proper noun (Wiktionary)", word_lower)
+                return True
+
+            # Check foreign-only words
+            if self.wiktionary.is_foreign_only(word_lower):
+                self.logger.debug("Rejecting '%s': foreign-only (Wiktionary)", word_lower)
+                return True
+
+            # Obsolete words are rejected (not just low confidence)
+            if self.wiktionary.is_obsolete(word_lower):
+                self.logger.debug("Rejecting '%s': obsolete (Wiktionary)", word_lower)
+                return True
 
         # Note: Archaic words are NOT rejected here
         # They're flagged by is_archaic() and scored with low confidence instead
