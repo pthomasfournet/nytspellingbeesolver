@@ -26,7 +26,10 @@ A Python-based solver for the New York Times Spelling Bee puzzle with intelligen
 
 ### Web/Mobile App (Recommended)
 ```bash
-# Start the web server
+# Start the web server (auto-kills existing instances)
+./start_web.sh
+
+# Or manually:
 python3 -m uvicorn web_server:app --host 0.0.0.0 --port 8000
 
 # Open in browser: http://localhost:8000
@@ -72,7 +75,11 @@ pip install cupy-cuda12x
 
 1. **Start the server:**
    ```bash
-   python3 -m uvicorn web_server:app --host 0.0.0.0 --port 8000
+   # Recommended (auto-manages single instance)
+   ./start_web.sh
+
+   # Or manually
+   python3 -m uvicorn web_server:app --host 0.0.0.0 --port 8000 --reload
    ```
 
 2. **Open in browser:**
