@@ -1,7 +1,7 @@
 // Service Worker for Spelling Bee Solver PWA
 // Provides offline support and caching
 
-const CACHE_NAME = 'spelling-bee-solver-v1';
+const CACHE_NAME = 'spelling-bee-solver-v3';
 const urlsToCache = [
     '/',
     '/index.html',
@@ -60,28 +60,26 @@ self.addEventListener('fetch', (event) => {
                 })
         );
     } else {
-        // Static assets - cache first, fallback to network
+        // Static assets - NETWORK FIRST during development (for fresh updates)
         event.respondWith(
-            caches.match(request)
-                .then((cachedResponse) => {
-                    if (cachedResponse) {
-                        return cachedResponse;
+            fetch(request)
+                .then((response) => {
+                    // Don't cache non-successful responses
+                    if (!response || response.status !== 200 || response.type !== 'basic') {
+                        return response;
                     }
 
-                    return fetch(request).then((response) => {
-                        // Don't cache non-successful responses
-                        if (!response || response.status !== 200 || response.type !== 'basic') {
-                            return response;
-                        }
-
-                        // Clone and cache the response
-                        const responseClone = response.clone();
-                        caches.open(CACHE_NAME).then((cache) => {
-                            cache.put(request, responseClone);
-                        });
-
-                        return response;
+                    // Clone and cache the response
+                    const responseClone = response.clone();
+                    caches.open(CACHE_NAME).then((cache) => {
+                        cache.put(request, responseClone);
                     });
+
+                    return response;
+                })
+                .catch(() => {
+                    // If network fails, try cache (offline support)
+                    return caches.match(request);
                 })
         );
     }

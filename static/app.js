@@ -11,6 +11,7 @@ const state = {
     currentPuzzle: null,
     foundWords: new Set(),      // Words user has found in NYT
     invalidWords: new Set(),    // Words user flagged as invalid
+    missedWords: new Set(),     // Words user found but solver missed
     totalPoints: 0,             // Points for found words
     maxPoints: 0                // Maximum possible points
 };
@@ -90,6 +91,7 @@ function saveProgress() {
         allProgress[puzzleKey] = {
             foundWords: Array.from(state.foundWords),
             invalidWords: Array.from(state.invalidWords),
+            missedWords: Array.from(state.missedWords),
             totalPoints: state.totalPoints,
             timestamp: Date.now()
         };
@@ -110,8 +112,9 @@ function loadProgress() {
         if (puzzleProgress) {
             state.foundWords = new Set(puzzleProgress.foundWords || []);
             state.invalidWords = new Set(puzzleProgress.invalidWords || []);
+            state.missedWords = new Set(puzzleProgress.missedWords || []);
             state.totalPoints = puzzleProgress.totalPoints || 0;
-            console.log(`📦 Loaded progress: ${state.foundWords.size} found, ${state.invalidWords.size} invalid`);
+            console.log(`📦 Loaded progress: ${state.foundWords.size} found, ${state.invalidWords.size} invalid, ${state.missedWords.size} missed`);
         }
     } catch (err) {
         console.warn('Failed to load progress:', err);
@@ -129,6 +132,7 @@ function clearProgress() {
 
         state.foundWords.clear();
         state.invalidWords.clear();
+        state.missedWords.clear();
         state.totalPoints = 0;
     } catch (err) {
         console.warn('Failed to clear progress:', err);
@@ -217,6 +221,8 @@ const elements = {
     knownWordsSection: document.getElementById('knownWordsInput'),
 
     // Results
+    missedGroup: document.getElementById('missedGroup'),
+    missedList: document.getElementById('missedList'),
     pangramsGroup: document.getElementById('pangramsGroup'),
     pangramsList: document.getElementById('pangramsList'),
     wordsContainer: document.getElementById('wordsContainer'),
@@ -393,6 +399,21 @@ async function handleSolve() {
         state.results = data.results;
         state.currentPuzzle = data.puzzle;
 
+        // Identify missed words (words user found but solver didn't)
+        const solverWords = new Set(data.results.map(r => r.word));
+        const excludedWords = new Set(data.excluded_words || []);
+        state.missedWords.clear();
+
+        excludedWords.forEach(word => {
+            if (!solverWords.has(word)) {
+                state.missedWords.add(word);
+            }
+        });
+
+        if (state.missedWords.size > 0) {
+            console.log(`⚠️  Solver missed ${state.missedWords.size} words that NYT accepted:`, Array.from(state.missedWords));
+        }
+
         // Load progress for this puzzle and calculate scores
         loadProgress();
         calculateMaxScore();
@@ -426,8 +447,26 @@ function renderStats(stats) {
 
 function renderResults() {
     // Clear existing results
+    elements.missedList.innerHTML = '';
     elements.pangramsList.innerHTML = '';
     elements.wordsContainer.innerHTML = '';
+
+    // Render missed words (if any)
+    if (state.missedWords.size > 0) {
+        elements.missedGroup.classList.remove('hidden');
+        const missedWordsArray = Array.from(state.missedWords).sort();
+
+        elements.missedList.innerHTML = missedWordsArray.map(word => {
+            return `
+                <div class="word-item missed-word" data-word="${word}">
+                    <span class="word-text">${word}</span>
+                    <span class="word-status">⚠️</span>
+                </div>
+            `;
+        }).join('');
+    } else {
+        elements.missedGroup.classList.add('hidden');
+    }
 
     // Check for empty results
     if (state.results.length === 0) {
@@ -690,8 +729,8 @@ function copyWordsList() {
 }
 
 function exportInvalidWords() {
-    if (state.invalidWords.size === 0) {
-        showToast('No invalid words flagged yet', 'error');
+    if (state.invalidWords.size === 0 && state.missedWords.size === 0) {
+        showToast('No invalid or missed words to export', 'error');
         return;
     }
 
@@ -703,8 +742,19 @@ function exportInvalidWords() {
             const wordData = state.results.find(r => r.word === word);
             return {
                 word: word,
+                type: 'false_positive',
                 confidence: wordData ? wordData.confidence : null,
-                is_pangram: wordData ? wordData.is_pangram : false
+                is_pangram: wordData ? wordData.is_pangram : false,
+                notes: 'Solver found this but user marked as invalid'
+            };
+        }),
+        missed_words: Array.from(state.missedWords).map(word => {
+            return {
+                word: word,
+                type: 'false_negative',
+                confidence: null,
+                is_pangram: false,
+                notes: 'NYT accepted this but solver missed it'
             };
         })
     };
@@ -714,13 +764,14 @@ function exportInvalidWords() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `invalid-words-${state.currentPuzzle.letters}-${Date.now()}.json`;
+    a.download = `solver-feedback-${state.currentPuzzle.letters}-${Date.now()}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    showToast(`Exported ${state.invalidWords.size} invalid words`, 'success');
+    const totalExported = state.invalidWords.size + state.missedWords.size;
+    showToast(`Exported ${totalExported} words (${state.invalidWords.size} invalid, ${state.missedWords.size} missed)`, 'success');
 }
 
 // ===========================
