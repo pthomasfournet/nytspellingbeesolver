@@ -17,12 +17,10 @@ Features:
 
 import re
 import string
-import unicodedata
 import logging
 import time
 from pathlib import Path
-from typing import List, Set, Union, Tuple, Dict, Any, Optional
-import numpy as np
+from typing import List, Set, Tuple, Dict, Any, Optional
 
 # Import NLP abstraction layer
 try:
@@ -37,19 +35,17 @@ except ImportError:
 # Backward compatibility: still import spaCy for legacy code
 try:
     import spacy
-    from spacy.tokens import Doc, Token
+    from spacy.tokens import Doc
     SPACY_AVAILABLE = True
 except ImportError:
     SPACY_AVAILABLE = False
-    # Create dummy classes for type hints when spaCy is not available
+    # Create dummy class for type hints when spaCy is not available
     class Doc:
-        pass
-    class Token:
         pass
     print("Warning: spaCy not available - using fallback filtering")
 
 try:
-    import cupy as cp
+    import cupy
     GPU_AVAILABLE = True
     print("✓ CuPy available - GPU acceleration enabled")
 except ImportError:
@@ -132,8 +128,6 @@ class IntelligentWordFilter:
     def gpu_available(self) -> bool:
         """Check if GPU is available"""
         return GPU_AVAILABLE
-        
-        logger.info(f"✓ Intelligent word filter initialized (GPU: {self.use_gpu})")
     
     def _initialize_nlp(self) -> None:
         """Initialize spaCy NLP pipeline with GPU acceleration if available."""

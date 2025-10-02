@@ -118,13 +118,6 @@ from urllib.parse import urlparse
 
 import requests
 
-# Import our GPU acceleration modules
-try:
-    from .gpu.gpu_word_filtering import GPUWordFilter
-except ImportError:
-    # Graceful fallback if GPU dependencies aren't available
-    GPUWordFilter = None  # type: ignore
-
 # Import core components for dependency injection
 from .core import (
     InputValidator,
@@ -256,22 +249,8 @@ class UnifiedSpellingBeeSolver:
         self.logger = logging.getLogger(__name__)
 
         # Initialize GPU acceleration based on config
-        self.gpu_filter = None
-        self.use_gpu = False
-
-        # Try to initialize GPU acceleration unless explicitly disabled
-        if not self.config["acceleration"]["force_gpu_off"]:
-            try:
-                if GPUWordFilter is not None:
-                    self.gpu_filter = GPUWordFilter()
-                    self.use_gpu = True  # GPU available and enabled
-                else:
-                    self.logger.info("GPUWordFilter not available, using CPU")
-
-            except (ImportError, RuntimeError, OSError) as e:
-                self.logger.warning(
-                    "GPU filter initialization failed, falling back to CPU: %s", e
-                )
+        # GPU filtering is now handled by intelligent_word_filter.py
+        self.use_gpu = not self.config["acceleration"]["force_gpu_off"]
 
         self.logger.info(
             "Unified Solver initialized: GPU=%s",
@@ -990,7 +969,7 @@ class UnifiedSpellingBeeSolver:
         """
 
         # GPU acceleration if available and enabled
-        if self.use_gpu and self.gpu_filter:
+        if self.use_gpu:
             self.logger.info("Applying GPU filtering to %d candidates", len(candidates))
             start_time = time.time()
             from .intelligent_word_filter import filter_words_intelligent

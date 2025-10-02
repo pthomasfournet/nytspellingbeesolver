@@ -76,24 +76,30 @@ All core components follow the Single Responsibility Principle:
   - Displays statistics
 - **Used by:** unified_solver.print_results()
 
-## GPU/NLP Components (gpu/)
+## GPU/NLP Components
 
-### 1. **GPUWordFilter** (gpu_word_filtering.py)
-- **Responsibility:** GPU-accelerated word filtering using spaCy
+### 1. **IntelligentWordFilter** (intelligent_word_filter.py, 733 lines)
+- **Responsibility:** GPU-accelerated intelligent word filtering
 - **What it does:**
-  - Uses spaCy NLP for proper noun detection
-  - GPU acceleration when available
-  - Graceful CPU fallback
-- **Used by:** unified_solver._apply_comprehensive_filter() (optional)
-
-### 2. **IntelligentWordFilter** (intelligent_word_filter.py, 733 lines)
-- **Responsibility:** Advanced NLP-based filtering
-- **What it does:**
+  - Uses NLP abstraction layer (dependency inversion)
   - spaCy NLP pipeline for linguistic analysis
-  - POS tagging for proper nouns
-  - Named entity recognition
-  - GPU-accelerated when available
-- **Used by:** unified_solver._apply_comprehensive_filter() (optional, when GPU enabled)
+  - POS tagging for proper noun detection
+  - Named entity recognition (organizations, locations, people)
+  - Acronym and abbreviation detection
+  - Pattern-based nonsense word detection
+  - GPU-accelerated when available (via cupy)
+  - Graceful CPU fallback
+- **Used by:** unified_solver._apply_comprehensive_filter() (when GPU enabled)
+
+### 2. **NLP Abstraction Layer** (nlp/, 643 lines)
+- **Responsibility:** Abstract NLP provider interface (Dependency Inversion Principle)
+- **What it provides:**
+  - NLPProvider: Abstract base class
+  - SpacyNLPProvider: spaCy implementation
+  - MockNLPProvider: Mock for testing
+  - Document, Token, Entity: Abstract data classes
+- **Used by:** IntelligentWordFilter
+- **Purpose:** Decouples intelligent_word_filter from spaCy implementation, enables testing
 
 ## Main Flow: solve_puzzle()
 
@@ -198,7 +204,9 @@ UnifiedSpellingBeeSolver (Orchestrator)
 ├─── NYTRejectionFilter
 ├─── ResultFormatter
 └─── [Optional] IntelligentWordFilter
-     └─── GPUWordFilter
+     └─── NLP Abstraction Layer
+          ├─── SpacyNLPProvider (production)
+          └─── MockNLPProvider (testing)
 ```
 
 ## Files and Line Counts
@@ -213,10 +221,13 @@ UnifiedSpellingBeeSolver (Orchestrator)
 - result_formatter.py (508)
 - __init__.py (25)
 
-### GPU/NLP (~900 lines)
+### GPU/NLP (~1,400 lines)
 - intelligent_word_filter.py (733)
-- gpu_word_filtering.py (~350)
-- nlp/ (provider abstraction)
+- nlp/ (provider abstraction, 643 lines)
+  - nlp_provider.py (194) - Abstract base
+  - spacy_provider.py (214) - spaCy implementation
+  - mock_provider.py (204) - Testing mock
+  - __init__.py (31)
 
 ### Main (1,292 lines)
 - unified_solver.py (1,292)

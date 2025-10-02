@@ -88,53 +88,32 @@ def test_word_filtering():
 
 
 def test_gpu_components():
-    """Test GPU components if available."""
-    print("\nTesting GPU components...")
+    """Test GPU/NLP components if available."""
+    print("\nTesting GPU/NLP components...")
 
     try:
-        # Test GPU word filtering
+        # Test IntelligentWordFilter (the actual GPU filtering system)
         try:
-            from src.spelling_bee_solver.gpu.gpu_word_filtering import GPUWordFilter
-
-            gpu_filter = GPUWordFilter()
-            print("✓ GPU word filter initialization successful")
+            from src.spelling_bee_solver.intelligent_word_filter import filter_words_intelligent
 
             # Test basic filtering
-            test_words = ["count", "apple", "London"]
-            filtered = gpu_filter.comprehensive_filter(test_words)
+            test_words = ["count", "apple", "London", "NASA"]
+            filtered = filter_words_intelligent(test_words, use_gpu=False)
             print(
-                f"✓ GPU comprehensive filtering: {len(test_words)} -> {len(filtered)} words"
+                f"✓ Intelligent filtering: {len(test_words)} -> {len(filtered)} words"
             )
 
-            # Test stats
-            stats = gpu_filter.get_stats()
-            print(f"✓ GPU stats: {stats['gpu_available']} GPU available")
+            # Verify proper nouns filtered
+            assert "London" not in filtered, "London should be filtered"
+            print("✓ Filtering logic verified")
 
         except Exception as e:
-            print(f"⚠ GPU word filtering not available: {e}")
-
-        # cuda_nltk removed (was dead code)
-
-        # Test GPU puzzle solver
-        try:
-            from src.spelling_bee_solver.gpu.gpu_puzzle_solver import GPUPuzzleSolver
-
-            gpu_solver = GPUPuzzleSolver()
-            print("✓ GPU puzzle solver initialization successful")
-
-            # Test basic validation
-            valid = gpu_solver.is_valid_word_basic("count", "nacuotp", "n")
-            print(
-                f"✓ GPU solver validation: 'count' is {'valid' if valid else 'invalid'}"
-            )
-
-        except Exception as e:
-            print(f"⚠ GPU puzzle solver test failed: {e}")
+            print(f"⚠ IntelligentWordFilter not available: {e}")
 
         return True
 
     except Exception as e:
-        print(f"✗ GPU components test failed: {e}")
+        print(f"✗ GPU/NLP components test failed: {e}")
         return False
 
 

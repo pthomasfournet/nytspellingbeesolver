@@ -3,7 +3,6 @@
 Edge case test to push coverage to maximum.
 """
 
-from src.spelling_bee_solver.gpu.gpu_word_filtering import GPUWordFilter
 from src.spelling_bee_solver.unified_solver import UnifiedSpellingBeeSolver
 from src.spelling_bee_solver.word_filtering import (
     get_word_confidence,
@@ -85,29 +84,28 @@ def test_extreme_edge_cases():
         except Exception as e:
             print(f"Error with '{word[:20]}...': {e}")
 
-    # Test GPU components with edge cases
-    print("\nTesting GPU edge cases...")
+    # Test IntelligentWordFilter with edge cases
+    print("\nTesting IntelligentWordFilter edge cases...")
 
     try:
-        gpu_filter = GPUWordFilter()
+        from src.spelling_bee_solver.intelligent_word_filter import filter_words_intelligent
 
         # Test with empty lists
-        empty_results = gpu_filter.comprehensive_filter([])
-        print(f"GPU empty filter: {len(empty_results)}")
+        empty_results = filter_words_intelligent([], use_gpu=False)
+        print(f"Empty filter: {len(empty_results)}")
 
         # Test with large batch
-        large_batch = ["word" + str(i) for i in range(1000)]
-        large_results = gpu_filter.comprehensive_filter(large_batch)
-        print(f"GPU large batch: {len(large_batch)} -> {len(large_results)}")
+        large_batch = ["word" + str(i) for i in range(100)]
+        large_results = filter_words_intelligent(large_batch, use_gpu=False)
+        print(f"Large batch: {len(large_batch)} -> {len(large_results)}")
 
-        # Test GPU stats
-        stats = gpu_filter.get_stats()
-        print(f"GPU detailed stats: {stats}")
+        # Test with mixed case and special characters
+        edge_cases = ["Test", "TEST", "test-word", "test's", ""]
+        edge_results = filter_words_intelligent(edge_cases, use_gpu=False)
+        print(f"Edge cases: {len(edge_cases)} -> {len(edge_results)}")
 
     except Exception as e:
-        print(f"GPU edge case error: {e}")
-
-    # cuda_nltk removed (was dead code)
+        print(f"IntelligentWordFilter edge case error: {e}")
 
     print("Extreme edge case testing complete!")
 

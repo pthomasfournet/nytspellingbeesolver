@@ -93,76 +93,33 @@ def test_word_filtering_comprehensive():
 
 
 def test_gpu_components_comprehensive():
-    """Comprehensive test of GPU components."""
-    print("\nRunning comprehensive GPU tests...")
+    """Comprehensive test of GPU/NLP components."""
+    print("\nRunning comprehensive GPU/NLP tests...")
 
-    # Test GPU word filtering
+    # Test IntelligentWordFilter (the actual GPU filtering system)
     try:
-        from src.spelling_bee_solver.gpu.gpu_word_filtering import GPUWordFilter
+        from src.spelling_bee_solver.intelligent_word_filter import IntelligentWordFilter, filter_words_intelligent
 
-        gpu_filter = GPUWordFilter()
-        print("✓ GPU filter initialized")
+        filter_obj = IntelligentWordFilter(use_gpu=False)  # Use CPU for testing
+        print("✓ IntelligentWordFilter initialized")
 
-        test_words = ["count", "apple", "London", "NASA", "government"]
+        test_words = ["count", "apple", "London", "NASA", "government", "lloyd", "loca"]
 
-        # Test proper noun detection
-        proper_results = gpu_filter.is_proper_noun(test_words)
-        print(f"✓ GPU proper noun detection: {len(proper_results)} results")
+        # Test module-level filtering function
+        filtered = filter_words_intelligent(test_words, use_gpu=False)
+        print(f"✓ Intelligent filtering: {len(test_words)} -> {len(filtered)}")
 
-        # Test inappropriate word detection
-        inappropriate_results = gpu_filter.is_inappropriate_word(test_words)
-        print(f"✓ GPU inappropriate detection: {len(inappropriate_results)} results")
+        # Test class method filtering
+        filtered2 = filter_obj.filter_words_intelligent(test_words)
+        print(f"✓ Class method filtering: {len(test_words)} -> {len(filtered2)}")
 
-        # Test comprehensive filtering
-        filtered = gpu_filter.comprehensive_filter(test_words)
-        print(f"✓ GPU comprehensive filter: {len(test_words)} -> {len(filtered)}")
-
-        # Test filtering methods
-        proper_filtered = gpu_filter.filter_proper_nouns(test_words)
-        print(f"✓ GPU proper noun filter: {len(test_words)} -> {len(proper_filtered)}")
-
-        inappropriate_filtered = gpu_filter.filter_inappropriate_words(test_words)
-        print(
-            f"✓ GPU inappropriate filter: {len(test_words)} -> {len(inappropriate_filtered)}"
-        )
-
-        # Test stats
-        stats = gpu_filter.get_stats()
-        print(f"✓ GPU stats: GPU={stats['gpu_available']}")
+        # Verify proper nouns are filtered (London, NASA should be removed)
+        assert "London" not in filtered, "London should be filtered (proper noun)"
+        assert "NASA" not in filtered, "NASA should be filtered (acronym)"
+        print("✓ Proper noun/acronym filtering verified")
 
     except (ImportError, AttributeError, RuntimeError) as e:
-        print(f"⚠ GPU filter test failed: {e}")
-
-    # cuda_nltk removed (was dead code)
-
-    # Test GPU puzzle solver
-    try:
-        from src.spelling_bee_solver.gpu.gpu_puzzle_solver import GPUPuzzleSolver
-
-        gpu_solver = GPUPuzzleSolver()
-        print("✓ GPU puzzle solver initialized")
-
-        # Test dictionary loading
-        if hasattr(gpu_solver, "dictionary_sources") and gpu_solver.dictionary_sources:
-            dict_name, dict_path = gpu_solver.dictionary_sources[0]
-            words = gpu_solver.load_dictionary(dict_path)
-            print(f"✓ GPU dictionary loading: {len(words)} words from {dict_name}")
-
-        # Test validation
-        valid = gpu_solver.is_valid_word_basic("count", "nacuotp", "n")
-        print(f"✓ GPU validation: {valid}")
-
-        # Test rejection
-        rejected = gpu_solver.is_likely_nyt_rejected("NASA")
-        print(f"✓ GPU rejection: {rejected}")
-
-        # Test filtering
-        test_words = ["count", "apple", "London"]
-        filtered = gpu_solver.filter_words_fast(test_words)
-        print(f"✓ GPU fast filtering: {len(test_words)} -> {len(filtered)}")
-
-    except (ImportError, AttributeError, RuntimeError) as e:
-        print(f"⚠ GPU puzzle solver test failed: {e}")
+        print(f"⚠ IntelligentWordFilter test failed: {e}")
 
 
 def test_configuration_and_edge_cases():

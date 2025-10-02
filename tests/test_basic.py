@@ -16,18 +16,12 @@ def test_basic_imports():
     from src.spelling_bee_solver.word_filtering import is_likely_nyt_rejected
     print("✓ word_filtering imported")
 
-    # GPU components (may fail on systems without GPU)
+    # GPU/NLP components (may fail on systems without dependencies)
     try:
-        from src.spelling_bee_solver.gpu.gpu_word_filtering import GPUWordFilter
-        print("✓ gpu_word_filtering imported")
+        from src.spelling_bee_solver.intelligent_word_filter import IntelligentWordFilter, filter_words_intelligent
+        print("✓ intelligent_word_filter imported")
     except Exception as e:
-        print(f"⚠ gpu_word_filtering: {e}")
-
-    try:
-        from src.spelling_bee_solver.gpu.gpu_puzzle_solver import GPUPuzzleSolver
-        print("✓ gpu_puzzle_solver imported")
-    except Exception as e:
-        print(f"⚠ gpu_puzzle_solver: {e}")
+        print(f"⚠ intelligent_word_filter: {e}")
 
     # cuda_nltk removed (was dead code)
 
