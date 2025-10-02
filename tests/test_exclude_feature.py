@@ -4,8 +4,6 @@ Tests for the exclude known words feature.
 Tests the ability to exclude already-found words from solver results.
 """
 
-import tempfile
-from pathlib import Path
 
 import pytest
 

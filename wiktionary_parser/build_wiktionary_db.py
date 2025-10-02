@@ -19,7 +19,7 @@ import json
 import logging
 import sys
 from pathlib import Path
-from typing import Dict, List, Set
+from typing import Dict, Set
 
 import requests
 

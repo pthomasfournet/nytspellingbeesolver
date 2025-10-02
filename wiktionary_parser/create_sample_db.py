@@ -7,7 +7,6 @@ For production, use build_wiktionary_db.py to process full dump.
 """
 
 import json
-import sys
 from pathlib import Path
 
 # Sample test data based on our manual analysis

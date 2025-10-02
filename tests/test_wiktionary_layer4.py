@@ -7,16 +7,14 @@ Tests cover:
 3. Random puzzle validation
 """
 
-import pytest
 import json
 import random
 from pathlib import Path
 
-from src.spelling_bee_solver.core.wiktionary_metadata import (
-    WiktionaryMetadata,
-    load_wiktionary_metadata
-)
+import pytest
+
 from src.spelling_bee_solver.core.nyt_rejection_filter import NYTRejectionFilter
+from src.spelling_bee_solver.core.wiktionary_metadata import load_wiktionary_metadata
 from src.spelling_bee_solver.unified_solver import UnifiedSpellingBeeSolver
 
 
@@ -103,7 +101,7 @@ class TestWiktionaryMetadata:
         """Test that metadata stats match actual counts."""
         # Load raw JSON to check stats
         metadata_path = Path('src/spelling_bee_solver/data/wiktionary_metadata.json')
-        with open(metadata_path) as f:
+        with open(metadata_path, encoding='utf-8') as f:
             data = json.load(f)
 
         assert data['stats']['obsolete_count'] == len(data['obsolete'])
@@ -177,7 +175,7 @@ class TestRandomPuzzles:
     @pytest.fixture
     def puzzles_dataset(self):
         """Load historical puzzles dataset."""
-        with open('nytbee_parser/nyt_puzzles_dataset.json') as f:
+        with open('nytbee_parser/nyt_puzzles_dataset.json', encoding='utf-8') as f:
             data = json.load(f)
         # Filter to only valid puzzles (with center and letters)
         return [p for p in data if p['center'] and p['letters']]
@@ -206,7 +204,7 @@ class TestRandomPuzzles:
 
             results_summary.append({
                 'date': puzzle['date'],
-                'letters': f"{center}/{all_letters}",
+                'letters': f"{center}/{outer_letters}",
                 'nyt_accepted': len(puzzle['accepted']),
                 'nyt_rejected': len(puzzle['rejected']),
                 'solver_found': len(results),
@@ -263,7 +261,7 @@ def test_wiktionary_load_performance():
     import time
 
     start = time.time()
-    metadata = load_wiktionary_metadata()
+    load_wiktionary_metadata()
     load_time = time.time() - start
 
     print(f"\nWiktionary load time: {load_time*1000:.1f}ms")
