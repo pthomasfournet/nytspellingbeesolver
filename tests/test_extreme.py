@@ -106,29 +106,7 @@ def test_extreme_edge_cases():
     except Exception as e:
         print(f"GPU edge case error: {e}")
 
-    # Test CUDA NLTK edge cases
-    print("\nTesting CUDA NLTK edge cases...")
-
-    try:
-        from src.spelling_bee_solver.gpu.cuda_nltk import CudaNLTKProcessor
-
-        cuda_proc = CudaNLTKProcessor()
-
-        # Test with empty input
-        empty_tokens = cuda_proc.batch_tokenize_gpu([])
-        print(f"CUDA empty tokenize: {len(empty_tokens)}")
-
-        # Test with unusual text
-        weird_texts = ["", "123", "!!!@@@", "αβγδε", "🚀🌟💫"]
-        weird_tokens = cuda_proc.batch_tokenize_gpu(weird_texts)
-        print(f"CUDA weird tokenize: {len(weird_tokens)}")
-
-        # Test batch processing limits
-        cuda_stats = cuda_proc.get_stats()
-        print(f"CUDA detailed stats: {cuda_stats}")
-
-    except Exception as e:
-        print(f"CUDA edge case error: {e}")
+    # cuda_nltk removed (was dead code)
 
     print("Extreme edge case testing complete!")
 

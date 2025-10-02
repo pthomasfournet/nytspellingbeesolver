@@ -133,38 +133,7 @@ def test_gpu_components_comprehensive():
     except (ImportError, AttributeError, RuntimeError) as e:
         print(f"⚠ GPU filter test failed: {e}")
 
-    # Test CUDA NLTK
-    try:
-        from src.spelling_bee_solver.gpu.cuda_nltk import get_cuda_nltk_processor
-
-        processor = get_cuda_nltk_processor()
-        print("✓ CUDA NLTK processor initialized")
-
-        test_texts = ["Hello world", "This is a test", "London is great"]
-
-        # Test tokenization
-        tokens = processor.batch_tokenize_gpu(test_texts)
-        print(f"✓ CUDA tokenization: {len(test_texts)} -> {len(tokens)}")
-
-        # Test POS tagging
-        tagged = processor.batch_pos_tag_gpu(tokens)
-        print(f"✓ CUDA POS tagging: {len(tokens)} -> {len(tagged)}")
-
-        # Test NER
-        ner_results = processor.batch_named_entity_recognition(test_texts)
-        print(f"✓ CUDA NER: {len(test_texts)} -> {len(ner_results)}")
-
-        # Test proper noun detection
-        test_words = ["count", "London", "apple"]
-        proper_results = processor.is_proper_noun_batch_cuda(test_words)
-        print(f"✓ CUDA proper noun batch: {len(test_words)} -> {len(proper_results)}")
-
-        # Test stats
-        stats = processor.get_stats()
-        print(f"✓ CUDA stats: GPU={stats['cuda_available']}")
-
-    except (ImportError, AttributeError, RuntimeError) as e:
-        print(f"⚠ CUDA NLTK test failed: {e}")
+    # cuda_nltk removed (was dead code)
 
     # Test GPU puzzle solver
     try:

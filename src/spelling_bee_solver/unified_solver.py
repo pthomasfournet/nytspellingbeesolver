@@ -262,9 +262,8 @@ class UnifiedSpellingBeeSolver:
         )
         self.logger = logging.getLogger(__name__)
 
-        # Initialize GPU acceleration and CUDA-NLTK based on config
+        # Initialize GPU acceleration based on config
         self.gpu_filter = None
-        self.cuda_nltk = None
         self.use_gpu = False
 
         # Try to initialize GPU acceleration unless explicitly disabled
@@ -273,16 +272,6 @@ class UnifiedSpellingBeeSolver:
                 if GPUWordFilter is not None:
                     self.gpu_filter = GPUWordFilter()
                     self.use_gpu = True  # GPU available and enabled
-
-                    # Initialize CUDA-NLTK if enabled in config
-                    if self.config["acceleration"]["enable_cuda_nltk"]:
-                        try:
-                            from .gpu.cuda_nltk import get_cuda_nltk_processor
-
-                            self.cuda_nltk = get_cuda_nltk_processor()
-                            self.logger.info("CUDA-NLTK processor initialized")
-                        except ImportError:
-                            self.logger.info("CUDA-NLTK not available")
                 else:
                     self.logger.info("GPUWordFilter not available, using CPU")
 
@@ -292,9 +281,8 @@ class UnifiedSpellingBeeSolver:
                 )
 
         self.logger.info(
-            "Unified Solver initialized: GPU=%s, CUDA-NLTK=%s",
+            "Unified Solver initialized: GPU=%s",
             self.use_gpu,
-            self.cuda_nltk is not None,
         )
 
         # Unified dictionary configuration (2 high-quality sources only)
@@ -400,7 +388,7 @@ class UnifiedSpellingBeeSolver:
 
                 {
                     "solver": {"mode": "production"},
-                    "acceleration": {"force_gpu_off": False, "enable_cuda_nltk": True},
+                    "acceleration": {"force_gpu_off": False},
                     "dictionaries": {"download_timeout": 30, "cache_expiry_days": 30},
                     "filtering": {"min_word_length": 4, "confidence_threshold": 0},
                     ...
@@ -410,7 +398,6 @@ class UnifiedSpellingBeeSolver:
             "solver": {},
             "acceleration": {
                 "force_gpu_off": False,
-                "enable_cuda_nltk": True,
                 "gpu_batch_size": 1000,
             },
             "dictionaries": {
@@ -1020,24 +1007,6 @@ class UnifiedSpellingBeeSolver:
             filter_time = time.time() - start_time
             self.logger.info(
                 "GPU filtered to %d words in %.3fs", len(candidates), filter_time
-            )
-
-        # CUDA-NLTK proper noun detection if available
-        if self.cuda_nltk and candidates:
-            self.logger.info("Applying CUDA-NLTK proper noun detection")
-            start_time = time.time()
-            proper_noun_results = self.cuda_nltk.is_proper_noun_batch_cuda(candidates)
-            cuda_time = time.time() - start_time
-
-            # Filter out proper nouns
-            candidates = [
-                word
-                for word, is_proper in zip(candidates, proper_noun_results)
-                if not is_proper
-            ]
-
-            self.logger.info(
-                "CUDA-NLTK filtered to %d words in %.3fs", len(candidates), cuda_time
             )
 
         return candidates

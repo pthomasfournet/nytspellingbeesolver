@@ -113,22 +113,7 @@ def test_gpu_components():
         except Exception as e:
             print(f"⚠ GPU word filtering not available: {e}")
 
-        # Test CUDA NLTK
-        try:
-            from src.spelling_bee_solver.gpu.cuda_nltk import get_cuda_nltk_processor
-
-            processor = get_cuda_nltk_processor()
-            print("✓ CUDA NLTK processor initialization successful")
-
-            # Test batch processing
-            test_texts = ["Hello world", "This is a test"]
-            tokens = processor.batch_tokenize_gpu(test_texts)
-            print(
-                f"✓ CUDA tokenization: {len(test_texts)} texts -> {len(tokens)} token lists"
-            )
-
-        except Exception as e:
-            print(f"⚠ CUDA NLTK not available: {e}")
+        # cuda_nltk removed (was dead code)
 
         # Test GPU puzzle solver
         try:

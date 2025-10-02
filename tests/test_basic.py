@@ -29,11 +29,7 @@ def test_basic_imports():
     except Exception as e:
         print(f"⚠ gpu_puzzle_solver: {e}")
 
-    try:
-        from src.spelling_bee_solver.gpu.cuda_nltk import get_cuda_nltk_processor
-        print("✓ cuda_nltk imported")
-    except Exception as e:
-        print(f"⚠ cuda_nltk: {e}")
+    # cuda_nltk removed (was dead code)
 
     print("✅ All imports successful\n")
 
