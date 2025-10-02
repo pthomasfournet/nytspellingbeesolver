@@ -329,12 +329,22 @@ class UnifiedSpellingBeeSolver:
             logger=self.logger
         )
         self.candidate_generator = candidate_generator or create_candidate_generator()
-        self.confidence_scorer = confidence_scorer or create_confidence_scorer()
         self.result_formatter = result_formatter or create_result_formatter()
 
         # Initialize NYT rejection filter (Phase 3)
         from .core.nyt_rejection_filter import NYTRejectionFilter
         self.nyt_filter = NYTRejectionFilter()
+
+        # Initialize confidence scorer (Phase 4: EnhancedConfidenceScorer with Olympic judges)
+        if confidence_scorer is None:
+            from .core.enhanced_confidence_scorer import create_enhanced_confidence_scorer
+            self.confidence_scorer = create_enhanced_confidence_scorer(
+                nyt_filter=self.nyt_filter
+            )
+            self.logger.debug("Using EnhancedConfidenceScorer (Olympic judges system)")
+        else:
+            # Use injected confidence scorer
+            self.confidence_scorer = confidence_scorer
 
         self.logger.debug("Core components initialized (dependency injection)")
 
