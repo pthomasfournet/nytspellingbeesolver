@@ -83,7 +83,7 @@
 
             <!-- Keyboard Hints -->
             <div class="keyboard-hints">
-                <small>💡 <strong>Tips:</strong> Press Enter to move between fields | Click any word to copy it</small>
+                <small>💡 <strong>Tips:</strong> Click word to mark as found ✓ | Right-click for options | Track your NYT score progress</small>
             </div>
         </section>
 
@@ -91,20 +91,30 @@
         <section class="stats-section hidden" id="statsSection">
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-value" id="totalFound">0</div>
-                    <div class="stat-label">Total Found</div>
+                    <div class="stat-value" id="totalFound">0 / 0</div>
+                    <div class="stat-label">Words Found</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value" id="remaining">0</div>
                     <div class="stat-label">Remaining</div>
                 </div>
                 <div class="stat-card progress-card">
-                    <div class="stat-value" id="progress">0%</div>
-                    <div class="stat-label">Progress</div>
+                    <div class="stat-value" id="progress">0 / 0</div>
+                    <div class="stat-label">Score (Points)</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value" id="pangrams">0</div>
+                    <div class="stat-value" id="pangrams">0 / 0</div>
                     <div class="stat-label">Pangrams</div>
+                </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="progress-bar-container">
+                <div class="progress-bar-track">
+                    <div class="progress-bar-fill" id="progressBarFill" style="width: 0%"></div>
+                </div>
+                <div class="progress-bar-label">
+                    <span id="progressPercent">0%</span> Complete
                 </div>
             </div>
         </section>
@@ -122,6 +132,9 @@
                     </button>
                     <button class="copy-list" id="copyList" title="Copy as list (one per line)">
                         📄 Copy List
+                    </button>
+                    <button class="export-invalid" id="exportInvalid" title="Export flagged invalid words for solver improvement">
+                        🚩 Export Invalid
                     </button>
                 </div>
             </div>

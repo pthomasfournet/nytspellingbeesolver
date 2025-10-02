@@ -3,11 +3,16 @@
 // ===========================
 
 const STORAGE_KEY = 'spelling-bee-solver-state';
+const PROGRESS_KEY = 'spelling-bee-progress';
 
 const state = {
     results: [],
     showConfidence: true,
-    currentPuzzle: null
+    currentPuzzle: null,
+    foundWords: new Set(),      // Words user has found in NYT
+    invalidWords: new Set(),    // Words user flagged as invalid
+    totalPoints: 0,             // Points for found words
+    maxPoints: 0                // Maximum possible points
 };
 
 // ===========================
@@ -68,6 +73,131 @@ function clearState() {
 }
 
 // ===========================
+// Progress Tracking (Per Puzzle)
+// ===========================
+
+function getPuzzleKey() {
+    if (!state.currentPuzzle) return null;
+    return state.currentPuzzle.letters.toLowerCase();
+}
+
+function saveProgress() {
+    const puzzleKey = getPuzzleKey();
+    if (!puzzleKey) return;
+
+    try {
+        const allProgress = JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}');
+        allProgress[puzzleKey] = {
+            foundWords: Array.from(state.foundWords),
+            invalidWords: Array.from(state.invalidWords),
+            totalPoints: state.totalPoints,
+            timestamp: Date.now()
+        };
+        localStorage.setItem(PROGRESS_KEY, JSON.stringify(allProgress));
+    } catch (err) {
+        console.warn('Failed to save progress:', err);
+    }
+}
+
+function loadProgress() {
+    const puzzleKey = getPuzzleKey();
+    if (!puzzleKey) return;
+
+    try {
+        const allProgress = JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}');
+        const puzzleProgress = allProgress[puzzleKey];
+
+        if (puzzleProgress) {
+            state.foundWords = new Set(puzzleProgress.foundWords || []);
+            state.invalidWords = new Set(puzzleProgress.invalidWords || []);
+            state.totalPoints = puzzleProgress.totalPoints || 0;
+            console.log(`📦 Loaded progress: ${state.foundWords.size} found, ${state.invalidWords.size} invalid`);
+        }
+    } catch (err) {
+        console.warn('Failed to load progress:', err);
+    }
+}
+
+function clearProgress() {
+    const puzzleKey = getPuzzleKey();
+    if (!puzzleKey) return;
+
+    try {
+        const allProgress = JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}');
+        delete allProgress[puzzleKey];
+        localStorage.setItem(PROGRESS_KEY, JSON.stringify(allProgress));
+
+        state.foundWords.clear();
+        state.invalidWords.clear();
+        state.totalPoints = 0;
+    } catch (err) {
+        console.warn('Failed to clear progress:', err);
+    }
+}
+
+// ===========================
+// NYT-Style Scoring
+// ===========================
+
+function calculateWordPoints(word, isPangram) {
+    if (word.length === 4) return 1;
+    if (isPangram) return word.length + 7;
+    return word.length;
+}
+
+function calculateTotalScore() {
+    let total = 0;
+    state.foundWords.forEach(word => {
+        const wordData = state.results.find(r => r.word === word);
+        if (wordData) {
+            total += calculateWordPoints(word, wordData.is_pangram);
+        }
+    });
+    state.totalPoints = total;
+    return total;
+}
+
+function calculateMaxScore() {
+    let max = 0;
+    state.results.forEach(wordData => {
+        max += calculateWordPoints(wordData.word, wordData.is_pangram);
+    });
+    state.maxPoints = max;
+    return max;
+}
+
+// ===========================
+// Word Interaction
+// ===========================
+
+function toggleWordFound(word) {
+    if (state.foundWords.has(word)) {
+        state.foundWords.delete(word);
+    } else {
+        state.foundWords.add(word);
+        // Can't be both found and invalid
+        state.invalidWords.delete(word);
+    }
+    calculateTotalScore();
+    saveProgress();
+    renderResults();
+    updateStats();
+}
+
+function toggleWordInvalid(word) {
+    if (state.invalidWords.has(word)) {
+        state.invalidWords.delete(word);
+    } else {
+        state.invalidWords.add(word);
+        // Can't be both found and invalid
+        state.foundWords.delete(word);
+    }
+    calculateTotalScore();
+    saveProgress();
+    renderResults();
+}
+
+// ===========================
 // DOM Elements
 // ===========================
 
@@ -96,11 +226,14 @@ const elements = {
     remainingStat: document.getElementById('remaining'),
     progressStat: document.getElementById('progress'),
     pangramsStat: document.getElementById('pangrams'),
+    progressBarFill: document.getElementById('progressBarFill'),
+    progressPercent: document.getElementById('progressPercent'),
 
     // Controls
     toggleConfidenceBtn: document.getElementById('toggleConfidence'),
     copyAllBtn: document.getElementById('copyAll'),
     copyListBtn: document.getElementById('copyList'),
+    exportInvalidBtn: document.getElementById('exportInvalid'),
 
     // Empty state
     emptyState: document.getElementById('emptyState'),
@@ -168,6 +301,9 @@ elements.copyAllBtn.addEventListener('click', copyAllWords);
 
 // Copy as list
 elements.copyListBtn.addEventListener('click', copyWordsList);
+
+// Export invalid words
+elements.exportInvalidBtn.addEventListener('click', exportInvalidWords);
 
 // Auto-uppercase inputs and auto-save
 elements.centerInput.addEventListener('input', (e) => {
@@ -257,9 +393,15 @@ async function handleSolve() {
         state.results = data.results;
         state.currentPuzzle = data.puzzle;
 
+        // Load progress for this puzzle and calculate scores
+        loadProgress();
+        calculateMaxScore();
+        calculateTotalScore();
+
         // Render results
         renderStats(data.stats);
         renderResults();
+        updateStats();
 
         // Show sections
         elements.statsSection.classList.remove('hidden');
@@ -337,25 +479,157 @@ function renderResults() {
 
     // Add click handlers to word items
     document.querySelectorAll('.word-item').forEach(item => {
-        item.addEventListener('click', () => {
-            const word = item.dataset.word;
-            copyToClipboard(word);
-            showToast(`Copied: ${word}`, 'success');
+        const word = item.dataset.word;
+
+        // Left click: Toggle found status
+        item.addEventListener('click', (e) => {
+            e.preventDefault();
+            toggleWordFound(word);
+        });
+
+        // Right click: Show context menu
+        item.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            showContextMenu(word, e.clientX, e.clientY);
+        });
+
+        // Long press for mobile (500ms)
+        let longPressTimer;
+        item.addEventListener('touchstart', (e) => {
+            longPressTimer = setTimeout(() => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                showContextMenu(word, touch.clientX, touch.clientY);
+            }, 500);
+        });
+
+        item.addEventListener('touchend', () => {
+            clearTimeout(longPressTimer);
+        });
+
+        item.addEventListener('touchmove', () => {
+            clearTimeout(longPressTimer);
         });
     });
 }
 
 function createWordItem(wordData, isPangram) {
+    const word = wordData.word;
+    const isFound = state.foundWords.has(word);
+    const isInvalid = state.invalidWords.has(word);
+
     const confidenceHtml = state.showConfidence
         ? `<span class="word-confidence">${wordData.confidence}%</span>`
         : '';
 
+    const statusIcon = isFound ? '✓' : (isInvalid ? '🚩' : '');
+    const stateClasses = isFound ? 'found' : (isInvalid ? 'invalid' : '');
+
     return `
-        <div class="word-item ${isPangram ? 'pangram' : ''}" data-word="${wordData.word}">
-            <span class="word-text">${wordData.word}</span>
+        <div class="word-item ${isPangram ? 'pangram' : ''} ${stateClasses}"
+             data-word="${word}"
+             data-is-pangram="${isPangram}">
+            <span class="word-text">${word}</span>
             ${confidenceHtml}
+            ${statusIcon ? `<span class="word-status">${statusIcon}</span>` : ''}
         </div>
     `;
+}
+
+// ===========================
+// Context Menu
+// ===========================
+
+function showContextMenu(word, x, y) {
+    // Remove any existing context menu
+    const existing = document.querySelector('.context-menu');
+    if (existing) existing.remove();
+
+    // Create context menu
+    const menu = document.createElement('div');
+    menu.className = 'context-menu';
+    menu.style.left = `${x}px`;
+    menu.style.top = `${y}px`;
+
+    menu.innerHTML = `
+        <button class="context-menu-item" data-action="copy">
+            📋 Copy Word
+        </button>
+        <button class="context-menu-item" data-action="invalid">
+            🚩 Report Invalid
+        </button>
+        <button class="context-menu-item" data-action="cancel">
+            ✖ Cancel
+        </button>
+    `;
+
+    document.body.appendChild(menu);
+
+    // Handle menu actions
+    menu.querySelectorAll('.context-menu-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const action = item.dataset.action;
+
+            if (action === 'copy') {
+                copyToClipboard(word);
+                showToast(`Copied: ${word}`, 'success');
+            } else if (action === 'invalid') {
+                toggleWordInvalid(word);
+                showToast(`Flagged as invalid: ${word}`, 'success');
+            }
+
+            menu.remove();
+        });
+    });
+
+    // Close menu on outside click
+    setTimeout(() => {
+        document.addEventListener('click', function closeMenu(e) {
+            if (!menu.contains(e.target)) {
+                menu.remove();
+                document.removeEventListener('click', closeMenu);
+            }
+        });
+    }, 100);
+}
+
+// ===========================
+// Stats Update
+// ===========================
+
+function updateStats() {
+    if (!state.currentPuzzle) return;
+
+    const totalWords = state.results.length;
+    const foundCount = state.foundWords.size;
+    const remainingCount = totalWords - foundCount;
+
+    // Calculate progress by points (NYT-style)
+    const pointsProgressPercent = state.maxPoints > 0
+        ? Math.round((state.totalPoints / state.maxPoints) * 100)
+        : 0;
+
+    // Count found pangrams
+    const foundPangrams = Array.from(state.foundWords).filter(word => {
+        const wordData = state.results.find(r => r.word === word);
+        return wordData && wordData.is_pangram;
+    }).length;
+
+    const totalPangrams = state.results.filter(r => r.is_pangram).length;
+
+    // Update stats cards
+    elements.totalFoundStat.textContent = `${foundCount} / ${totalWords}`;
+    elements.remainingStat.textContent = remainingCount;
+    elements.progressStat.textContent = `${state.totalPoints} / ${state.maxPoints}`;
+    elements.pangramsStat.textContent = `${foundPangrams} / ${totalPangrams}`;
+
+    // Update progress bar
+    if (elements.progressBarFill && elements.progressPercent) {
+        elements.progressBarFill.style.width = `${pointsProgressPercent}%`;
+        elements.progressPercent.textContent = `${pointsProgressPercent}%`;
+    }
+
+    console.log(`📊 Stats: ${foundCount}/${totalWords} words, ${state.totalPoints}/${state.maxPoints} points (${pointsProgressPercent}%)`);
 }
 
 // ===========================
@@ -413,6 +687,40 @@ function copyWordsList() {
     const allWords = state.results.map(w => w.word).join('\n');
     copyToClipboard(allWords);
     showToast(`Copied ${state.results.length} words as list!`, 'success');
+}
+
+function exportInvalidWords() {
+    if (state.invalidWords.size === 0) {
+        showToast('No invalid words flagged yet', 'error');
+        return;
+    }
+
+    // Create export data with puzzle context
+    const exportData = {
+        exported_at: new Date().toISOString(),
+        puzzle: state.currentPuzzle,
+        invalid_words: Array.from(state.invalidWords).map(word => {
+            const wordData = state.results.find(r => r.word === word);
+            return {
+                word: word,
+                confidence: wordData ? wordData.confidence : null,
+                is_pangram: wordData ? wordData.is_pangram : false
+            };
+        })
+    };
+
+    // Create JSON blob and download
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `invalid-words-${state.currentPuzzle.letters}-${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    showToast(`Exported ${state.invalidWords.size} invalid words`, 'success');
 }
 
 // ===========================
