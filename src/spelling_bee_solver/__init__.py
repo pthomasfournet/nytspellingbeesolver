@@ -5,7 +5,7 @@ This package provides comprehensive tools for solving New York Times Spelling Be
 with GPU acceleration and advanced word filtering capabilities.
 """
 
-from .unified_solver import SolverMode, UnifiedSpellingBeeSolver
+from .unified_solver import UnifiedSpellingBeeSolver
 from .word_filtering import (filter_inappropriate_words, filter_words,
                              get_word_confidence, is_likely_nyt_rejected,
                              is_proper_noun)
@@ -16,7 +16,6 @@ __email__ = "tom@example.com"
 
 __all__ = [
     "UnifiedSpellingBeeSolver",
-    "SolverMode",
     "is_likely_nyt_rejected",
     "filter_words",
     "get_word_confidence",

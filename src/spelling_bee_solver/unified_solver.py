@@ -49,10 +49,10 @@ Dictionary Sources:
 Usage Examples:
     Basic programmatic usage::
 
-        from spelling_bee_solver.unified_solver import UnifiedSpellingBeeSolver, SolverMode
+        from spelling_bee_solver.unified_solver import UnifiedSpellingBeeSolver
 
-        # Create solver
-        solver = UnifiedSpellingBeeSolver(mode=SolverMode.PRODUCTION)
+        # Create solver (unified mode - automatically uses all methods)
+        solver = UnifiedSpellingBeeSolver()
 
         # Solve puzzle
         results = solver.solve_puzzle("NACUOTP", "N")
@@ -147,33 +147,6 @@ from .core import (
 )
 
 
-class SolverMode(Enum):
-    """Enumeration of available solving strategies.
-
-    The solver supports different modes optimized for various use cases:
-
-    Attributes:
-        PRODUCTION: Default mode with GPU acceleration and 3 core dictionaries.
-            Optimized for performance and accuracy in production environments.
-        CPU_FALLBACK: CPU-only mode with 3 core dictionaries.
-            Used when GPU acceleration is unavailable or disabled.
-        DEBUG_SINGLE: Single dictionary mode for debugging and development.
-            Uses only American English dictionary for fast testing.
-        DEBUG_ALL: All 11 dictionaries for comprehensive debugging.
-            Includes all available dictionary sources for maximum coverage.
-        ANAGRAM: GPU-accelerated brute force anagram mode with permutation generation.
-            Generates all possible letter permutations with repetition (4-12 letters)
-            and checks them against dictionaries. Requires CUDA GPU. Optimized for
-            RTX 2080 Super and similar GPUs with 64K-256K batch processing.
-    """
-
-    PRODUCTION = "production"  # Default: GPU ON + 3 core dictionaries
-    CPU_FALLBACK = "cpu_fallback"  # GPU OFF + 3 core dictionaries
-    DEBUG_SINGLE = "debug_single"  # Single dictionary for debugging
-    DEBUG_ALL = "debug_all"  # All 11 dictionaries for debugging
-    ANAGRAM = "anagram"  # GPU brute force with permutation generation
-
-
 class UnifiedSpellingBeeSolver:
     """Unified NYT Spelling Bee solver with comprehensive features and GPU acceleration.
 
@@ -201,10 +174,10 @@ class UnifiedSpellingBeeSolver:
     Example:
         Basic usage::
 
-            from spelling_bee_solver.unified_solver import UnifiedSpellingBeeSolver, SolverMode
+            from spelling_bee_solver.unified_solver import UnifiedSpellingBeeSolver
 
-            # Create solver in production mode
-            solver = UnifiedSpellingBeeSolver(mode=SolverMode.PRODUCTION)
+            # Create solver (unified mode)
+            solver = UnifiedSpellingBeeSolver()
 
             # Solve a puzzle
             results = solver.solve_puzzle("NACUOTP", "N")
@@ -216,7 +189,6 @@ class UnifiedSpellingBeeSolver:
 
             # Create solver with custom config
             solver = UnifiedSpellingBeeSolver(
-                mode=SolverMode.DEBUG_ALL,
                 verbose=True,
                 config_path="custom_config.json"
             )
@@ -238,7 +210,6 @@ class UnifiedSpellingBeeSolver:
 
     def __init__(
         self,
-        mode: Optional[SolverMode] = None,
         verbose: Optional[bool] = None,
         config_path: Optional[str] = None,
         # Component dependencies for dependency injection
@@ -251,7 +222,6 @@ class UnifiedSpellingBeeSolver:
         """Initialize the unified solver.
 
         Args:
-            mode: Solving strategy to use (overrides config if specified)
             verbose: Enable verbose logging (overrides config if specified)
             config_path: Path to configuration JSON file
             input_validator: Optional InputValidator instance for dependency injection
@@ -262,15 +232,9 @@ class UnifiedSpellingBeeSolver:
 
         Raises:
             TypeError: If parameters are of incorrect type
-            ValueError: If mode parameter is invalid
             FileNotFoundError: If config_path is specified but file doesn't exist
         """
         # Input validation
-        if mode is not None and not isinstance(mode, SolverMode):
-            raise TypeError(
-                f"Mode must be a SolverMode enum, got {type(mode).__name__}"
-            )
-
         if verbose is not None and not isinstance(verbose, bool):
             raise TypeError(f"Verbose must be a boolean, got {type(verbose).__name__}")
 
@@ -282,11 +246,7 @@ class UnifiedSpellingBeeSolver:
         # Load configuration first (with minimal logging)
         self.config = self._load_config(config_path or "solver_config.json")
 
-        # Apply overrides from parameters
-        if mode:
-            self.mode = mode
-        else:
-            self.mode = SolverMode(self.config["solver"]["mode"])
+        # Apply verbosity from parameter or config
         self.verbose = (
             verbose
             if verbose is not None
@@ -307,77 +267,46 @@ class UnifiedSpellingBeeSolver:
         self.cuda_nltk = None
         self.use_gpu = False
 
+        # Try to initialize GPU acceleration unless explicitly disabled
         if not self.config["acceleration"]["force_gpu_off"]:
-            if self.mode in [
-                SolverMode.PRODUCTION,
-                SolverMode.CPU_FALLBACK,
-                SolverMode.DEBUG_ALL,
-            ]:
-                try:
-                    if GPUWordFilter is not None:
-                        self.gpu_filter = GPUWordFilter()
+            try:
+                if GPUWordFilter is not None:
+                    self.gpu_filter = GPUWordFilter()
+                    self.use_gpu = True  # GPU available and enabled
 
-                        # Initialize CUDA-NLTK if enabled in config
-                        if self.config["acceleration"]["enable_cuda_nltk"]:
-                            try:
-                                from .gpu.cuda_nltk import get_cuda_nltk_processor
+                    # Initialize CUDA-NLTK if enabled in config
+                    if self.config["acceleration"]["enable_cuda_nltk"]:
+                        try:
+                            from .gpu.cuda_nltk import get_cuda_nltk_processor
 
-                                self.cuda_nltk = get_cuda_nltk_processor()
-                                self.logger.info("CUDA-NLTK processor initialized")
-                            except ImportError:
-                                self.logger.info("CUDA-NLTK not available")
+                            self.cuda_nltk = get_cuda_nltk_processor()
+                            self.logger.info("CUDA-NLTK processor initialized")
+                        except ImportError:
+                            self.logger.info("CUDA-NLTK not available")
+                else:
+                    self.logger.info("GPUWordFilter not available, using CPU")
 
-                        # Set GPU usage based on mode and config
-                        if self.mode != SolverMode.CPU_FALLBACK:
-                            self.use_gpu = True
-                    else:
-                        self.logger.warning("GPUWordFilter not available")
+            except (ImportError, RuntimeError, OSError) as e:
+                self.logger.warning(
+                    "GPU filter initialization failed, falling back to CPU: %s", e
+                )
 
-                except (ImportError, RuntimeError, OSError) as e:
-                    self.logger.warning(
-                        "GPU filter initialization failed, falling back to CPU: %s", e
-                    )
         self.logger.info(
-            "Solver initialized: mode=%s, GPU=%s, CUDA-NLTK=%s",
-            self.mode.value,
+            "Unified Solver initialized: GPU=%s, CUDA-NLTK=%s",
             self.use_gpu,
             self.cuda_nltk is not None,
         )
 
-        # Define core production dictionaries (2 high-quality sources)
-        self._core_dictionaries = tuple(
+        # Unified dictionary configuration (2 high-quality sources only)
+        # User requirement: "we should have webster and aspell and call it a day"
+        self.DICTIONARIES = tuple(
             [
-                ("American English", "/usr/share/dict/american-english"),
-                (
-                    "English Words Alpha",
-                    "https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt",
-                ),
-            ]
-        )
-
-        # Comprehensive dictionary sources for debug mode (READ-ONLY)
-        self._canonical_dictionary_sources = tuple(
-            [
-                # Local system dictionaries (read-only system files)
-                ("Webster's Dictionary", "/usr/share/dict/words"),
-                ("American English", "/usr/share/dict/american-english"),
-                ("British English", "/usr/share/dict/british-english"),
-                ("Scrabble Dictionary", "/usr/share/dict/scrabble"),
-                ("CrackLib Common", "/usr/share/dict/cracklib-small"),
-                # Project dictionaries (read-only canonical word lists)
-                ("Comprehensive Words", "./comprehensive_words.txt"),
-                ("SOWPODS Scrabble", "./sowpods.txt"),
-                ("Scrabble Words", "./scrabble_words.txt"),
-                # Online repository dictionaries (download on demand, cached read-only)
-                (
-                    "English Words Alpha",
-                    "https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt",
-                ),
                 (
                     "Webster's Unabridged",
                     "https://raw.githubusercontent.com/matthewreagan/"
                     "WebstersEnglishDictionary/master/dictionary_compact.json",
                 ),
+                ("ASPELL American English", "/usr/share/dict/american-english"),
             ]
         )
 
@@ -389,12 +318,9 @@ class UnifiedSpellingBeeSolver:
             "gpu_batches": 0,
         }
 
-        # Initialize read-only protection for canonical dictionaries
-        self._protect_canonical_files()
-
-        # Validate dictionary integrity (only for dictionaries we'll actually use)
-        if not self._validate_active_dictionaries():
-            self.logger.warning("Some active dictionaries may have issues")
+        # Validate dictionary integrity
+        if not self._validate_dictionaries():
+            self.logger.warning("Some dictionaries may have issues")
 
         # Initialize core components for dependency injection
         # If not provided, create default instances using factory functions
@@ -467,16 +393,13 @@ class UnifiedSpellingBeeSolver:
                 }
         """
         return {
-            "solver": {"mode": "production"},
+            "solver": {},
             "acceleration": {
                 "force_gpu_off": False,
                 "enable_cuda_nltk": True,
                 "gpu_batch_size": 1000,
             },
             "dictionaries": {
-                "force_single_dictionary": None,
-                "exclude_dictionaries": [],
-                "include_only_dictionaries": [],
                 "download_timeout": 30,
                 "cache_expiry_days": 30,
             },
@@ -506,118 +429,18 @@ class UnifiedSpellingBeeSolver:
             },
         }
 
-    @property
-    def dictionary_sources(self):
-        """Get active dictionary sources based on current mode and configuration.
-
-        Provides read-only access to the list of dictionary sources that will be
-        used for puzzle solving. The selection depends on the solver mode and
-        any configuration overrides specified in the config file.
-
-        Returns:
-            Tuple[Tuple[str, str], ...]: Tuple of (dictionary_name, dictionary_path) pairs.
-                Each tuple contains a descriptive name and either a file path or URL.
-
-        Mode Behavior:
-            - PRODUCTION/CPU_FALLBACK: 3 high-quality core dictionaries optimized for speed
-            - DEBUG_SINGLE: Single American English dictionary for fast testing
-            - DEBUG_ALL: All 11 available dictionaries for comprehensive coverage
-
-        Configuration Overrides:
-            - force_single_dictionary: Use only the specified dictionary file
-            - include_only_dictionaries: Limit to named dictionaries from the full set
-            - exclude_dictionaries: Remove specific dictionaries from the default set
-
-        Example:
-            >>> solver = UnifiedSpellingBeeSolver(mode=SolverMode.PRODUCTION)
-            >>> sources = solver.dictionary_sources
-            >>> print(f"Using {len(sources)} dictionaries:")
-            >>> for name, path in sources:
-            ...     print(f"  - {name}: {path}")
-            Using 2 dictionaries:
-              - American English: /usr/share/dict/american-english
-              - English Words Alpha: https://raw.githubusercontent.com/...
-
-        Note:
-            Dictionary sources are evaluated dynamically based on current configuration.
-            Local file availability is not checked by this property - validation
-            occurs during actual dictionary loading.
-        """
-        # Check for config overrides first
-        if self.config["dictionaries"]["force_single_dictionary"]:
-            single_path = self.config["dictionaries"]["force_single_dictionary"]
-            # Use a descriptive name based on the actual file
-            dict_name = f"Single Dictionary ({single_path.split('/')[-1]})"
-            return ((dict_name, single_path),)
-
-        if self.config["dictionaries"]["include_only_dictionaries"]:
-            # Filter to only specified dictionaries
-            included_names = set(
-                self.config["dictionaries"]["include_only_dictionaries"]
-            )
-            all_dicts = self._canonical_dictionary_sources
-            return tuple(
-                (name, path) for name, path in all_dicts if name in included_names
-            )
-
-        # Default mode-based selection
-        if self.mode == SolverMode.DEBUG_SINGLE:
-            selected_dicts = (("American English", "/usr/share/dict/american-english"),)
-        elif self.mode == SolverMode.DEBUG_ALL:
-            selected_dicts = self._canonical_dictionary_sources
-        else:  # PRODUCTION or CPU_FALLBACK
-            selected_dicts = self._core_dictionaries
-
-        # Apply exclusions if specified
-        if self.config["dictionaries"]["exclude_dictionaries"]:
-            excluded_names = set(self.config["dictionaries"]["exclude_dictionaries"])
-            return tuple(
-                (name, path)
-                for name, path in selected_dicts
-                if name not in excluded_names
-            )
-
-        return selected_dicts
-
-    def _protect_canonical_files(self):
-        """Set read-only permissions on canonical dictionary files.
-        
-        Prevents accidental modification of canonical dictionary files.
-        """
-
-        for _, dict_path in self._canonical_dictionary_sources:
-            # Skip URLs and non-existent files
-            if (
-                dict_path.startswith(("http://", "https://"))
-                or not Path(dict_path).exists()
-            ):
-                continue
-
-            try:
-                # Set read-only permissions (remove write permissions)
-                current_mode = os.stat(dict_path).st_mode
-                read_only_mode = (
-                    current_mode & ~stat.S_IWUSR & ~stat.S_IWGRP & ~stat.S_IWOTH
-                )
-                os.chmod(dict_path, read_only_mode)
-                self.logger.debug("Set read-only protection on: %s", dict_path)
-            except (OSError, PermissionError) as e:
-                # This is expected for system files that we don't have permission to modify
-                self.logger.debug(
-                    "Cannot set read-only on %s (likely system file): %s", dict_path, e
-                )
-
-    def _validate_active_dictionaries(self) -> bool:
-        """Validate only the dictionaries that will actually be used."""
+    def _validate_dictionaries(self) -> bool:
+        """Validate the 2 configured dictionaries."""
         integrity_issues = []
 
-        for dict_name, dict_path in self.dictionary_sources:
+        for dict_name, dict_path in self.DICTIONARIES:
             if dict_path.startswith(("http://", "https://")):
-                continue  # Skip URLs
+                continue  # Skip URLs (will be validated on download)
 
             path_obj = Path(dict_path)
             if not path_obj.exists():
-                continue  # Skip non-existent files
+                integrity_issues.append(f"{dict_name}: File not found at {dict_path}")
+                continue
 
             try:
                 # Basic integrity checks
@@ -642,11 +465,11 @@ class UnifiedSpellingBeeSolver:
 
         if integrity_issues:
             self.logger.warning(
-                "Active dictionary integrity issues: %s", "; ".join(integrity_issues)
+                "Dictionary integrity issues: %s", "; ".join(integrity_issues)
             )
             return False
 
-        self.logger.debug("All active dictionaries passed integrity validation")
+        self.logger.debug("All dictionaries passed integrity validation")
         return True
 
     def load_dictionary(self, filepath: str) -> Set[str]:
@@ -943,6 +766,68 @@ class UnifiedSpellingBeeSolver:
 
         return min(100.0, max(0.0, confidence))
 
+    def _generate_candidates_comprehensive(
+        self, letters: str, required_letter: str
+    ) -> List[str]:
+        """Generate candidates using all available methods.
+
+        Currently uses dictionary scan from all configured dictionaries.
+        Anagram generation will be integrated in Phase 5.
+
+        This method provides unified candidate generation with automatic
+        deduplication across all sources.
+
+        Args:
+            letters (str): The 7 puzzle letters
+            required_letter (str): The required center letter
+
+        Returns:
+            List[str]: Deduplicated list of candidate words from all sources.
+                Words meet basic criteria (length, required letter, valid letters).
+
+        Note:
+            Candidate generation phases:
+            - Phase 2 (current): Dictionary scan only
+            - Phase 5 (future): Add anagram permutation generation
+        """
+        all_candidates = set()
+
+        # Method 1: Dictionary scan (fast, high precision)
+        self.logger.info("Generating candidates via dictionary scan...")
+
+        for dict_name, dict_path in self.DICTIONARIES:
+            self.logger.info("Processing %s", dict_name)
+
+            # Load dictionary
+            dictionary = self.dictionary_manager.load_dictionary(dict_path)
+            if not dictionary:
+                continue
+
+            # Generate candidates from this dictionary
+            candidates = self.candidate_generator.generate_candidates(
+                dictionary=dictionary,
+                letters=letters,
+                required_letter=required_letter,
+            )
+
+            # Add to combined set (automatic deduplication)
+            all_candidates.update(candidates)
+            self.logger.info("  %s: %d candidates", dict_name, len(candidates))
+
+        # Method 2: Anagram generation (Phase 5)
+        # NOTE: Will be integrated in Phase 5 with pre-filtering for performance
+        # if self.use_gpu:
+        #     self.logger.info("Generating candidates via anagram permutation...")
+        #     anagram_candidates = self._generate_via_anagram(letters, required_letter)
+        #     all_candidates.update(anagram_candidates)
+        #     self.logger.info("  Anagram: %d candidates", len(anagram_candidates))
+
+        self.logger.info(
+            "Total candidates (deduplicated): %d", len(all_candidates)
+        )
+
+        return list(all_candidates)
+
     def solve_puzzle(
         self, letters: str, required_letter: Optional[str] = None
     ) -> List[Tuple[str, float]]:
@@ -1019,111 +904,32 @@ class UnifiedSpellingBeeSolver:
         start_time = time.time()
 
         self.logger.info(
-            "Solving puzzle: letters='%s', required='%s', mode=%s",
+            "Solving puzzle: letters='%s', required='%s'",
             letters,
             required_letter,
-            self.mode.value,
         )
 
-        # ANAGRAM mode: Use GPU brute force permutation generation
-        if self.mode == SolverMode.ANAGRAM:
-            self.logger.info("Using ANAGRAM mode with GPU acceleration")
-            try:
-                from anagram_generator import create_anagram_generator
-                
-                # Load all dictionaries into a single set
-                self.logger.info("Loading dictionaries for ANAGRAM mode...")
-                combined_dictionary = set()
-                for dict_name, dict_path in self.dictionary_sources:
-                    self.logger.info("Loading %s", dict_name)
-                    dictionary = self.load_dictionary(dict_path)
-                    if dictionary:
-                        # Pre-filter to only words that could possibly match
-                        # (4+ letters, lowercase, alphabetic)
-                        filtered = {
-                            word.lower() for word in dictionary
-                            if len(word) >= 4 and word.isalpha()
-                        }
-                        combined_dictionary.update(filtered)
-                        self.logger.info(
-                            "  Added %d words from %s", len(filtered), dict_name
-                        )
-                
-                self.logger.info(
-                    "Total dictionary size: %d words", len(combined_dictionary)
-                )
-                
-                # Create anagram generator
-                # Default to max_length=8 for reasonable performance
-                # Can be increased to 10-12 for longer words if needed
-                generator = create_anagram_generator(
-                    letters=letters.lower(),
-                    required_letter=required_letter.lower(),
-                    max_length=8  # Covers most spelling bee words (4-8 letters)
-                )
-                
-                # Generate all permutations and find valid words
-                results = generator.generate_all(
-                    dictionary=combined_dictionary,
-                    use_tqdm=True  # Show progress bar
-                )
-                
-                elapsed_time = time.time() - start_time
-                self.logger.info(
-                    "ANAGRAM mode complete: Found %d words in %.2f seconds",
-                    len(results),
-                    elapsed_time
-                )
-                
-                return results
-                
-            except ImportError as e:
-                self.logger.error(
-                    "Failed to import anagram_generator: %s. "
-                    "Falling back to standard mode.", e
-                )
-                # Fall through to standard mode
-            except Exception as e:
-                self.logger.error(
-                    "Error in ANAGRAM mode: %s. Falling back to standard mode.", e
-                )
-                # Fall through to standard mode
+        # Generate candidates using all methods (unified approach)
+        # Currently: dictionary scan from all sources with deduplication
+        # Phase 5: Will add anagram permutation generation
+        all_candidates = self._generate_candidates_comprehensive(letters, required_letter)
 
-        all_valid_words = {}  # word -> confidence
+        if not all_candidates:
+            self.logger.warning("No candidates generated")
+            return []
 
-        # Load dictionaries based on mode and generate candidates
-        for dict_name, dict_path in self.dictionary_sources:
-            self.logger.info("Processing %s", dict_name)
+        # Apply comprehensive filtering pipeline (single pass for all candidates)
+        self.logger.info("Filtering %d candidates...", len(all_candidates))
+        filtered_candidates = self._apply_comprehensive_filter(all_candidates)
+        self.logger.info("Filtered to %d candidates", len(filtered_candidates))
 
-            # Use DictionaryManager to load dictionary
-            dictionary = self.dictionary_manager.load_dictionary(dict_path)
-            if not dictionary:
-                continue
-
-            # Use CandidateGenerator to pre-filter candidates
-            candidates = self.candidate_generator.generate_candidates(
-                dictionary=dictionary,
-                letters=letters,
-                required_letter=required_letter,
-            )
-
-            if not candidates:
-                continue
-
-            self.logger.info("Found %d candidates from %s", len(candidates), dict_name)
-
-            # Apply comprehensive filtering pipeline (GPU/NLP - stays in orchestrator)
-            filtered_candidates = self._apply_comprehensive_filter(candidates)
-
-            # Use ConfidenceScorer to score candidates
-            # Note: We still use local is_likely_nyt_rejected for now
-            # as it's not yet fully integrated into ConfidenceScorer
-            for word in filtered_candidates:
-                if word not in all_valid_words:
-                    # Check if likely NYT rejected using local method
-                    if not self.is_likely_nyt_rejected(word):
-                        confidence = self.confidence_scorer.calculate_confidence(word)
-                        all_valid_words[word] = confidence
+        # Score all filtered candidates
+        all_valid_words = {}
+        for word in filtered_candidates:
+            # Check if likely NYT rejected
+            if not self.is_likely_nyt_rejected(word):
+                confidence = self.confidence_scorer.calculate_confidence(word)
+                all_valid_words[word] = confidence
 
         # Convert to sorted list
         # Words are already scored, just need to sort them
@@ -1264,7 +1070,7 @@ class UnifiedSpellingBeeSolver:
             letters=letters,
             required_letter=required_letter,
             solve_time=self.stats.get("solve_time"),
-            mode=self.mode.value.upper()
+            mode="UNIFIED"  # Single unified mode
         )
 
     def interactive_mode(self):
@@ -1329,7 +1135,6 @@ class UnifiedSpellingBeeSolver:
             the solver instance.
         """
         print("🐝 Unified NYT Spelling Bee Solver")
-        print(f"Current mode: {self.mode.value.upper()}")
         print("=" * 50)
 
         while True:
@@ -1453,15 +1258,6 @@ def main():
         "--required", "-r", help="Required letter (default: first letter)"
     )
 
-    # Solver mode
-    parser.add_argument(
-        "--mode",
-        "-m",
-        choices=[mode.value for mode in SolverMode],
-        default=None,
-        help="Solving strategy to use (overrides config file)",
-    )
-
     # Options
     parser.add_argument(
         "--verbose", "-v", action="store_true", help="Enable verbose logging"
@@ -1478,10 +1274,9 @@ def main():
 
     args = parser.parse_args()
 
-    # Create solver
-    mode = SolverMode(args.mode) if args.mode else None
+    # Create solver (unified mode - no mode selection needed)
     solver = UnifiedSpellingBeeSolver(
-        mode=mode, verbose=args.verbose, config_path=args.config
+        verbose=args.verbose, config_path=args.config
     )
 
     # Interactive mode
