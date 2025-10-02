@@ -131,7 +131,8 @@ class ResultFormatter:
         required_letter: str,
         solve_time: Optional[float] = None,
         mode: Optional[str] = None,
-        output_format: Optional[OutputFormat] = None
+        output_format: Optional[OutputFormat] = None,
+        stats: Optional[Dict] = None
     ) -> str:
         """Format puzzle results as a string.
 
@@ -199,7 +200,7 @@ class ResultFormatter:
         if fmt == OutputFormat.COMPACT:
             return self._format_compact(results, letters, required_letter)
         # CONSOLE
-        return self._format_console(results, letters, required_letter, solve_time, mode)
+        return self._format_console(results, letters, required_letter, solve_time, mode, stats)
 
     def print_results(
         self,
@@ -208,7 +209,8 @@ class ResultFormatter:
         required_letter: str,
         solve_time: Optional[float] = None,
         mode: Optional[str] = None,
-        output_format: Optional[OutputFormat] = None
+        output_format: Optional[OutputFormat] = None,
+        stats: Optional[Dict] = None
     ) -> None:
         """Print formatted puzzle results to stdout.
 
@@ -231,7 +233,7 @@ class ResultFormatter:
             ...
         """
         output = self.format_results(
-            results, letters, required_letter, solve_time, mode, output_format
+            results, letters, required_letter, solve_time, mode, output_format, stats
         )
         print(output)
 
@@ -241,7 +243,8 @@ class ResultFormatter:
         letters: str,
         required_letter: str,
         solve_time: Optional[float],
-        mode: Optional[str]
+        mode: Optional[str],
+        stats: Optional[Dict] = None
     ) -> str:
         """Format results for console display with grouping and highlighting."""
         lines = []
@@ -256,7 +259,17 @@ class ResultFormatter:
         if mode:
             lines.append(f"Mode: {mode.upper()}")
 
-        lines.append(f"Total words found: {len(results)}")
+        # Show exclusion stats if words were excluded
+        if stats and stats.get("excluded_count", 0) > 0:
+            excluded_count = stats["excluded_count"]
+            excluded_words = stats.get("excluded_words", [])
+            lines.append(f"✓ Excluded: {excluded_count} words ({', '.join(excluded_words[:5])}{'...' if len(excluded_words) > 5 else ''})")
+            total_found = len(results) + excluded_count
+            progress_pct = (excluded_count / total_found * 100) if total_found > 0 else 0
+            lines.append(f"📊 Progress: {excluded_count}/{total_found} found ({progress_pct:.1f}%)")
+            lines.append(f"🔍 Remaining: {len(results)} words")
+        else:
+            lines.append(f"Total words found: {len(results)}")
 
         if solve_time is not None:
             lines.append(f"Solve time: {solve_time:.3f}s")

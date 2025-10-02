@@ -4,10 +4,12 @@ A Python-based solver for the New York Times Spelling Bee puzzle with intelligen
 
 ## Features
 
+- **Exclude Known Words**: Filter out words you've already found to see only remaining words
+- **Progress Tracking**: Shows your puzzle completion percentage
 - **Unified Architecture**: Single mode that uses all solving methods automatically
 - **2 High-Quality Dictionaries**: Webster's Unabridged + ASPELL American English
 - **NYT Rejection Filter**: Detects proper nouns, foreign words, abbreviations, technical terms
-- **Olympic Judges Scoring**: 5 independent judges (Dictionary, Frequency, Length, Pattern, Filter) with outlier removal
+- **Olympic Judges Scoring**: 6 independent judges (Dictionary, Frequency, Length, Pattern, Filter, NYT History) with outlier removal
 - **GPU Acceleration**: Optional CUDA/CuPy support with automatic CPU fallback
 - **Clean Output**: Formatted results with confidence percentages and word grouping
 
@@ -48,6 +50,13 @@ pip install cupy-cuda12x  # Optional: for GPU acceleration
 # Basic usage
 ./bee N ACUOTP
 
+# Exclude words you've already found
+./bee N ACUOTP --exclude "count,upon,coat"
+
+# Exclude from file (one word per line)
+echo -e "count\nupon\ncoat" > found.txt
+./bee N ACUOTP --exclude-file found.txt
+
 # Verbose output (shows filtering steps)
 ./bee N ACUOTP --verbose
 
@@ -61,12 +70,18 @@ pip install cupy-cuda12x  # Optional: for GPU acceleration
 # Start interactive session
 ./bee -i
 
+# The solver will prompt you for:
+# 1. The 7 puzzle letters
+# 2. The required letter
+# 3. Words you've already found (optional - just press Enter to skip)
+
 # Interactive with verbose logging
 ./bee -i --verbose
 ```
 
-### Output Example
+### Output Examples
 
+**Without exclusions:**
 ```
 ============================================================
 SPELLING BEE SOLVER RESULTS
@@ -74,8 +89,27 @@ SPELLING BEE SOLVER RESULTS
 Letters: NACUOTP
 Required: N
 Mode: UNIFIED
-Total words found: 98
+Total words found: 89
 Solve time: 0.124s
+============================================================
+
+🌟 PANGRAMS (1):
+  OCCUPANT             (76% confidence)
+...
+```
+
+**With exclusions (showing progress):**
+```
+============================================================
+SPELLING BEE SOLVER RESULTS
+============================================================
+Letters: NACUOTP
+Required: N
+Mode: UNIFIED
+✓ Excluded: 3 words (count, upon, coat)
+📊 Progress: 3/89 found (3.4%)
+🔍 Remaining: 86 words
+Solve time: 0.118s
 ============================================================
 
 🌟 PANGRAMS (1):

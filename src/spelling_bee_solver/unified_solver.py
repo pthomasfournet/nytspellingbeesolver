@@ -113,7 +113,7 @@ import json
 import logging
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from .constants import MIN_WORD_LENGTH
 
@@ -572,7 +572,7 @@ class UnifiedSpellingBeeSolver:
         return list(all_candidates)
 
     def solve_puzzle(
-        self, required_letter: str, letters: str
+        self, required_letter: str, letters: str, exclude_words: Optional[Set[str]] = None
     ) -> List[Tuple[str, float]]:
         """Solve a New York Times Spelling Bee puzzle with comprehensive analysis.
 
@@ -595,6 +595,8 @@ class UnifiedSpellingBeeSolver:
             letters (str): The other 6 letters available for the puzzle.
                 Must contain exactly 6 alphabetic characters (total 7 including required_letter).
                 Case insensitive - will be normalized to lowercase.
+            exclude_words (Optional[Set[str]]): Words to exclude from results (already found by user).
+                Words are case-insensitive and will be normalized. Invalid words are ignored with warning.
 
         Returns:
             List[Tuple[str, float]]: Sorted list of (word, confidence_score) tuples.
@@ -678,6 +680,47 @@ class UnifiedSpellingBeeSolver:
         # Words are already scored, just need to sort them
         valid_words = list(all_valid_words.items())
         valid_words.sort(key=lambda x: (-x[1], -len(x[0]), x[0]))
+
+        # Filter out excluded words if provided
+        excluded_count = 0
+        if exclude_words:
+            # Normalize excluded words to lowercase
+            exclude_normalized = {w.lower().strip() for w in exclude_words if w}
+
+            # Validate excluded words (warn about invalid ones)
+            valid_excluded = []
+            invalid_excluded = []
+            for word in exclude_normalized:
+                if any(w == word for w, _ in valid_words):
+                    valid_excluded.append(word)
+                else:
+                    invalid_excluded.append(word)
+
+            if invalid_excluded:
+                self.logger.warning(
+                    "Ignoring %d invalid excluded words: %s",
+                    len(invalid_excluded),
+                    ", ".join(sorted(invalid_excluded)[:5])  # Show first 5
+                )
+
+            # Filter results
+            original_count = len(valid_words)
+            valid_words = [
+                (word, conf) for word, conf in valid_words
+                if word.lower() not in exclude_normalized
+            ]
+            excluded_count = original_count - len(valid_words)
+
+            if excluded_count > 0:
+                self.logger.info(
+                    "Excluded %d known words, %d remaining",
+                    excluded_count,
+                    len(valid_words)
+                )
+
+            # Store exclusion stats for result formatter
+            self.stats["excluded_count"] = excluded_count
+            self.stats["excluded_words"] = sorted(valid_excluded)
 
         solve_time = time.time() - start_time
         self.stats["solve_time"] = solve_time
@@ -794,10 +837,11 @@ class UnifiedSpellingBeeSolver:
             letters=letters,
             required_letter=required_letter,
             solve_time=self.stats.get("solve_time"),
-            mode="UNIFIED"  # Single unified mode
+            mode="UNIFIED",  # Single unified mode
+            stats=self.stats  # Include exclusion stats
         )
 
-    def interactive_mode(self):
+    def interactive_mode(self, exclude_words: Optional[Set[str]] = None):
         """Start an interactive puzzle solving session with user prompts.
 
         Provides a user-friendly command-line interface for solving multiple puzzles
@@ -884,11 +928,17 @@ class UnifiedSpellingBeeSolver:
                     print("❌ Required letter must be one of the 7 letters")
                     continue
 
+                # Prompt for known words (optional)
+                known_input = input("Words you've found (comma-separated, or Enter to skip): ").strip()
+                session_exclude = exclude_words.copy() if exclude_words else set()
+                if known_input:
+                    session_exclude.update(w.strip() for w in known_input.split(',') if w.strip())
+
                 # Extract other letters (remove required letter from the 7-letter string)
                 other_letters = letters.replace(required, '', 1)  # Remove first occurrence
 
-                # Solve puzzle (new API: required_letter first, then other letters)
-                results = self.solve_puzzle(required, other_letters)
+                # Solve puzzle (new API: required_letter first, then other letters, exclude_words)
+                results = self.solve_puzzle(required, other_letters, exclude_words=session_exclude if session_exclude else None)
                 # print_results still expects full letters, so reconstruct
                 all_letters_for_display = required + other_letters
                 self.print_results(results, all_letters_for_display, required)
@@ -997,6 +1047,16 @@ def main():
         "--interactive", "-i", action="store_true", help="Start in interactive mode"
     )
     parser.add_argument(
+        "--exclude", "--known",
+        type=str,
+        help="Comma-separated words you've already found (excluded from results)"
+    )
+    parser.add_argument(
+        "--exclude-file",
+        type=str,
+        help="File containing known words to exclude (one per line)"
+    )
+    parser.add_argument(
         "--config",
         "-c",
         default="solver_config.json",
@@ -1005,6 +1065,18 @@ def main():
 
     args = parser.parse_args()
 
+    # Parse exclude words from CLI arguments
+    exclude_words = None
+    if args.exclude:
+        exclude_words = {w.strip() for w in args.exclude.split(',') if w.strip()}
+    elif args.exclude_file:
+        try:
+            with open(args.exclude_file, 'r', encoding='utf-8') as f:
+                exclude_words = {line.strip() for line in f if line.strip()}
+        except (OSError, IOError) as e:
+            print(f"❌ Error reading exclude file: {e}")
+            sys.exit(1)
+
     # Create solver (unified mode - no mode selection needed)
     solver = UnifiedSpellingBeeSolver(
         verbose=args.verbose, config_path=args.config
@@ -1012,7 +1084,7 @@ def main():
 
     # Interactive mode
     if args.interactive or args.required_letter is None:
-        solver.interactive_mode()
+        solver.interactive_mode(exclude_words=exclude_words)
         return
 
     # Command-line mode (new API: required letter first, then other 6 letters)
@@ -1030,8 +1102,8 @@ def main():
         print(f"❌ Error: Please provide exactly 6 other letters (got {len(letters)})")
         return
 
-    # Solve puzzle (new API: required_letter, letters)
-    results = solver.solve_puzzle(required_letter, letters)
+    # Solve puzzle (new API: required_letter, letters, exclude_words)
+    results = solver.solve_puzzle(required_letter, letters, exclude_words=exclude_words)
     # print_results expects full 7-letter string
     all_letters = required_letter + letters
     solver.print_results(results, all_letters, required_letter)
