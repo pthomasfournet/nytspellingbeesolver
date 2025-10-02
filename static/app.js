@@ -399,6 +399,26 @@ async function handleSolve() {
         state.results = data.results;
         state.currentPuzzle = data.puzzle;
 
+        // Re-add excluded words to results so they display (marked as found)
+        if (data.excluded_words && data.excluded_words.length > 0) {
+            const allLetters = new Set(state.currentPuzzle.letters);
+
+            const excludedResults = data.excluded_words.map(word => {
+                const isPangram = new Set(word).size === 7 &&
+                                  Array.from(word).every(c => allLetters.has(c));
+
+                return {
+                    word: word,
+                    confidence: 100,  // Found in NYT, so 100% confidence
+                    is_pangram: isPangram,
+                    length: word.length
+                };
+            });
+
+            // Add excluded words back to results
+            state.results = [...state.results, ...excludedResults];
+        }
+
         // Identify missed words (words user found but solver didn't)
         // Combine results + excluded to get ALL words solver found
         const allSolverWords = new Set([
@@ -417,8 +437,17 @@ async function handleSolve() {
             console.log(`⚠️  Solver missed ${state.missedWords.size} words that NYT accepted:`, Array.from(state.missedWords));
         }
 
-        // Load progress for this puzzle and calculate scores
+        // Load progress for this puzzle (may have previously found words)
         loadProgress();
+
+        // Mark excluded words as found (these were entered by user)
+        if (data.excluded_words && data.excluded_words.length > 0) {
+            data.excluded_words.forEach(word => {
+                state.foundWords.add(word);
+            });
+        }
+
+        // Calculate scores
         calculateMaxScore();
         calculateTotalScore();
 
