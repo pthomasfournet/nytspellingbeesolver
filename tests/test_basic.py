@@ -45,12 +45,11 @@ def test_unified_solver():
     try:
         print("\nTesting unified solver...")
         from src.spelling_bee_solver.unified_solver import (
-            SolverMode,
             UnifiedSpellingBeeSolver,
         )
 
-        # Test initialization
-        solver = UnifiedSpellingBeeSolver(mode=SolverMode.DEBUG_SINGLE, verbose=False)
+        # Test initialization (unified mode - no mode parameter)
+        solver = UnifiedSpellingBeeSolver(verbose=False)
         print("✓ Solver initialized")
 
         # Test puzzle solving

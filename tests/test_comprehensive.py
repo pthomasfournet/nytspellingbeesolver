@@ -9,34 +9,32 @@ def test_unified_solver_comprehensive():
     print("Running comprehensive unified solver tests...")
 
     from src.spelling_bee_solver.unified_solver import (
-        SolverMode,
         UnifiedSpellingBeeSolver,
     )
 
-    # Test different modes
-    for mode in [SolverMode.DEBUG_SINGLE, SolverMode.PRODUCTION]:
-        try:
-            solver = UnifiedSpellingBeeSolver(mode=mode, verbose=False)
-            print(f"✓ {mode.value} mode initialized")
+    # Test unified mode (no mode parameter needed)
+    try:
+        solver = UnifiedSpellingBeeSolver(verbose=False)
+        print("✓ Unified solver initialized")
 
-            # Test basic solving
-            results = solver.solve_puzzle("NACUOTP", "N")
-            print(f"✓ {mode.value} solving: {len(results)} words")
+        # Test basic solving
+        results = solver.solve_puzzle("NACUOTP", "N")
+        print(f"✓ Solving: {len(results)} words")
 
-            # Test confidence calculation
-            confidence = solver.calculate_confidence("count")
-            print(f"✓ Confidence calculation: {confidence}%")
+        # Test confidence calculation
+        confidence = solver.calculate_confidence("count")
+        print(f"✓ Confidence calculation: {confidence}%")
 
-            # Test word validation
-            valid = solver.is_valid_word_basic("count", "nacuotp", "n")
-            print(f"✓ Word validation: {valid}")
+        # Test word validation
+        valid = solver.is_valid_word_basic("count", "nacuotp", "n")
+        print(f"✓ Word validation: {valid}")
 
-            # Test rejection logic
-            rejected = solver.is_likely_nyt_rejected("NASA")
-            print(f"✓ Rejection logic: NASA={rejected}")
+        # Test rejection logic
+        rejected = solver.is_likely_nyt_rejected("NASA")
+        print(f"✓ Rejection logic: NASA={rejected}")
 
-        except (ImportError, AttributeError, ValueError) as e:
-            print(f"⚠ {mode.value} test failed: {e}")
+    except (ImportError, AttributeError, ValueError) as e:
+        print(f"⚠ Unified mode test failed: {e}")
 
 
 def test_word_filtering_comprehensive():

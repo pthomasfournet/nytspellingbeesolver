@@ -4,7 +4,7 @@ Edge case test to push coverage to maximum.
 """
 
 from src.spelling_bee_solver.gpu.gpu_word_filtering import GPUWordFilter
-from src.spelling_bee_solver.unified_solver import SolverMode, UnifiedSpellingBeeSolver
+from src.spelling_bee_solver.unified_solver import UnifiedSpellingBeeSolver
 from src.spelling_bee_solver.word_filtering import (
     get_word_confidence,
     is_likely_nyt_rejected,
@@ -17,7 +17,7 @@ def test_extreme_edge_cases():
     print("Testing extreme edge cases...")
 
     # Test unified solver edge cases
-    solver = UnifiedSpellingBeeSolver(mode=SolverMode.DEBUG_SINGLE, verbose=True)
+    solver = UnifiedSpellingBeeSolver(verbose=True)
 
     # Test with valid puzzle that has many solutions
     print("Testing complex puzzle...")

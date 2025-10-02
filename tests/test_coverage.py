@@ -15,12 +15,11 @@ def test_unified_solver():
 
     try:
         from src.spelling_bee_solver.unified_solver import (
-            SolverMode,
             UnifiedSpellingBeeSolver,
         )
 
-        # Test initialization
-        solver = UnifiedSpellingBeeSolver(mode=SolverMode.DEBUG_SINGLE, verbose=False)
+        # Test initialization (unified mode - no mode parameter)
+        solver = UnifiedSpellingBeeSolver(verbose=False)
         print("✓ Solver initialization successful")
 
         # Test basic puzzle solving
@@ -31,8 +30,8 @@ def test_unified_solver():
         print("✓ Configuration loading successful")
 
         # Test dictionary loading
-        if solver.dictionary_sources:
-            first_dict_name, first_dict_path = solver.dictionary_sources[0]
+        if solver.DICTIONARIES:
+            first_dict_name, first_dict_path = solver.DICTIONARIES[0]
             if os.path.exists(first_dict_path):
                 words = solver.load_dictionary(first_dict_path)
                 print(
