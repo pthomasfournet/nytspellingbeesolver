@@ -332,6 +332,10 @@ class UnifiedSpellingBeeSolver:
         self.confidence_scorer = confidence_scorer or create_confidence_scorer()
         self.result_formatter = result_formatter or create_result_formatter()
 
+        # Initialize NYT rejection filter (Phase 3)
+        from .core.nyt_rejection_filter import NYTRejectionFilter
+        self.nyt_filter = NYTRejectionFilter()
+
         self.logger.debug("Core components initialized (dependency injection)")
 
     def _load_config(self, config_path: str) -> Dict[str, Any]:
@@ -721,16 +725,15 @@ class UnifiedSpellingBeeSolver:
     def is_likely_nyt_rejected(self, word: str) -> bool:
         """Determine if a word is likely to be rejected by NYT Spelling Bee editorial standards.
 
-        Uses the unified word filtering system for comprehensive and consistent filtering.
-        
+        Uses NYTRejectionFilter for detecting proper nouns, foreign words, abbreviations, etc.
+
         Args:
             word (str): Word to evaluate for potential rejection. Case insensitive.
 
         Returns:
             bool: True if the word is likely to be rejected, False if likely to be accepted.
         """
-        from .unified_word_filtering import get_unified_filter
-        return get_unified_filter().is_likely_nyt_rejected(word)
+        return self.nyt_filter.should_reject(word)
 
     def calculate_confidence(self, word: str) -> float:
         """Calculate confidence score for a word.
