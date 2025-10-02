@@ -44,15 +44,12 @@ except ImportError:
     # Create dummy class for type hints when spaCy is not available
     class Doc:
         pass
-    print("Warning: spaCy not available - using fallback filtering")
 
 try:
     import cupy
     GPU_AVAILABLE = True
-    print("✓ CuPy available - GPU acceleration enabled")
 except ImportError:
     GPU_AVAILABLE = False
-    print("ℹ CuPy not available - using CPU acceleration")
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -105,7 +102,7 @@ class IntelligentWordFilter:
         else:
             # Check if provider is available
             if not self.nlp_provider.is_available():
-                logger.warning("NLP provider not available, falling back to patterns")
+                logger.debug("NLP provider not yet initialized (will be lazy-loaded)")
         
         # Linguistic patterns for nonsense detection
         self._nonsense_patterns = [
@@ -117,7 +114,8 @@ class IntelligentWordFilter:
             re.compile(r'[qx][^u]'),  # Q not followed by U, X in wrong position
         ]
         
-        logger.info(f"✓ Intelligent word filter initialized (GPU: {self.use_gpu})")
+        gpu_status = "GPU" if self.use_gpu else "CPU"
+        logger.info(f"✓ Intelligent word filter initialized ({gpu_status} acceleration)")
     
     @property
     def spacy_available(self) -> bool:
@@ -142,17 +140,10 @@ class IntelligentWordFilter:
                 spacy.require_gpu()
                 logger.info("✓ spaCy GPU acceleration enabled")
             
-            # Load the best available model
-            # Prefer en_core_web_md for better word vectors and NER accuracy
-            # Falls back to sm if md not available
-            try:
-                model_name = "en_core_web_md"
-                self.nlp = spacy.load(model_name)
-                logger.info(f"✓ Loaded {model_name} model (better accuracy)")
-            except OSError:
-                logger.info("en_core_web_md not found, falling back to en_core_web_sm")
-                model_name = "en_core_web_sm"
-                self.nlp = spacy.load(model_name)
+            # Load en_core_web_md model (required for quality NLP)
+            model_name = "en_core_web_md"
+            self.nlp = spacy.load(model_name)
+            logger.info(f"✓ Loaded {model_name} model")
             
             # Configure for batch processing
             self.nlp.max_length = 2000000
