@@ -149,7 +149,7 @@ class SpacyNLPProvider(NLPProvider):
             logger.info("✓ Loaded %s model", self.model_name)
             
         except ImportError:
-            logger.error("spaCy is not installed. Install with: pip install spacy")
+            logger.debug("spaCy is not installed. Install with: pip install spacy")
             raise
         except OSError:
             logger.error(
