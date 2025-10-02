@@ -41,13 +41,15 @@ def test_word_filtering_comprehensive():
     """Comprehensive test of word filtering."""
     print("\nRunning comprehensive word filtering tests...")
 
-    from src.spelling_bee_solver.word_filtering import (
-        filter_inappropriate_words,
-        filter_words,
-        get_word_confidence,
-        is_likely_nyt_rejected,
-        is_proper_noun,
+    from src.spelling_bee_solver.core import (
+        NYTRejectionFilter,
+        ConfidenceScorer,
+        CandidateGenerator,
     )
+
+    nyt_filter = NYTRejectionFilter()
+    confidence_scorer = ConfidenceScorer(nyt_filter=nyt_filter)
+    candidate_gen = CandidateGenerator()
 
     # Test various word types
     test_cases = [
@@ -62,7 +64,7 @@ def test_word_filtering_comprehensive():
 
     for word, expected_rejection in test_cases:
         try:
-            result = is_likely_nyt_rejected(word)
+            result = nyt_filter.should_reject(word)
             status = "✓" if result == expected_rejection else "⚠"
             print(f"{status} {word}: expected={expected_rejection}, got={result}")
         except (ValueError, TypeError) as e:
@@ -71,22 +73,13 @@ def test_word_filtering_comprehensive():
     # Test filtering functions
     try:
         test_words = ["count", "London", "apple", "NASA"]
-        filtered = filter_words(test_words, "nacuotp", "n")
+        filtered = [w for w in test_words if candidate_gen.is_valid_word_basic(w, "nacuotp", "n") and not nyt_filter.should_reject(w)]
         print(f"✓ Filter words: {len(test_words)} -> {len(filtered)}")
 
         # Test confidence scoring
         for word in ["count", "apple"]:
-            conf = get_word_confidence(word)
+            conf = confidence_scorer.calculate_confidence(word)
             print(f"✓ Confidence for '{word}': {conf:.2f}")
-
-        # Test legacy functions
-        proper_result = is_proper_noun("London")
-        print(f"✓ Legacy proper noun check: {proper_result}")
-
-        inappropriate_filtered = filter_inappropriate_words(test_words)
-        print(
-            f"✓ Inappropriate filter: {len(test_words)} -> {len(inappropriate_filtered)}"
-        )
 
     except (ImportError, ValueError, TypeError) as e:
         print(f"✗ Filtering test failed: {e}")

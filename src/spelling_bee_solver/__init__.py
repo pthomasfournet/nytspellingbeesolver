@@ -6,9 +6,15 @@ with GPU acceleration and advanced word filtering capabilities.
 """
 
 from .unified_solver import UnifiedSpellingBeeSolver
-from .word_filtering import (filter_inappropriate_words, filter_words,
-                             get_word_confidence, is_likely_nyt_rejected,
-                             is_proper_noun)
+from .core import (
+    NYTRejectionFilter,
+    ConfidenceScorer,
+    CandidateGenerator,
+    DictionaryManager,
+    InputValidator,
+    ResultFormatter,
+    PhonotacticFilter,
+)
 
 __version__ = "2.0.0"
 __author__ = "Tom"
@@ -16,9 +22,11 @@ __email__ = "tom@example.com"
 
 __all__ = [
     "UnifiedSpellingBeeSolver",
-    "is_likely_nyt_rejected",
-    "filter_words",
-    "get_word_confidence",
-    "is_proper_noun",
-    "filter_inappropriate_words",
+    "NYTRejectionFilter",
+    "ConfidenceScorer",
+    "CandidateGenerator",
+    "DictionaryManager",
+    "InputValidator",
+    "ResultFormatter",
+    "PhonotacticFilter",
 ]

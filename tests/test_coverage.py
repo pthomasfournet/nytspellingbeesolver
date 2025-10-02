@@ -33,7 +33,7 @@ def test_unified_solver():
         if solver.DICTIONARIES:
             first_dict_name, first_dict_path = solver.DICTIONARIES[0]
             if os.path.exists(first_dict_path):
-                words = solver.load_dictionary(first_dict_path)
+                words = solver.dictionary_manager.load_dictionary(first_dict_path)
                 print(
                     f"✓ Dictionary loading successful: {len(words)} words from {first_dict_name}"
                 )
@@ -60,24 +60,27 @@ def test_word_filtering():
     print("\nTesting word filtering...")
 
     try:
-        from src.spelling_bee_solver.word_filtering import (
-            filter_words,
-            get_word_confidence,
-            is_likely_nyt_rejected,
+        from src.spelling_bee_solver.core import (
+            NYTRejectionFilter,
+            ConfidenceScorer,
+            CandidateGenerator,
         )
 
         # Test rejection detection
-        proper_noun = is_likely_nyt_rejected("London")
-        common_word = is_likely_nyt_rejected("count")
+        nyt_filter = NYTRejectionFilter()
+        proper_noun = nyt_filter.should_reject("London")
+        common_word = nyt_filter.should_reject("count")
         print(f"✓ Rejection detection: London={proper_noun}, count={common_word}")
 
         # Test word filtering
         test_words = ["count", "London", "apple", "NASA", "government"]
-        filtered = filter_words(test_words, "nacuotp", "n")
+        candidate_gen = CandidateGenerator()
+        filtered = [w for w in test_words if candidate_gen.is_valid_word_basic(w, "nacuotp", "n")]
         print(f"✓ Word filtering: {len(test_words)} -> {len(filtered)} words")
 
         # Test confidence scoring
-        confidence = get_word_confidence("count")
+        confidence_scorer = ConfidenceScorer(nyt_filter=nyt_filter)
+        confidence = confidence_scorer.calculate_confidence("count")
         print(f"✓ Confidence scoring: {confidence:.2f}")
 
         return True

@@ -4,10 +4,9 @@ Edge case test to push coverage to maximum.
 """
 
 from src.spelling_bee_solver.unified_solver import UnifiedSpellingBeeSolver
-from src.spelling_bee_solver.word_filtering import (
-    get_word_confidence,
-    is_likely_nyt_rejected,
-    is_proper_noun,
+from src.spelling_bee_solver.core import (
+    NYTRejectionFilter,
+    ConfidenceScorer,
 )
 
 
@@ -61,6 +60,9 @@ def test_extreme_edge_cases():
     # Test word filtering edge cases
     print("\nTesting word filtering edge cases...")
 
+    nyt_filter = NYTRejectionFilter()
+    confidence_scorer = ConfidenceScorer(nyt_filter=nyt_filter)
+
     edge_words = [
         "",  # Empty
         "a",  # Single letter
@@ -75,12 +77,13 @@ def test_extreme_edge_cases():
 
     for word in edge_words:
         try:
-            rejected = is_likely_nyt_rejected(word)
-            conf = get_word_confidence(word)
-            proper = is_proper_noun(word)
-            print(
-                f"'{word[:20]}...': rejected={rejected}, conf={conf:.2f}, proper={proper}"
-            )
+            rejected = nyt_filter.should_reject(word)
+            # Skip confidence for invalid words
+            if word and word.isalpha() and len(word) >= 4:
+                conf = confidence_scorer.calculate_confidence(word)
+                print(f"'{word[:20]}...': rejected={rejected}, conf={conf:.2f}")
+            else:
+                print(f"'{word[:20]}...': rejected={rejected}, conf=N/A (invalid)")
         except Exception as e:
             print(f"Error with '{word[:20]}...': {e}")
 

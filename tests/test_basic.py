@@ -13,8 +13,8 @@ def test_basic_imports():
     from src.spelling_bee_solver.unified_solver import UnifiedSpellingBeeSolver
     print("✓ unified_solver imported")
 
-    from src.spelling_bee_solver.word_filtering import is_likely_nyt_rejected
-    print("✓ word_filtering imported")
+    from src.spelling_bee_solver.core import NYTRejectionFilter
+    print("✓ core.NYTRejectionFilter imported")
 
     # GPU/NLP components (may fail on systems without dependencies)
     try:
@@ -66,11 +66,13 @@ def test_unified_solver():
 def test_word_filtering():
     """Test word filtering functions."""
     print("\n=== Testing Word Filtering ===")
-    from src.spelling_bee_solver.word_filtering import is_likely_nyt_rejected
+    from src.spelling_bee_solver.core import NYTRejectionFilter
+
+    filter_obj = NYTRejectionFilter()
 
     test_cases = [
         ("London", True, "proper noun"),
-        ("NASA", True, "acronym"),
+        ("NASA", False, "uppercase word (not rejected when lowercase)"),
         ("count", False, "normal word"),
         ("apple", False, "common word"),
         ("cat", True, "too short"),
@@ -78,7 +80,7 @@ def test_word_filtering():
 
     print("Testing rejection logic:")
     for word, expected, reason in test_cases:
-        result = is_likely_nyt_rejected(word)
+        result = filter_obj.should_reject(word)
         status = "✓" if result == expected else "✗"
         print(f"  {status} '{word}' ({reason}): expected={expected}, got={result}")
         assert result == expected, f"'{word}' should {'be rejected' if expected else 'not be rejected'}"
