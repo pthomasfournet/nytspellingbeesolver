@@ -200,10 +200,7 @@ def test_configuration_and_edge_cases():
     """Test configuration loading and edge cases."""
     print("\nTesting configuration and edge cases...")
 
-    from src.spelling_bee_solver.unified_solver import (
-        SolverMode,
-        UnifiedSpellingBeeSolver,
-    )
+    from src.spelling_bee_solver.unified_solver import UnifiedSpellingBeeSolver
 
     # Test with non-existent config
     try:
@@ -214,7 +211,7 @@ def test_configuration_and_edge_cases():
 
     # Test edge cases for puzzle solving
     try:
-        solver = UnifiedSpellingBeeSolver(mode=SolverMode.DEBUG_SINGLE)
+        solver = UnifiedSpellingBeeSolver(verbose=False)
 
         # Test with invalid inputs
         try:
@@ -236,13 +233,12 @@ def test_configuration_and_edge_cases():
             print("✓ Correctly rejects invalid required letter")
 
         # Test confidence edge cases
-        # Test confidence edge cases
         try:
             conf_empty = solver.calculate_confidence("")
             print("✗ Should have failed with empty confidence input")
         except ValueError:
             print("✓ Correctly rejects empty confidence input")
-        
+
         conf_normal = solver.calculate_confidence("count")
         print(
             f"✓ Confidence calculation: normal={conf_normal:.1f}"
