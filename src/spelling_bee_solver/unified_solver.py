@@ -98,11 +98,7 @@ Configuration:
 Error Handling:
     Comprehensive error handling with specific exception types:
 
-    - InvalidInputError: Malformed puzzle inputs
-    - ConfigurationError: Configuration file issues
-    - DictionaryError: Dictionary loading failures
-    - NetworkError: Download and connectivity problems
-    - GPUError: CUDA and GPU processing issues
+    - ValueError: Malformed puzzle inputs or configuration issues
 
 License:
     This module is part of Tom's Enhanced Spelling Bee Solver project.
@@ -115,10 +111,7 @@ Version: 2.0 (GPU-Accelerated with Comprehensive Features)
 import argparse
 import json
 import logging
-import os
-import stat
 import time
-from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 from urllib.parse import urlparse
