@@ -173,6 +173,11 @@ elements.copyListBtn.addEventListener('click', copyWordsList);
 elements.centerInput.addEventListener('input', (e) => {
     e.target.value = e.target.value.toUpperCase();
     saveState();
+
+    // Auto-focus to other letters when center letter is filled
+    if (e.target.value.length === 1) {
+        elements.othersInput.focus();
+    }
 });
 
 elements.othersInput.addEventListener('input', (e) => {
