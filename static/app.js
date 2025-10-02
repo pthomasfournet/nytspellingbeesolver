@@ -400,12 +400,15 @@ async function handleSolve() {
         state.currentPuzzle = data.puzzle;
 
         // Identify missed words (words user found but solver didn't)
-        const solverWords = new Set(data.results.map(r => r.word));
-        const excludedWords = new Set(data.excluded_words || []);
-        state.missedWords.clear();
+        // Combine results + excluded to get ALL words solver found
+        const allSolverWords = new Set([
+            ...data.results.map(r => r.word),
+            ...(data.excluded_words || [])
+        ]);
 
-        excludedWords.forEach(word => {
-            if (!solverWords.has(word)) {
+        state.missedWords.clear();
+        excludeWords.forEach(word => {
+            if (!allSolverWords.has(word)) {
                 state.missedWords.add(word);
             }
         });

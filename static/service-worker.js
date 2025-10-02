@@ -1,7 +1,7 @@
 // Service Worker for Spelling Bee Solver PWA
 // Provides offline support and caching
 
-const CACHE_NAME = 'spelling-bee-solver-v3';
+const CACHE_NAME = 'spelling-bee-solver-v4';
 const urlsToCache = [
     '/',
     '/index.html',
