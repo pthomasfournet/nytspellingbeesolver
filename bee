@@ -1,0 +1,20 @@
+#!/usr/bin/env python3
+"""
+Wrapper script for NYT Spelling Bee Solver.
+
+Usage:
+    ./bee NACUOTP -r N          # Solve puzzle directly
+    ./bee -i                    # Interactive mode
+    ./bee --help                # Show help
+"""
+
+import sys
+import subprocess
+
+# Run the unified solver as a module
+result = subprocess.run(
+    [sys.executable, "-m", "src.spelling_bee_solver.unified_solver"] + sys.argv[1:],
+    cwd="/home/tom/spelling_bee_solver_project"
+)
+
+sys.exit(result.returncode)

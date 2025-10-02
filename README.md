@@ -1,140 +1,272 @@
 # NYT Spelling Bee Solver
 
-A Python-based solver for the New York Times Spelling Bee puzzle with
-intelligent word filtering, aggregate scoring from multiple dictionaries, and
-enhanced confidence prediction.
+A Python-based solver for the New York Times Spelling Bee puzzle with intelligent filtering, multi-judge confidence scoring, and GPU acceleration support.
 
 ## Features
 
-- **Enhanced Filtering**: Pre-filters dictionary to remove 16,500+
-  inappropriate words (proper nouns, technical terms, foreign words)
-- **Aggregate Scoring**: Combines evidence from SOWPODS dictionary, Google
-  common words, and pattern analysis
-- **Smart Confidence Scoring**: Ranks words by likelihood of NYT acceptance
-  (60-100% for display)
-- **Global Reject List**: Filters out 76+ obscure words learned from previous
-  puzzles
-- **Performance Optimized**: Loads 248,056 high-quality words (vs 264,581
-  original)
-- **Puzzle Tracking**: Saves progress per puzzle by date
-- **Interactive Mode**: Beautiful hexagon display and marking system
+- **Unified Architecture**: Single mode that uses all solving methods automatically
+- **2 High-Quality Dictionaries**: Webster's Unabridged + ASPELL American English
+- **NYT Rejection Filter**: Detects proper nouns, foreign words, abbreviations, technical terms
+- **Olympic Judges Scoring**: 5 independent judges (Dictionary, Frequency, Length, Pattern, Filter) with outlier removal
+- **GPU Acceleration**: Optional CUDA/CuPy support with automatic CPU fallback
+- **Clean Output**: Formatted results with confidence percentages and word grouping
 
-## Usage
-
-### Quick Start
+## Quick Start
 
 ```bash
-# Interactive mode (shows hexagon, prompts for letters)
-./bee
+# Solve a puzzle directly
+./bee NACUOTP -r N
 
-# Quick solve with letters (shows top 46 most likely words)
-./bee P NOUCAT
-
-# Show specific number of top predictions
-./bee P NOUCAT --top 20
-
-# Show all words including obscure ones
-./bee I BELCOT --all
-
-# Interactive mode to mark found words
-./bee I BELCOT --mark
-
-# Reset puzzle progress
-./bee I BELCOT --reset
+# Interactive mode (prompts for letters)
+./bee -i
 
 # Show help
 ./bee --help
 ```
 
-### Alternative Usage
+## Installation
 
-You can also use `python spelling_bee_solver.py` instead of `./bee`
+```bash
+# Clone the repository
+git clone <repo-url>
+cd spelling_bee_solver_project
 
-## Command Line Options
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-- `--top N` - Show top N most confident words (default: 46)
-- `--all, -a` - Show all words including obscure ones (confidence < 60%)
-- `--mark, -m` - Interactive mode to mark found words
-- `--reset, -r` - Reset saved progress for this puzzle
-- `--help, -h` - Show help message
+# Install dependencies (optional GPU support)
+pip install requests
+pip install cupy-cuda12x  # Optional: for GPU acceleration
+```
 
-## Files
+## Usage
 
-- `spelling_bee_solver.py` - Main solver script with enhanced algorithms
-- `bee` - Command wrapper for easier usage
-- `sowpods.txt` - SOWPODS Scrabble dictionary (filtered to 248K quality words)
-- `google-10000-common.txt` - Google common words list for confidence scoring
-- `puzzles/` - Saved puzzle solutions by date
-  - `.spelling_bee_2025-09-30.json` - Tuesday Sept 30 (46 words, 204 pts)
-  - `.spelling_bee_2025-09-29.json` - Monday Sept 29 (in progress)
-  - `.spelling_bee_rejected.json` - Global reject list (76+ words)
+### Direct Solving
 
-## Algorithm Improvements
+```bash
+# Basic usage
+./bee NACUOTP -r N
 
-### Enhanced Dictionary Filtering
+# Verbose output (shows filtering steps)
+./bee NACUOTP -r N --verbose
 
-- **Scientific Terms**: Removes -ism, -ite, -osis, -emia endings
-- **Foreign Words**: Filters -eau, -ieux, -um, -us endings  
-- **Modern Terms**: Blocks internet slang, brand names, technical jargon
-- **Geographic**: Removes place-name indicators (-burg, -heim, -stadt)
-- **Performance**: 6% dictionary size reduction with no valid word loss
+# Custom config file
+./bee NACUOTP -r N --config my_config.json
+```
 
-### Aggregate Confidence Scoring
+### Interactive Mode
 
-- **Google Common Words**: +40 points for high-frequency vocabulary
-- **Frequency Bonus**: +20 points for top 1000 most common words
-- **Compound Detection**: +15 points for recognizable compound words
-- **Pattern Analysis**: Bonuses for NYT-friendly endings (-ing, -tion, etc.)
-- **Smart Filtering**: Only shows words with 60%+ confidence by default
+```bash
+# Start interactive session
+./bee -i
 
-### Results Quality
+# Interactive with verbose logging
+./bee -i --verbose
+```
 
-- **P/NOUCAT**: 5 high-confidence words (occupant, potato, output, coupon,
-  upon)
-- **T/HAILER**: 20+ realistic suggestions with 7 pangrams
-- **Better Accuracy**: Focuses on words actually likely to be in NYT puzzles
+### Output Example
+
+```
+============================================================
+SPELLING BEE SOLVER RESULTS
+============================================================
+Letters: NACUOTP
+Required: N
+Mode: UNIFIED
+Total words found: 98
+Solve time: 0.124s
+============================================================
+
+🌟 PANGRAMS (1):
+  OCCUPANT             (78% confidence)
+
+10-letter words (1):
+  accountant      (77%)
+
+7-letter words (14):
+  account         (87%)  annotto         (80%)  cantata         (80%)
+  coconut         (80%)  contact         (80%)  pontoon         (80%)
+  ...
+```
+
+## Architecture
+
+### Unified Solver Pipeline
+
+```
+Input Letters → Dictionary Scan → Candidate Generation
+    ↓
+Basic Validation (length, required letter, valid letters)
+    ↓
+NYT Rejection Filter (proper nouns, foreign words, etc.)
+    ↓
+Olympic Judges Confidence Scoring
+    ↓
+Sorted Results (by confidence, then length, then alphabetically)
+```
+
+### Components
+
+1. **Dictionary Manager**: Loads Webster's + ASPELL dictionaries (2 sources)
+2. **Candidate Generator**: Creates candidate words from dictionaries
+3. **NYT Rejection Filter**: Filters inappropriate words
+   - Proper nouns (names, places)
+   - Foreign words (non-English)
+   - Abbreviations (NASA, NCAA, etc.)
+   - Technical/scientific terms
+   - Archaic words (flagged for low confidence)
+
+4. **Enhanced Confidence Scorer**: Olympic judges system
+   - **Dictionary Judge** (80pts): Word in high-quality dictionary?
+   - **Frequency Judge** (90pts): Common English word?
+   - **Length Judge** (40-90pts): Optimal Spelling Bee length?
+   - **Pattern Judge** (70pts): Normal English letter patterns?
+   - **Filter Judge** (95pts): Passes NYT criteria?
+   - **Olympic Scoring**: Drop highest/lowest, average middle 3 judges
+
+5. **Result Formatter**: Clean console output with grouping
+
+### Dictionary Sources
+
+- **Webster's Unabridged Dictionary**: ~85K words (high-quality, authoritative)
+- **ASPELL American English**: System dictionary (/usr/share/dict/american-english)
+
+Dictionaries are automatically downloaded and cached on first use.
+
+## Configuration
+
+Edit `solver_config.json` to customize:
+
+```json
+{
+  "solver": {},
+  "acceleration": {
+    "force_gpu_off": false,
+    "enable_cuda_nltk": true,
+    "gpu_batch_size": 1000
+  },
+  "dictionaries": {
+    "download_timeout": 30,
+    "cache_expiry_days": 30
+  },
+  "filtering": {
+    "min_word_length": 4,
+    "enable_nyt_rejection_filter": true,
+    "confidence_threshold": 0,
+    "max_results": 0
+  },
+  "output": {
+    "show_confidence": true,
+    "group_by_length": true,
+    "highlight_pangrams": true
+  },
+  "logging": {
+    "level": "WARNING"
+  }
+}
+```
+
+## Development
+
+### Running Tests
+
+```bash
+# Run basic tests
+./venv/bin/pytest tests/test_basic.py -v
+
+# Run all working tests
+./venv/bin/pytest tests/test_basic.py tests/test_coverage.py tests/test_comprehensive.py -v
+
+# All tests should pass (11/11)
+```
+
+### Project Structure
+
+```
+spelling_bee_solver_project/
+├── bee                          # Wrapper script
+├── solver_config.json           # Configuration
+├── src/
+│   └── spelling_bee_solver/
+│       ├── unified_solver.py    # Main solver
+│       ├── core/
+│       │   ├── nyt_rejection_filter.py
+│       │   ├── enhanced_confidence_scorer.py
+│       │   ├── candidate_generator.py
+│       │   ├── dictionary_manager.py
+│       │   └── ...
+│       └── gpu/                 # Optional GPU components
+└── tests/                       # Test suite
+```
+
+## Recent Improvements (Phases 1-7)
+
+### Phase 1-2: Architecture Simplification
+- Reduced 11 dictionaries → 2 (Webster's + ASPELL)
+- Eliminated 5 solver modes → 1 unified mode
+- Single candidate generation with automatic deduplication
+
+### Phase 3: NYT Rejection Filter
+- Proper noun detection (names, places)
+- Foreign word detection (non-English)
+- Archaic word flagging (low confidence, not rejected)
+- Example: anna, canaan, naacp, ncaa filtered from NACUOTP puzzle
+
+### Phase 4: Olympic Judges Scoring
+- 5 independent judges with different criteria
+- Outlier removal (drop highest/lowest)
+- Better discrimination between words
+- Example: "account" 86.7%, "coconut" 80.0%, archaic words ~55%
+
+### Phase 6: Cleanup
+- Removed 23 temporary files (6,951 lines)
+- Restored configuration
+- All tests passing (11/11 in 9.78s)
 
 ## NYT Spelling Bee Rules
 
 - Words must contain at least 4 letters
-- Words must include the center letter
+- Words must include the center (required) letter
 - Letters can be used more than once
 - No offensive, obscure, hyphenated, or proper nouns
 - 4-letter words = 1 point
 - Longer words = 1 point per letter
 - Pangrams (use all 7 letters) = word length + 7 bonus points
 
-## Confidence Scoring
+## Confidence Scores
 
-The solver assigns each word a confidence score (60-100% displayed):
+- **85-90%**: Very common words with good length (account, coconut)
+- **75-85%**: Normal words, good patterns (contact, pontoon)
+- **65-75%**: Less common but valid English words
+- **55-65%**: Archaic or unusual words (may or may not be accepted)
+- **Below 55%**: Unlikely to be accepted
 
-- **100%**: Very common words (occupant, potato, upon)
-- **80-90%**: Recognizable words, common compounds (retailer, heather)
-- **70%**: Less common but standard English words (coupon, theatre)
-- **60-69%**: Words that might be accepted but less certain
-- **<60%**: Filtered out by default (use --all to see them)
+## GPU Acceleration (Optional)
 
-## Examples
+If CuPy is installed, GPU acceleration is automatically used for:
+- Large dictionary scans
+- Batch filtering operations
+- Optional anagram generation (future)
 
-### Tuesday September 30, 2025
+CPU fallback is automatic if GPU is unavailable.
 
-- Center: **I**, Outer: **BELCOT**
-- **46 words, 204 points**
-- Pangram: **COLLECTIBLE**
+## Troubleshooting
 
-### Monday September 29, 2025
+### "Config file not found"
+Normal on first run. Solver uses built-in defaults.
 
-- Center: **P**, Outer: **NOUCAT**
-- Top words: occupant (pangram), potato, output, coupon, upon
+### "CUDA-NLTK dependencies not available"
+Optional warning. GPU features disabled, CPU mode active.
 
-## Development
+### Tests failing
+Run: `./venv/bin/pytest tests/test_basic.py -v`
+Expected: 3/3 tests passing
 
-Run code quality checks:
+## License
 
-```bash
-# All checks should pass
-ruff check spelling_bee_solver.py
-```
+MIT License
 
-The codebase maintains 100% code quality rating with proper encoding, error
-handling, and clean Python patterns.
+## Contributing
+
+See `claude.md` for development context and architecture details.
