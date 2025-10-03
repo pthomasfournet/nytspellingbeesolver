@@ -106,9 +106,20 @@ def solve_single_puzzle(puzzle_data: Dict[str, Any]) -> Dict[str, Any]:
         }
 
 
-def load_puzzles(max_puzzles: Optional[int] = None) -> List[Dict[str, Any]]:
-    """Load valid puzzles from dataset."""
-    dataset_path = Path('nytbee_parser/nyt_puzzles_dataset.json')
+def load_puzzles(puzzle_file: Optional[str] = None, max_puzzles: Optional[int] = None) -> List[Dict[str, Any]]:
+    """Load valid puzzles from dataset.
+
+    Args:
+        puzzle_file: Path to puzzle JSON file (defaults to historical dataset)
+        max_puzzles: Maximum number of puzzles to load
+
+    Returns:
+        List of puzzle dictionaries
+    """
+    if puzzle_file is None:
+        dataset_path = Path('nytbee_parser/nyt_puzzles_dataset.json')
+    else:
+        dataset_path = Path(puzzle_file)
 
     with open(dataset_path, encoding='utf-8') as f:
         all_puzzles = json.load(f)
@@ -122,11 +133,12 @@ def load_puzzles(max_puzzles: Optional[int] = None) -> List[Dict[str, Any]]:
     return valid_puzzles
 
 
-def solve_all_puzzles(max_puzzles: Optional[int] = None, max_workers: Optional[int] = None) -> Dict[str, Any]:
+def solve_all_puzzles(puzzle_file: Optional[str] = None, max_puzzles: Optional[int] = None, max_workers: Optional[int] = None) -> Dict[str, Any]:
     """
     Solve all puzzles using multiprocessing.
 
     Args:
+        puzzle_file: Path to puzzle JSON file (None = historical dataset)
         max_puzzles: Maximum number of puzzles to solve (None = all)
         max_workers: Number of worker processes (None = auto)
 
@@ -134,7 +146,7 @@ def solve_all_puzzles(max_puzzles: Optional[int] = None, max_workers: Optional[i
         Dictionary with results and statistics
     """
     print("Loading puzzles...")
-    puzzles = load_puzzles(max_puzzles)
+    puzzles = load_puzzles(puzzle_file, max_puzzles)
     total = len(puzzles)
 
     print(f"Solving {total:,} puzzles with {max_workers or 'auto'} workers...\n")
@@ -204,6 +216,8 @@ def solve_all_puzzles(max_puzzles: Optional[int] = None, max_workers: Optional[i
 
 def main():
     parser = argparse.ArgumentParser(description='Solve all puzzles for filter validation')
+    parser.add_argument('--input', type=str, default=None,
+                        help='Input puzzle JSON file (default: historical dataset)')
     parser.add_argument('--max-puzzles', type=int, default=None,
                         help='Maximum number of puzzles to solve (default: all)')
     parser.add_argument('--workers', type=int, default=None,
@@ -214,7 +228,11 @@ def main():
     args = parser.parse_args()
 
     # Solve all puzzles
-    data = solve_all_puzzles(max_puzzles=args.max_puzzles, max_workers=args.workers)
+    data = solve_all_puzzles(
+        puzzle_file=args.input,
+        max_puzzles=args.max_puzzles,
+        max_workers=args.workers
+    )
 
     # Save results
     output_path = Path(args.output)

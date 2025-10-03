@@ -133,7 +133,7 @@ class WiktionaryExtractor:
         return languages
 
     def _extract_usage_labels(self, section_text: str) -> Set[str]:
-        """Extract usage labels like {{obsolete}}, {{archaic}}, etc.
+        """Extract usage labels like {{obsolete}}, {{archaic}}, or (archaic).
 
         Returns:
             Set of usage labels found
@@ -160,6 +160,16 @@ class WiktionaryExtractor:
                     param_str = str(param.value).strip().lower()
                     if param_str in self.obsolete_labels | self.archaic_labels | self.rare_labels:
                         labels.add(param_str)
+
+        # Also check for plain text labels in parentheses: (archaic), (obsolete), (rare, dated)
+        import re
+        all_labels = self.obsolete_labels | self.archaic_labels | self.rare_labels
+        for label in all_labels:
+            # Match label in parentheses - can be first or in comma-separated list
+            # Matches: (archaic), (rare, dated), (obsolete)
+            pattern = r'[\(,]\s*' + re.escape(label) + r'\s*[,\)]'
+            if re.search(pattern, section_text, re.IGNORECASE):
+                labels.add(label)
 
         return labels
 
