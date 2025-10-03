@@ -1,10 +1,8 @@
 # Contributing to NYT Spelling Bee Solver
 
-Thank you for your interest in contributing to this project!
-
 ## Development Workflow
 
-We use a simple two-branch workflow to keep the `main` branch stable:
+This project uses a two-branch workflow to maintain stability in the main branch:
 
 ```
 main   ──────o────────o────────o──────>  (production/stable releases)
@@ -14,24 +12,24 @@ dev    ───────┴──o──o──o──o──o──o──�
 
 ### Branches
 
-- **`main`**: Production-ready code. Only receives merges from `dev` after validation.
-- **`dev`**: Active development branch. All new features and fixes start here.
-- **`backup-before-cleanup`**: Historical backup (don't delete).
+- **main**: Production-ready code. Receives merges from dev after validation.
+- **dev**: Active development branch. All new features and fixes originate here.
+- **backup-before-cleanup**: Historical backup (preserved for reference).
 
 ### Workflow
 
-1. **Start development**
+1. **Initialize development environment**
    ```bash
    git checkout dev
    git pull origin dev
    ```
 
-2. **Make your changes**
+2. **Implement changes**
    - Write code
    - Add tests
    - Update documentation
 
-3. **Test your changes**
+3. **Validate changes**
    ```bash
    # Run tests
    ./venv/bin/pytest tests/ -v
@@ -42,13 +40,13 @@ dev    ───────┴──o──o──o──o──o──o──�
    ./venv/bin/autoflake --remove-all-unused-imports -r src/
    ```
 
-4. **Commit your changes**
+4. **Commit changes**
    ```bash
    git add .
-   git commit -m "Your descriptive commit message"
+   git commit -m "Descriptive commit message"
    ```
 
-5. **Push to dev**
+5. **Push to dev branch**
    ```bash
    git push origin dev
    ```
@@ -58,19 +56,19 @@ dev    ───────┴──o──o──o──o──o──o──�
    git checkout main
    git merge dev
    git push origin main
-   git checkout dev  # Switch back to dev
+   git checkout dev  # Return to dev branch
    ```
 
 ## Code Quality Standards
 
-- **Python Style**: Follow PEP 8
-- **Formatting**: Use `black` (line length: 88)
-- **Import Sorting**: Use `isort`
+- **Python Style**: PEP 8 compliance
+- **Formatting**: black (line length: 88)
+- **Import Sorting**: isort
 - **Type Hints**: Recommended for new code
-- **Tests**: Add tests for new features
-- **Documentation**: Update docstrings and README
+- **Tests**: Required for new features
+- **Documentation**: Docstrings and README updates required
 
-## Running Tests
+## Testing
 
 ```bash
 # All tests
@@ -90,8 +88,8 @@ spelling_bee_solver_project/
 ├── src/spelling_bee_solver/     # Main package
 │   ├── unified_solver.py        # Core solver
 │   ├── core/                    # Core functionality
-│   │   ├── nyt_rejection_filter.py  # NYT filter
-│   │   └── wiktionary_filter.py     # Wiktionary filter
+│   │   ├── nyt_rejection_filter.py
+│   │   └── wiktionary_filter.py
 │   ├── data/                    # Data files
 │   └── word_filter_cache/       # Cache directory
 ├── tests/                       # Test suite
@@ -103,7 +101,7 @@ spelling_bee_solver_project/
 
 ## Validation Workflow
 
-Before merging to `main`, validate with historical puzzles:
+Before merging to main, validate with historical puzzles:
 
 ```bash
 # Run validation on 2,613 historical puzzles
@@ -123,22 +121,22 @@ Current solver performance (as of 2025-10-03):
 - **False Negative Rate**: 8.79%
 - **Dictionaries**: Webster's + ASPELL + SOWPODS (267,751 words)
 
-## Making a Release
+## Release Process
 
-1. Ensure all tests pass on `dev`
+1. Validate all tests pass on dev
 2. Run validation on historical puzzles
-3. Update version in `setup.py` (if applicable)
-4. Merge `dev` → `main`
+3. Update version in setup.py (if applicable)
+4. Merge dev to main
 5. Tag the release:
    ```bash
    git tag -a v1.0.0 -m "Release version 1.0.0"
    git push origin v1.0.0
    ```
 
-## Questions?
+## Questions
 
 Open an issue on GitHub or contact the maintainer.
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the same license as the project.
+Contributions are licensed under the same license as the project.

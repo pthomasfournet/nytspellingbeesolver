@@ -43,10 +43,10 @@ All core components follow the Single Responsibility Principle:
 - **Used by:** unified_solver.solve_puzzle()
 
 ### 4. **ConfidenceScorer** (247 lines)
-- **Responsibility:** Score word confidence using Olympic judges system
+- **Responsibility:** Score word confidence using multi-criteria evaluation
 - **What it does:**
-  - 5 judges: Dictionary, Frequency, Length, Pattern, Filter
-  - Drops highest/lowest, averages middle 3
+  - 5 criteria: Dictionary, Frequency, Length, Pattern, Filter
+  - Drops highest and lowest scores, averages middle 3
   - Returns score 0-100
 - **Used by:** unified_solver.solve_puzzle()
 
@@ -71,7 +71,7 @@ All core components follow the Single Responsibility Principle:
 - **Responsibility:** Format output for display
 - **What it does:**
   - Groups words by length
-  - Highlights pangrams (🌟)
+  - Highlights pangrams
   - Formats confidence scores
   - Displays statistics
 - **Used by:** unified_solver.print_results()
@@ -133,7 +133,7 @@ unified_solver.solve_puzzle(required_letter, letters)
 5. CONFIDENCE SCORING
    FOR EACH valid candidate:
        ConfidenceScorer.calculate_confidence(word)
-       └─ 5 judges evaluate word
+       └─ 5 criteria evaluate word
        └─ Drop outliers, average middle 3
        └─ Returns: score 0-100
     ↓

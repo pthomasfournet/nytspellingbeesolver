@@ -1,24 +1,20 @@
-# NYT Spelling Bee Parser & Dataset
+# NYT Spelling Bee Parser and Dataset
 
-**Lightning-fast parser for NYT Spelling Bee historical data**
+Multi-core HTML parser for NYT Spelling Bee historical data.
 
-⚡ **Parsed 2,615 puzzles in 0.21s @ 12,321 puzzles/second** using multiprocessing
+Parsed 2,615 puzzles in 0.21s (12,321 puzzles/second) using multiprocessing.
 
----
-
-## 📁 Files
+## Files
 
 ### Parser
-- `parse_nyt_puzzles.py` - Multi-core HTML parser (uses all CPU cores)
+- `parse_nyt_puzzles.py` - Multi-core HTML parser utilizing all available CPU cores
 
 ### Datasets
-- **`nyt_puzzles_dataset.json`** (3.6MB) - Full dataset of all 2,615 puzzles
-- **`nyt_word_frequency.json`** (166KB) - Word frequencies (10,759 unique words)
+- **`nyt_puzzles_dataset.json`** (3.6MB) - Complete dataset of 2,615 puzzles
+- **`nyt_word_frequency.json`** (166KB) - Word frequency distribution (10,759 unique words)
 - **`nyt_rejection_blacklist.json`** (93KB) - Rejection blacklist (6,095 words rejected 3+ times)
 
----
-
-## 📊 Dataset Statistics
+## Dataset Statistics
 
 | Metric | Value |
 |--------|-------|
@@ -29,9 +25,7 @@
 | **Total Pangrams** | 3,593 |
 | **Blacklist Words** | 6,095 (rejected 3+ times) |
 
----
-
-## 🏆 Top NYT Words
+## Frequently Accepted Words
 
 **Most Common Accepted Words:**
 ```
@@ -47,7 +41,7 @@ nene     137 appearances
 mama     136 appearances
 ```
 
-**Most Rejected Words:**
+**Most Frequently Rejected Words:**
 ```
 titi     206 rejections
 lall     176 rejections
@@ -61,9 +55,7 @@ coocoo   144 rejections
 haha     132 rejections
 ```
 
----
-
-## 📝 Dataset Format
+## Dataset Format
 
 ### `nyt_puzzles_dataset.json`
 ```json
@@ -105,17 +97,16 @@ haha     132 rejections
 }
 ```
 
----
-
-## 🚀 Usage
+## Usage
 
 ### Re-parse All Puzzles
 ```bash
 python3 parse_nyt_puzzles.py
 ```
-*Parses all 2,618 HTML files in ../nytbee_data/*
 
-### Use in Python
+Parses all 2,618 HTML files in ../nytbee_data/
+
+### Python Integration
 ```python
 import json
 
@@ -129,7 +120,7 @@ with open('nyt_word_frequency.json') as f:
 
 # Check if word is common in NYT
 if word_freq.get('noon', 0) > 100:
-    print("Very common word!")
+    print("Very common word")
 
 # Load rejection blacklist
 with open('nyt_rejection_blacklist.json') as f:
@@ -137,48 +128,33 @@ with open('nyt_rejection_blacklist.json') as f:
 
 # Check if word is commonly rejected
 if word in blacklist:
-    print(f"Rejected {blacklist[word]} times!")
+    print(f"Rejected {blacklist[word]} times")
 ```
 
----
+## Data Analysis Insights
 
-## 🎯 Next Steps
+### NYT Word Selection Patterns
+- Short repeated-letter words: noon, loll, toot, naan
+- Common 4-letter words: mama, papa, nana
+- Rejects proper nouns: anna, otto (even lowercase)
+- Rejects obscure/foreign words: titi, caca, coco
 
-1. **✅ Phase 1 Complete** - Dataset created
-2. **Phase 2** - Integrate into solver:
-   - Add NYT Frequency Judge to confidence scoring
-   - Add blacklist to rejection filter
-3. **Phase 3** - Benchmark solver on all 2,615 puzzles
-4. **Phase 4** - Optimize based on results
-
----
-
-## 🧠 Insights from Data
-
-### NYT Preferences
-- **Loves short repeated-letter words**: noon, loll, toot, naan
-- **Loves common 4-letter words**: mama, papa, nana
-- **Rejects proper nouns**: anna, otto (even lowercase)
-- **Rejects obscure/foreign words**: titi, caca, coco
-
-### Patterns
+### Statistical Patterns
 - **10,759 unique accepted words** across 2,615 puzzles
 - **Average ~41 words per puzzle** (10,759 unique / 2,615 puzzles)
 - **3,593 pangrams** = ~1.37 pangrams per puzzle on average
 - **6,095 blacklisted words** = high-confidence rejection list
 
----
-
-## 📈 Performance
+## Performance Metrics
 
 **Parser Performance:**
 - **Speed**: 12,321 puzzles/second
 - **Cores Used**: 12 (all available)
-- **Total Time**: 0.33s for everything
+- **Total Time**: 0.33s for complete parsing
 - **Method**: Python multiprocessing.Pool
 
-**Why it's fast:**
-- Multiprocessing (parallel parsing on all cores)
-- Regex-based parsing (faster than BeautifulSoup)
-- Minimal I/O (reads file once)
-- No GPU needed (CPU-bound regex is efficient)
+**Performance Factors:**
+- Multiprocessing for parallel parsing across all cores
+- Regex-based parsing (more efficient than BeautifulSoup)
+- Minimal I/O operations (single file read)
+- CPU-bound regex processing (no GPU required)
