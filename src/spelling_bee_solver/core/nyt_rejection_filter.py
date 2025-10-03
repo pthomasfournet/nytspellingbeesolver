@@ -24,8 +24,8 @@ class NYTRejectionFilter:
     """Filter for detecting words likely rejected by NYT Spelling Bee."""
 
     # Rejection thresholds for blacklist (data-driven from 2,615 puzzles)
-    INSTANT_REJECT_THRESHOLD = 10  # Words rejected 10+ times = instant reject (2,460 words)
-    LOW_CONFIDENCE_THRESHOLD = 5   # Words rejected 5+ times = suspicious (4,387 words)
+    INSTANT_REJECT_THRESHOLD = 3   # Words rejected 3+ times = instant reject (5,321 words)
+    LOW_CONFIDENCE_THRESHOLD = 2   # Words rejected 2+ times = suspicious (5,892 words)
 
     def __init__(self, nyt_rejection_blacklist: Optional[Dict[str, int]] = None,
                  enable_wiktionary: bool = True):
