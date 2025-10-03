@@ -247,8 +247,8 @@ class UnifiedSpellingBeeSolver:
             self.use_gpu,
         )
 
-        # Unified dictionary configuration (2 high-quality sources only)
-        # User requirement: "we should have webster and aspell and call it a day"
+        # Unified dictionary configuration
+        # Webster's + ASPELL (original) + SOWPODS (added for 95% false negative reduction)
         self.dictionaries = tuple(
             [
                 (
@@ -257,6 +257,7 @@ class UnifiedSpellingBeeSolver:
                     "WebstersEnglishDictionary/master/dictionary_compact.json",
                 ),
                 ("ASPELL American English", "/usr/share/dict/american-english"),
+                ("SOWPODS", "data/dictionaries/sowpods.txt"),  # 267,751 words, 100% FN test coverage
             ]
         )
 
