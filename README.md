@@ -59,11 +59,11 @@ cd spelling_bee_solver_project
 python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# Install core dependencies
-pip install requests
+# Install production dependencies
+pip install -r requirements.txt
 
-# Install web application dependencies
-pip install fastapi uvicorn httpx
+# For development (includes testing and linting tools)
+pip install -r requirements-dev.txt
 
 # Optional: GPU acceleration
 pip install cupy-cuda12x
