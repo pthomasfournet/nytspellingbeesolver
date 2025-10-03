@@ -91,7 +91,7 @@ class WiktionaryMetadata:
 
             # Log stats
             stats = data.get('stats', {})
-            logger.info("✓ Loaded Wiktionary metadata from %s", metadata_path)
+            logger.info("Loaded Wiktionary metadata from %s", metadata_path)
             logger.debug("  Obsolete: %d", len(self.obsolete_words))
             logger.debug("  Archaic: %d", len(self.archaic_words))
             logger.debug("  Rare: %d", len(self.rare_words))

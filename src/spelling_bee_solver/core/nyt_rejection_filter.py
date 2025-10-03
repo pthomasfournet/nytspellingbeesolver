@@ -192,7 +192,7 @@ class NYTRejectionFilter:
         if blacklist_path.exists():
             with open(blacklist_path, encoding='utf-8') as f:
                 self.nyt_rejection_blacklist = json.load(f)
-            self.logger.info("✓ Loaded %d blacklisted words from NYT data", len(self.nyt_rejection_blacklist))
+            self.logger.info("Loaded %d blacklisted words from NYT data", len(self.nyt_rejection_blacklist))
         else:
             self.nyt_rejection_blacklist = {}
             self.logger.debug("NYT blacklist file not found: %s", blacklist_path)

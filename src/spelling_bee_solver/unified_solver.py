@@ -101,11 +101,10 @@ Error Handling:
     - ValueError: Malformed puzzle inputs or configuration issues
 
 License:
-    This module is part of Tom's Enhanced Spelling Bee Solver project.
+    This module is part of the NYT Spelling Bee Solver project.
     See project documentation for licensing and contribution information.
 
-Author: Tom's Enhanced Spelling Bee Solver
-Version: 2.0 (GPU-Accelerated with Comprehensive Features)
+Version: 2.0
 """
 
 import argparse
@@ -286,12 +285,12 @@ class UnifiedSpellingBeeSolver:
         from .core import NYTRejectionFilter
         self.nyt_filter = NYTRejectionFilter()
 
-        # Initialize confidence scorer (Olympic judges system)
+        # Initialize confidence scorer (multi-criteria scoring)
         if confidence_scorer is None:
             self.confidence_scorer = create_confidence_scorer(
                 nyt_filter=self.nyt_filter
             )
-            self.logger.debug("Using ConfidenceScorer (Olympic judges system)")
+            self.logger.debug("Using ConfidenceScorer (multi-criteria scoring)")
         else:
             # Use injected confidence scorer
             self.confidence_scorer = confidence_scorer
@@ -822,7 +821,7 @@ class UnifiedSpellingBeeSolver:
             - Detailed GPU statistics (if verbose mode enabled)
 
         Display Features:
-            - Pangrams are highlighted with star emoji (🌟)
+            - Pangrams are highlighted in dedicated section
             - Words are displayed in columns for readability
             - Confidence percentages are shown for each word
             - Length groups are clearly separated with headers
@@ -878,7 +877,7 @@ class UnifiedSpellingBeeSolver:
 
         Example Session::
 
-            🐝 Unified NYT Spelling Bee Solver
+            Unified NYT Spelling Bee Solver
             Current mode: PRODUCTION
             ==================================================
 
@@ -888,23 +887,23 @@ class UnifiedSpellingBeeSolver:
             [Results displayed here...]
 
             Enter 7 letters (or 'quit' to exit): quit
-            👋 Goodbye!
+            Goodbye!
 
         Error Handling::
 
             Enter 7 letters (or 'quit' to exit): ABC
-            ❌ Please enter exactly 7 letters
+            Error: Please enter exactly 7 letters
 
             Enter 7 letters (or 'quit' to exit): NACUOTP
             Required letter (default: n): Z
-            ❌ Required letter must be one of the 7 letters
+            Error: Required letter must be one of the 7 letters
 
         Note:
             Interactive mode preserves the solver's configuration and state between
             puzzles, so mode changes or configuration updates require restarting
             the solver instance.
         """
-        print("🐝 Unified NYT Spelling Bee Solver")
+        print("Unified NYT Spelling Bee Solver")
         print("=" * 50)
 
         while True:
@@ -917,7 +916,7 @@ class UnifiedSpellingBeeSolver:
                     break
 
                 if len(letters) != 7:
-                    print("❌ Please enter exactly 7 letters")
+                    print("Error: Please enter exactly 7 letters")
                     continue
 
                 required = (
@@ -927,7 +926,7 @@ class UnifiedSpellingBeeSolver:
                     required = letters[0]
 
                 if required not in letters:
-                    print("❌ Required letter must be one of the 7 letters")
+                    print("Error: Required letter must be one of the 7 letters")
                     continue
 
                 # Prompt for known words (optional)
@@ -946,10 +945,10 @@ class UnifiedSpellingBeeSolver:
                 self.print_results(results, all_letters_for_display, required)
 
             except KeyboardInterrupt:
-                print("\n👋 Goodbye!")
+                print("\nGoodbye!")
                 break
             except (ValueError, TypeError, OSError) as e:
-                print(f"❌ Error: {e}")
+                print(f"Error: {e}")
 
 
 def main():
@@ -1076,7 +1075,7 @@ def main():
             with open(args.exclude_file, 'r', encoding='utf-8') as f:
                 exclude_words = {line.strip() for line in f if line.strip()}
         except (OSError, IOError) as e:
-            print(f"❌ Error reading exclude file: {e}")
+            print(f"Error reading exclude file: {e}")
             sys.exit(1)
 
     # Create solver (unified mode - no mode selection needed)
@@ -1092,16 +1091,16 @@ def main():
     # Command-line mode (new API: required letter first, then other 6 letters)
     required_letter = args.required_letter.lower()
     if len(required_letter) != 1:
-        print(f"❌ Error: Required letter must be exactly 1 character (got {len(required_letter)})")
+        print(f"Error: Required letter must be exactly 1 character (got {len(required_letter)})")
         return
 
     if args.letters is None:
-        print("❌ Error: Please provide the other 6 letters")
+        print("Error: Please provide the other 6 letters")
         return
 
     letters = args.letters.lower()
     if len(letters) != 6:
-        print(f"❌ Error: Please provide exactly 6 other letters (got {len(letters)})")
+        print(f"Error: Please provide exactly 6 other letters (got {len(letters)})")
         return
 
     # Solve puzzle (new API: required_letter, letters, exclude_words)

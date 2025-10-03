@@ -263,11 +263,11 @@ class ResultFormatter:
         if stats and stats.get("excluded_count", 0) > 0:
             excluded_count = stats["excluded_count"]
             excluded_words = stats.get("excluded_words", [])
-            lines.append(f"✓ Excluded: {excluded_count} words ({', '.join(excluded_words[:5])}{'...' if len(excluded_words) > 5 else ''})")
+            lines.append(f"Excluded: {excluded_count} words ({', '.join(excluded_words[:5])}{'...' if len(excluded_words) > 5 else ''})")
             total_found = len(results) + excluded_count
             progress_pct = (excluded_count / total_found * 100) if total_found > 0 else 0
-            lines.append(f"📊 Progress: {excluded_count}/{total_found} found ({progress_pct:.1f}%)")
-            lines.append(f"🔍 Remaining: {len(results)} words")
+            lines.append(f"Progress: {excluded_count}/{total_found} found ({progress_pct:.1f}%)")
+            lines.append(f"Remaining: {len(results)} words")
         else:
             lines.append(f"Total words found: {len(results)}")
 
@@ -296,7 +296,7 @@ class ResultFormatter:
 
         # Show pangrams first if enabled
         if self.highlight_pangrams and pangrams:
-            lines.append(f"\n🌟 PANGRAMS ({len(pangrams)}):")
+            lines.append(f"\nPANGRAMS ({len(pangrams)}):")
             for word, confidence in pangrams:
                 if self.show_confidence:
                     lines.append(f"  {word.upper():<20} ({confidence:.0f}% confidence)")

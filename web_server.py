@@ -41,7 +41,7 @@ async def lifespan(app_instance: FastAPI):
     """Lifespan context manager for startup/shutdown."""
     # Startup
     logger.info("=" * 60)
-    logger.info("🐝 Spelling Bee Solver API Starting...")
+    logger.info("Spelling Bee Solver API Starting...")
     logger.info("=" * 60)
     logger.info("API Documentation: http://localhost:8000/api/docs")
     logger.info("Web Interface: http://localhost:8000/")
@@ -50,7 +50,7 @@ async def lifespan(app_instance: FastAPI):
     yield
 
     # Shutdown
-    logger.info("🐝 Spelling Bee Solver API Shutting down...")
+    logger.info("Spelling Bee Solver API Shutting down...")
 
 # Initialize FastAPI app with lifespan
 app = FastAPI(
@@ -82,7 +82,7 @@ def get_solver() -> UnifiedSpellingBeeSolver:
         logger.info("Initializing UnifiedSpellingBeeSolver...")
         try:
             solver = UnifiedSpellingBeeSolver(verbose=False)
-            logger.info("✓ Solver initialized successfully")
+            logger.info("Solver initialized successfully")
         except Exception as e:
             logger.error("Failed to initialize solver: %s", e)
             raise HTTPException(
@@ -296,7 +296,7 @@ class NoCacheStaticFiles(StaticFiles):
 static_dir = Path(__file__).parent / "static"
 if static_dir.exists():
     app.mount("/", NoCacheStaticFiles(directory=str(static_dir), html=True), name="static")
-    logger.info("✓ Serving static files from: %s (no-cache for dev)", static_dir)
+    logger.info("Serving static files from: %s (no-cache for dev)", static_dir)
 else:
     logger.warning("Static directory not found: %s", static_dir)
 

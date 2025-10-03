@@ -112,7 +112,7 @@ class IntelligentWordFilter:
         ]
 
         gpu_status = "GPU" if self.use_gpu else "CPU"
-        logger.info("✓ Intelligent word filter initialized (%s acceleration)", gpu_status)
+        logger.info("Intelligent word filter initialized (%s acceleration)", gpu_status)
 
     @property
     def spacy_available(self) -> bool:
@@ -135,12 +135,12 @@ class IntelligentWordFilter:
         try:
             if self.use_gpu:
                 spacy.require_gpu()
-                logger.info("✓ spaCy GPU acceleration enabled")
+                logger.info("spaCy GPU acceleration enabled")
 
             # Load en_core_web_md model (required for quality NLP)
             model_name = "en_core_web_md"
             self.nlp = spacy.load(model_name)
-            logger.info("✓ Loaded %s model", model_name)
+            logger.info("Loaded %s model", model_name)
 
             # Configure for batch processing
             self.nlp.max_length = 2000000
@@ -149,14 +149,14 @@ class IntelligentWordFilter:
             if not self.nlp.has_pipe("sentencizer"):
                 self.nlp.add_pipe("sentencizer")
 
-            logger.info("✓ spaCy model '%s' loaded successfully", model_name)
+            logger.info("spaCy model '%s' loaded successfully", model_name)
 
         except Exception as e:
             logger.error("Failed to load spaCy model: %s", e)
             try:
                 # Fallback to blank model
                 self.nlp = spacy.blank("en")
-                logger.info("✓ Fallback spaCy model loaded")
+                logger.info("Fallback spaCy model loaded")
             except Exception:
                 logger.error("Complete spaCy failure - using pattern-based filtering")
                 self.nlp = None
