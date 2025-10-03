@@ -113,22 +113,20 @@ class WiktionaryExtractor:
         Returns:
             Dict mapping language name to section text
         """
+        import re
+
+        text = str(parsed)
         languages = {}
-        sections = str(parsed).split('==')
 
-        current_lang = None
-        for section in sections:
-            lines = section.strip().split('\n', 1)
-            if not lines:
-                continue
+        # Match level-2 headers: ==Language==
+        # Pattern matches: newline, ==, language name (no =), ==
+        # Uses lookahead to capture everything until next level-2 header or end
+        pattern = r'\n==([\w\s]+)==\n(.*?)(?=\n==[\w\s]+=|$)'
 
-            header = lines[0].strip()
-
-            # Language headers are ==Language==
-            if header and not header.startswith('='):
-                current_lang = header
-                section_text = lines[1] if len(lines) > 1 else ''
-                languages[current_lang] = section_text
+        for match in re.finditer(pattern, text, re.DOTALL):
+            lang_name = match.group(1).strip()
+            section_text = match.group(2)
+            languages[lang_name] = section_text
 
         return languages
 
