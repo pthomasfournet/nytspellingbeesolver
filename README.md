@@ -1,50 +1,50 @@
 # NYT Spelling Bee Solver
 
-A Python-based solver for the New York Times Spelling Bee puzzle with intelligent filtering, multi-judge confidence scoring, and GPU acceleration support.
+A Python-based computational solver for the New York Times Spelling Bee puzzle with intelligent filtering, multi-criteria confidence scoring, and GPU acceleration support.
 
 ## Features
 
 ### Core Solver
-- **Exclude Known Words**: Filter out words you've already found to see only remaining words
-- **Progress Tracking**: Shows your puzzle completion percentage
-- **Unified Architecture**: Single mode that uses all solving methods automatically
-- **2 High-Quality Dictionaries**: Webster's Unabridged + ASPELL American English
-- **NYT Rejection Filter**: Detects proper nouns, foreign words, abbreviations, technical terms
-- **Olympic Judges Scoring**: 6 independent judges (Dictionary, Frequency, Length, Pattern, Filter, NYT History) with outlier removal
+- **Word Exclusion**: Filter previously discovered words to display only remaining candidates
+- **Progress Tracking**: Quantitative puzzle completion metrics
+- **Unified Architecture**: Single solving mode utilizing all available methods
+- **Three High-Quality Dictionaries**: Webster's Unabridged, ASPELL American English, and SOWPODS
+- **NYT Rejection Filter**: Detection of proper nouns, foreign words, abbreviations, and technical terms
+- **Multi-Criteria Scoring**: Six independent evaluation criteria (Dictionary, Frequency, Length, Pattern, Filter, NYT History) with outlier removal
 - **GPU Acceleration**: Optional CUDA/CuPy support with automatic CPU fallback
-- **Clean Output**: Formatted results with confidence percentages and word grouping
+- **Formatted Output**: Structured results with confidence percentages and word grouping
 
-### Web & Mobile App (NEW!)
-- **📱 Progressive Web App**: Install on phone/desktop, works offline
-- **🎨 Mobile-First Design**: Beautiful NYT Spelling Bee-inspired UI
-- **💾 Auto-Save**: Remembers your puzzle and found words
-- **📋 Smart Copy**: Click any word to copy, or export entire list
-- **⚡ Real-time Solving**: Instant results with progress tracking
-- **🌐 RESTful API**: JSON API for integrations
+### Web Application
+- **Progressive Web App**: Installable on mobile and desktop platforms with offline capability
+- **Mobile-First Design**: Responsive interface inspired by NYT Spelling Bee styling
+- **Auto-Save**: Persistent puzzle and word state storage
+- **Copy Functionality**: Single-word and bulk export capabilities
+- **Real-time Solving**: Immediate result generation with progress tracking
+- **RESTful API**: JSON API for third-party integrations
 
 ## Quick Start
 
-### Web/Mobile App (Recommended)
+### Web Application (Recommended)
 ```bash
-# Start the web server (auto-kills existing instances)
+# Start the web server (automatically manages existing instances)
 ./start_web.sh
 
 # Or manually:
 python3 -m uvicorn web_server:app --host 0.0.0.0 --port 8000
 
-# Open in browser: http://localhost:8000
-# Or on phone: http://<your-ip>:8000
+# Access via browser: http://localhost:8000
+# Access via mobile (same network): http://<your-ip>:8000
 ```
 
-### Command Line
+### Command Line Interface
 ```bash
-# Solve a puzzle directly
+# Direct puzzle solving
 ./bee N ACUOTP
 
-# Interactive mode (prompts for letters)
+# Interactive mode (prompts for input)
 ./bee -i
 
-# Show help
+# Display help
 ./bee --help
 ```
 
@@ -62,7 +62,7 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 # Install core dependencies
 pip install requests
 
-# Install web app dependencies (for PWA/mobile)
+# Install web application dependencies
 pip install fastapi uvicorn httpx
 
 # Optional: GPU acceleration
@@ -71,51 +71,51 @@ pip install cupy-cuda12x
 
 ## Usage
 
-### Web App (Recommended)
+### Web Application
 
-1. **Start the server:**
+1. **Server initialization:**
    ```bash
-   # Recommended (auto-manages single instance)
+   # Recommended (automatic single-instance management)
    ./start_web.sh
 
-   # Or manually
+   # Manual startup
    python3 -m uvicorn web_server:app --host 0.0.0.0 --port 8000 --reload
    ```
 
-2. **Open in browser:**
+2. **Browser access:**
    - Desktop: http://localhost:8000
    - Mobile (same network): http://<your-computer-ip>:8000
-   - API Docs: http://localhost:8000/api/docs
+   - API Documentation: http://localhost:8000/api/docs
 
-3. **Use the interface:**
-   - Enter center letter and other 6 letters
-   - Optionally add words you've already found
-   - Click "Solve Puzzle" to see remaining words
-   - Click any word to copy it
-   - Use "Copy All" or "Copy List" to export results
+3. **Interface operation:**
+   - Enter center letter and six additional letters
+   - Optionally input previously discovered words
+   - Select "Solve Puzzle" to generate remaining candidates
+   - Click individual words to copy
+   - Use "Copy All" or "Copy List" for bulk export
 
-4. **PWA Features:**
-   - Install to home screen (Add to Home Screen in mobile browser)
-   - Works offline after first visit
-   - Auto-saves your puzzle state
+4. **Progressive Web App features:**
+   - Install to home screen via mobile browser
+   - Offline functionality after initial visit
+   - Automatic puzzle state persistence
 
-### CLI - Direct Solving
+### Command Line Interface - Direct Solving
 
 ```bash
 # Basic usage
 ./bee N ACUOTP
 
-# Exclude words you've already found
+# Exclude previously discovered words
 ./bee N ACUOTP --exclude "count,upon,coat"
 
 # Exclude from file (one word per line)
 echo -e "count\nupon\ncoat" > found.txt
 ./bee N ACUOTP --exclude-file found.txt
 
-# Verbose output (shows filtering steps)
+# Verbose output (displays filtering steps)
 ./bee N ACUOTP --verbose
 
-# Custom config file
+# Custom configuration file
 ./bee N ACUOTP --config my_config.json
 ```
 
@@ -125,10 +125,10 @@ echo -e "count\nupon\ncoat" > found.txt
 # Start interactive session
 ./bee -i
 
-# The solver will prompt you for:
-# 1. The 7 puzzle letters
+# The solver prompts for:
+# 1. The seven puzzle letters
 # 2. The required letter
-# 3. Words you've already found (optional - just press Enter to skip)
+# 3. Previously discovered words (optional - press Enter to skip)
 
 # Interactive with verbose logging
 ./bee -i --verbose
@@ -148,12 +148,12 @@ Total words found: 89
 Solve time: 0.124s
 ============================================================
 
-🌟 PANGRAMS (1):
+PANGRAMS (1):
   OCCUPANT             (76% confidence)
 ...
 ```
 
-**With exclusions (showing progress):**
+**With exclusions (progress tracking):**
 ```
 ============================================================
 SPELLING BEE SOLVER RESULTS
@@ -161,13 +161,13 @@ SPELLING BEE SOLVER RESULTS
 Letters: NACUOTP
 Required: N
 Mode: UNIFIED
-✓ Excluded: 3 words (count, upon, coat)
-📊 Progress: 3/89 found (3.4%)
-🔍 Remaining: 86 words
+Excluded: 3 words (count, upon, coat)
+Progress: 3/89 found (3.4%)
+Remaining: 86 words
 Solve time: 0.118s
 ============================================================
 
-🌟 PANGRAMS (1):
+PANGRAMS (1):
   OCCUPANT             (78% confidence)
 
 10-letter words (1):
@@ -190,63 +190,64 @@ Basic Validation (length, required letter, valid letters)
     ↓
 NYT Rejection Filter (proper nouns, foreign words, etc.)
     ↓
-Olympic Judges Confidence Scoring
+Multi-Criteria Confidence Scoring
     ↓
 Sorted Results (by confidence, then length, then alphabetically)
 ```
 
 ### Components
 
-1. **Dictionary Manager**: Loads Webster's + ASPELL dictionaries (2 sources)
-2. **Candidate Generator**: Creates candidate words from dictionaries
+1. **Dictionary Manager**: Loads Webster's, ASPELL, and SOWPODS dictionaries (three sources)
+2. **Candidate Generator**: Generates candidate words from dictionaries
 3. **NYT Rejection Filter**: Filters inappropriate words
    - Proper nouns (names, places)
    - Foreign words (non-English)
    - Abbreviations (NASA, NCAA, etc.)
    - Technical/scientific terms
-   - Archaic words (flagged for low confidence)
+   - Archaic words (flagged for reduced confidence, not rejected)
 
-4. **Enhanced Confidence Scorer**: Olympic judges system
-   - **Dictionary Judge** (80pts): Word in high-quality dictionary?
-   - **Frequency Judge** (90pts): Common English word?
-   - **Length Judge** (40-90pts): Optimal Spelling Bee length?
-   - **Pattern Judge** (70pts): Normal English letter patterns?
-   - **Filter Judge** (95pts): Passes NYT criteria?
-   - **Olympic Scoring**: Drop highest/lowest, average middle 3 judges
+4. **Enhanced Confidence Scorer**: Multi-criteria evaluation system
+   - **Dictionary Judge** (80pts): Presence in high-quality dictionary
+   - **Frequency Judge** (90pts): Common English word frequency
+   - **Length Judge** (40-90pts): Optimal Spelling Bee length distribution
+   - **Pattern Judge** (70pts): Standard English letter patterns
+   - **Filter Judge** (95pts): Compliance with NYT criteria
+   - **Scoring Method**: Drop highest and lowest scores, average middle three criteria
 
-5. **Result Formatter**: Clean console output with grouping
+5. **Result Formatter**: Console output with structured grouping
 
-### Web App Stack
+### Web Application Stack
 
 **Backend (FastAPI):**
 - `web_server.py`: RESTful API with `/api/solve` and `/api/health` endpoints
 - Pydantic models for request/response validation
-- Singleton solver pattern for performance
+- Singleton solver pattern for performance optimization
 - CORS enabled for cross-origin requests
 
-**Frontend (Vanilla JS):**
+**Frontend (Vanilla JavaScript):**
 - `index.html`: Mobile-first semantic HTML5
 - `styles.css`: NYT Spelling Bee-inspired design with CSS variables
-- `app.js`: Vanilla JavaScript (no frameworks)
+- `app.js`: Vanilla JavaScript implementation (framework-independent)
 - LocalStorage for state persistence
 - Service Worker for offline PWA support
 
 **PWA Features:**
-- `manifest.json`: App metadata for installation
+- `manifest.json`: Application metadata for installation
 - `service-worker.js`: Cache-first static assets, network-first API
-- Installable on iOS, Android, and desktop
-- Works offline after first visit
+- Installable on iOS, Android, and desktop platforms
+- Offline functionality after initial visit
 
 ### Dictionary Sources
 
-- **Webster's Unabridged Dictionary**: ~85K words (high-quality, authoritative)
+- **Webster's Unabridged Dictionary**: Approximately 85,000 words (high-quality, authoritative)
 - **ASPELL American English**: System dictionary (/usr/share/dict/american-english)
+- **SOWPODS**: Official Scrabble word list (267,751 words)
 
 Dictionaries are automatically downloaded and cached on first use.
 
 ## Configuration
 
-Edit `solver_config.json` to customize:
+Edit `solver_config.json` to customize solver behavior:
 
 ```json
 {
@@ -279,7 +280,7 @@ Edit `solver_config.json` to customize:
 
 ## Development
 
-### Running Tests
+### Testing
 
 ```bash
 # Run basic solver tests
@@ -328,44 +329,44 @@ spelling_bee_solver_project/
     └── test_web_api.py         # Web API tests
 ```
 
-## Recent Improvements (Phases 1-7)
+## Development History
 
 ### Phase 1-2: Architecture Simplification
-- Reduced 11 dictionaries → 2 (Webster's + ASPELL)
-- Eliminated 5 solver modes → 1 unified mode
-- Single candidate generation with automatic deduplication
+- Reduced dictionary sources from 11 to 3 (Webster's, ASPELL, SOWPODS)
+- Consolidated 5 solver modes into 1 unified mode
+- Implemented single candidate generation with automatic deduplication
 
 ### Phase 3: NYT Rejection Filter
 - Proper noun detection (names, places)
 - Foreign word detection (non-English)
-- Archaic word flagging (low confidence, not rejected)
+- Archaic word flagging (reduced confidence scoring)
 - Example: anna, canaan, naacp, ncaa filtered from N ACUOTP puzzle
 
-### Phase 4: Olympic Judges Scoring
-- 5 independent judges with different criteria
-- Outlier removal (drop highest/lowest)
-- Better discrimination between words
-- Example: "account" 86.7%, "coconut" 80.0%, archaic words ~55%
+### Phase 4: Multi-Criteria Scoring
+- Six independent evaluation criteria
+- Outlier removal (drop highest and lowest scores)
+- Improved discrimination between candidates
+- Example: "account" 86.7%, "coconut" 80.0%, archaic words approximately 55%
 
-### Phase 6: Cleanup
+### Phase 6: Code Cleanup
 - Removed 23 temporary files (6,951 lines)
 - Restored configuration
 - All tests passing (11/11 in 9.78s)
 
-### Phase 7: Exclude Known Words Feature
+### Phase 7: Word Exclusion Feature
 - Added `--exclude` and `--exclude-file` CLI options
-- Interactive mode prompts for known words
+- Interactive mode prompts for previously discovered words
 - Progress tracking (X/Y found, Z% complete)
-- Stats display in results
+- Statistics display in results
 - 13/13 tests passing
 
-### Phase 8: Progressive Web App
+### Phase 8: Progressive Web Application
 - **FastAPI Backend**: RESTful `/api/solve` endpoint with Pydantic validation
-- **Mobile-First UI**: NYT Spelling Bee-inspired design with honeycomb theme
-- **LocalStorage Persistence**: Auto-saves puzzle state, 7-day expiry
+- **Mobile-First UI**: NYT Spelling Bee-inspired design
+- **LocalStorage Persistence**: Automatic puzzle state save with 7-day expiry
 - **PWA Features**: Installable, offline-capable, service worker caching
-- **Smart Export**: Copy words as comma-separated or newline-separated list
-- **Enhanced UX**: Click-to-copy words, empty states, keyboard shortcuts
+- **Export Functionality**: Copy words as comma-separated or newline-separated list
+- **User Experience Enhancements**: Click-to-copy words, empty states, keyboard shortcuts
 - 26/26 tests passing (16 web API + 10 exclude feature)
 
 ## NYT Spelling Bee Rules
@@ -373,27 +374,27 @@ spelling_bee_solver_project/
 - Words must contain at least 4 letters
 - Words must include the center (required) letter
 - Letters can be used more than once
-- No offensive, obscure, hyphenated, or proper nouns
+- Excludes offensive, obscure, hyphenated, or proper nouns
 - 4-letter words = 1 point
 - Longer words = 1 point per letter
 - Pangrams (use all 7 letters) = word length + 7 bonus points
 
 ## Confidence Scores
 
-- **85-90%**: Very common words with good length (account, coconut)
-- **75-85%**: Normal words, good patterns (contact, pontoon)
+- **85-90%**: Very common words with optimal length (account, coconut)
+- **75-85%**: Standard words with normal patterns (contact, pontoon)
 - **65-75%**: Less common but valid English words
 - **55-65%**: Archaic or unusual words (may or may not be accepted)
 - **Below 55%**: Unlikely to be accepted
 
 ## GPU Acceleration (Optional)
 
-If CuPy is installed, GPU acceleration is automatically used for:
+If CuPy is installed, GPU acceleration is automatically utilized for:
 - Large dictionary scans
 - Batch filtering operations
-- Optional anagram generation (future)
+- Optional anagram generation (planned feature)
 
-CPU fallback is automatic if GPU is unavailable.
+CPU fallback is automatic if GPU hardware is unavailable.
 
 ## Troubleshooting
 
@@ -405,7 +406,7 @@ Optional warning. GPU features disabled, CPU mode active.
 
 ### Tests failing
 Run: `./venv/bin/pytest tests/test_basic.py -v`
-Expected: 3/3 tests passing
+Expected: All tests passing
 
 ## License
 
@@ -413,4 +414,4 @@ MIT License
 
 ## Contributing
 
-See `claude.md` for development context and architecture details.
+See `CONTRIBUTING.md` for development workflow and contribution guidelines.
