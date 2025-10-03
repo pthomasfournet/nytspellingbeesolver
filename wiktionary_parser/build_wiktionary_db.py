@@ -18,8 +18,9 @@ import bz2
 import json
 import logging
 import sys
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
-from typing import Dict, Set
+from typing import Dict, Set, Tuple
 
 import requests
 
@@ -38,6 +39,140 @@ logger = logging.getLogger(__name__)
 WIKTIONARY_DUMP_URL = "https://dumps.wikimedia.org/enwiktionary/latest/enwiktionary-latest-pages-articles.xml.bz2"
 
 
+# Label sets (module level for multiprocessing)
+OBSOLETE_LABELS = {'obsolete', 'dated'}
+ARCHAIC_LABELS = {'archaic', 'historical'}
+RARE_LABELS = {'rare', 'uncommon'}
+
+
+def extract_page_metadata(title: str, text: str) -> Tuple[str, Dict[str, Set[str]]]:
+    """Extract metadata from a single page (module-level for multiprocessing).
+
+    Args:
+        title: Page title (word)
+        text: Wikitext content
+
+    Returns:
+        Tuple of (title, metadata_dict) where metadata_dict contains:
+            - 'obsolete': set of obsolete words
+            - 'archaic': set of archaic words
+            - 'rare': set of rare words
+            - 'proper_nouns': set of proper nouns
+            - 'foreign_only': set of foreign-only words
+            - 'multi_language': dict of multi-language words
+    """
+    result = {
+        'obsolete': set(),
+        'archaic': set(),
+        'rare': set(),
+        'proper_nouns': set(),
+        'foreign_only': set(),
+        'multi_language': {}
+    }
+
+    # Skip non-main namespace pages
+    if ':' in title:
+        return title, result
+
+    # Parse wikitext
+    try:
+        parsed = mwp.parse(text)
+    except Exception:
+        return title, result
+
+    # Extract language sections
+    languages = _extract_languages_static(parsed)
+
+    # Check if word has English entry
+    has_english = 'English' in languages
+
+    # If no English entry but has foreign entries → foreign-only
+    if not has_english and languages:
+        result['foreign_only'].add(title.lower())
+        return title, result
+
+    # Process English section
+    if has_english:
+        english_section = languages['English']
+
+        # Check for usage labels
+        usage_labels = _extract_usage_labels_static(english_section)
+
+        if any(label in OBSOLETE_LABELS for label in usage_labels):
+            result['obsolete'].add(title.lower())
+
+        if any(label in ARCHAIC_LABELS for label in usage_labels):
+            result['archaic'].add(title.lower())
+
+        if any(label in RARE_LABELS for label in usage_labels):
+            result['rare'].add(title.lower())
+
+        # Check for proper noun
+        if _is_proper_noun_static(english_section):
+            result['proper_nouns'].add(title)  # Keep capitalization
+
+        # Track multi-language words
+        if len(languages) > 1:
+            result['multi_language'][title.lower()] = list(languages.keys())
+
+    return title, result
+
+
+def _extract_languages_static(parsed) -> Dict[str, str]:
+    """Extract language sections (static version for multiprocessing)."""
+    import re
+
+    text = str(parsed)
+    languages = {}
+
+    pattern = r'\n==([\w\s]+)==\n(.*?)(?=\n==[\w\s]+=|$)'
+
+    for match in re.finditer(pattern, text, re.DOTALL):
+        lang_name = match.group(1).strip()
+        section_text = match.group(2)
+        languages[lang_name] = section_text
+
+    return languages
+
+
+def _extract_usage_labels_static(section_text: str) -> Set[str]:
+    """Extract usage labels (static version for multiprocessing)."""
+    labels = set()
+
+    try:
+        parsed = mwp.parse(section_text)
+    except Exception:
+        return labels
+
+    # Find templates
+    for template in parsed.filter_templates():
+        name = str(template.name).strip().lower()
+
+        if name in OBSOLETE_LABELS | ARCHAIC_LABELS | RARE_LABELS:
+            labels.add(name)
+
+        if name in {'label', 'lb', 'context'}:
+            for param in template.params:
+                param_str = str(param.value).strip().lower()
+                if param_str in OBSOLETE_LABELS | ARCHAIC_LABELS | RARE_LABELS:
+                    labels.add(param_str)
+
+    # Check for plain text labels
+    import re
+    all_labels = OBSOLETE_LABELS | ARCHAIC_LABELS | RARE_LABELS
+    for label in all_labels:
+        pattern = r'[\(,]\s*' + re.escape(label) + r'\s*[,\)]'
+        if re.search(pattern, section_text, re.IGNORECASE):
+            labels.add(label)
+
+    return labels
+
+
+def _is_proper_noun_static(section_text: str) -> bool:
+    """Check if word is a proper noun (static version for multiprocessing)."""
+    return '===Proper noun===' in section_text or '====Proper noun====' in section_text
+
+
 class WiktionaryExtractor:
     """Extract metadata from Wiktionary XML dump."""
 
@@ -53,6 +188,19 @@ class WiktionaryExtractor:
         self.obsolete_labels = {'obsolete', 'dated'}
         self.archaic_labels = {'archaic', 'historical'}
         self.rare_labels = {'rare', 'uncommon'}
+
+    def merge_results(self, results: Dict[str, Set[str]]):
+        """Merge results from parallel processing.
+
+        Args:
+            results: Dict with sets of words for each category
+        """
+        self.obsolete_words.update(results.get('obsolete', set()))
+        self.archaic_words.update(results.get('archaic', set()))
+        self.rare_words.update(results.get('rare', set()))
+        self.proper_nouns.update(results.get('proper_nouns', set()))
+        self.foreign_only.update(results.get('foreign_only', set()))
+        self.multi_language.update(results.get('multi_language', {}))
 
     def extract_from_page(self, title: str, text: str):
         """Extract metadata from a single Wiktionary page.
@@ -248,20 +396,24 @@ def download_wiktionary_dump(output_path: Path, force: bool = False):
     logger.info(f"✓ Downloaded to {output_path}")
 
 
-def parse_wiktionary_dump(dump_path: Path, max_pages: int = None) -> WiktionaryExtractor:
-    """Parse Wiktionary XML dump and extract metadata.
+def parse_wiktionary_dump(dump_path: Path, max_pages: int = None, max_workers: int = 10) -> WiktionaryExtractor:
+    """Parse Wiktionary XML dump and extract metadata using multiprocessing.
 
     Args:
         dump_path: Path to .xml.bz2 dump file
         max_pages: Maximum pages to process (for testing, None = all)
+        max_workers: Number of worker processes (default: 10)
 
     Returns:
         WiktionaryExtractor with extracted metadata
     """
     logger.info(f"Parsing Wiktionary dump: {dump_path}")
+    logger.info(f"Using {max_workers} worker processes")
 
     extractor = WiktionaryExtractor()
     pages_processed = 0
+    batch = []
+    batch_size = 1000  # Process 1000 pages per batch
 
     # Open bz2 compressed file
     with bz2.open(dump_path, 'rt', encoding='utf-8') as f:
@@ -281,10 +433,13 @@ def parse_wiktionary_dump(dump_path: Path, max_pages: int = None) -> WiktionaryE
                 if '</text>' in line:
                     text_content = line.split('<text')[1].split('>')[1].split('</text>')[0]
                     if current_title:
-                        extractor.extract_from_page(current_title, text_content)
+                        batch.append((current_title, text_content))
                         pages_processed += 1
 
-                        if pages_processed % 1000 == 0:
+                        # Process batch when full
+                        if len(batch) >= batch_size:
+                            _process_batch(extractor, batch, max_workers)
+                            batch = []
                             logger.info(f"  Processed {pages_processed:,} pages...")
 
                         if max_pages and pages_processed >= max_pages:
@@ -306,10 +461,13 @@ def parse_wiktionary_dump(dump_path: Path, max_pages: int = None) -> WiktionaryE
 
                     if current_title:
                         full_text = ''.join(current_text)
-                        extractor.extract_from_page(current_title, full_text)
+                        batch.append((current_title, full_text))
                         pages_processed += 1
 
-                        if pages_processed % 1000 == 0:
+                        # Process batch when full
+                        if len(batch) >= batch_size:
+                            _process_batch(extractor, batch, max_workers)
+                            batch = []
                             logger.info(f"  Processed {pages_processed:,} pages...")
 
                         if max_pages and pages_processed >= max_pages:
@@ -321,8 +479,30 @@ def parse_wiktionary_dump(dump_path: Path, max_pages: int = None) -> WiktionaryE
                 else:
                     current_text.append(line)
 
+    # Process remaining batch
+    if batch:
+        _process_batch(extractor, batch, max_workers)
+
     logger.info(f"✓ Processed {pages_processed:,} pages total")
     return extractor
+
+
+def _process_batch(extractor: WiktionaryExtractor, batch: list, max_workers: int):
+    """Process a batch of pages in parallel.
+
+    Args:
+        extractor: WiktionaryExtractor to merge results into
+        batch: List of (title, text) tuples
+        max_workers: Number of worker processes
+    """
+    with ProcessPoolExecutor(max_workers=max_workers) as executor:
+        # Submit all pages in batch
+        futures = [executor.submit(extract_page_metadata, title, text) for title, text in batch]
+
+        # Collect results
+        for future in as_completed(futures):
+            title, results = future.result()
+            extractor.merge_results(results)
 
 
 def main():
@@ -331,6 +511,7 @@ def main():
     parser.add_argument('--parse-only', action='store_true', help='Only parse existing dump')
     parser.add_argument('--force-download', action='store_true', help='Force re-download even if dump exists')
     parser.add_argument('--max-pages', type=int, help='Maximum pages to process (for testing)')
+    parser.add_argument('--workers', type=int, default=10, help='Number of worker processes (default: 10)')
     parser.add_argument('--dump-file', type=str, default='wiktionary_parser/enwiktionary-latest.xml.bz2',
                        help='Path to dump file')
     parser.add_argument('--output', type=str, default='src/spelling_bee_solver/data/wiktionary_metadata.json',
@@ -352,7 +533,7 @@ def main():
         return
 
     # Parse phase
-    extractor = parse_wiktionary_dump(dump_path, max_pages=args.max_pages)
+    extractor = parse_wiktionary_dump(dump_path, max_pages=args.max_pages, max_workers=args.workers)
 
     # Save results
     extractor.save_to_json(output_path)
