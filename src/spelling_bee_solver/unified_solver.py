@@ -247,7 +247,8 @@ class UnifiedSpellingBeeSolver:
         )
 
         # Unified dictionary configuration
-        # Webster's + ASPELL (original) + SOWPODS (added for 95% false negative reduction)
+        # Webster's + ASPELL (original) + NYT Pre-Filtered (optimized from SOWPODS)
+        # Pre-filtered dictionary: 10,759 NYT-validated words (96% smaller, 90% trash reduction)
         self.dictionaries = tuple(
             [
                 (
@@ -256,7 +257,7 @@ class UnifiedSpellingBeeSolver:
                     "WebstersEnglishDictionary/master/dictionary_compact.json",
                 ),
                 ("ASPELL American English", "/usr/share/dict/american-english"),
-                ("SOWPODS", "data/dictionaries/sowpods.txt"),  # 267,751 words, 100% FN test coverage
+                ("NYT Pre-Filtered", "data/dictionaries/nyt_prefiltered.txt"),  # 10,759 words from NYT historical data
             ]
         )
 
