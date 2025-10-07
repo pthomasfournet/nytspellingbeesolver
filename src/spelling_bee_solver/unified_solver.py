@@ -247,8 +247,9 @@ class UnifiedSpellingBeeSolver:
         )
 
         # Unified dictionary configuration
-        # Webster's + ASPELL (original) + NYT Pre-Filtered (optimized from SOWPODS)
+        # Webster's + ASPELL (original) + NYT Pre-Filtered (optimized from SOWPODS) + Wiktionary
         # Pre-filtered dictionary: 10,759 NYT-validated words (96% smaller, 90% trash reduction)
+        # Wiktionary: ~200k-500k clean English words (excludes obsolete/archaic/rare/proper nouns)
         self.dictionaries = tuple(
             [
                 (
@@ -258,6 +259,7 @@ class UnifiedSpellingBeeSolver:
                 ),
                 ("ASPELL American English", "/usr/share/dict/american-english"),
                 ("NYT Pre-Filtered", "data/dictionaries/nyt_prefiltered.txt"),  # 10,759 words from NYT historical data
+                ("Wiktionary English", "data/dictionaries/wiktionary_english.txt"),  # Clean English words from Wiktionary
             ]
         )
 
@@ -540,11 +542,14 @@ class UnifiedSpellingBeeSolver:
         # Method 1: Dictionary scan (fast, high precision)
         self.logger.info("Generating candidates via dictionary scan...")
 
-        for dict_name, dict_path in self.dictionaries:
-            self.logger.info("Processing %s", dict_name)
+        # Load all dictionaries in parallel for maximum performance
+        dict_results = self.dictionary_manager.load_dictionaries_parallel(
+            list(self.dictionaries), max_workers=4
+        )
 
-            # Load dictionary
-            dictionary = self.dictionary_manager.load_dictionary(dict_path)
+        # Generate candidates from each loaded dictionary
+        for dict_name in [name for name, _ in self.dictionaries]:
+            dictionary = dict_results.get(dict_name, set())
             if not dictionary:
                 continue
 

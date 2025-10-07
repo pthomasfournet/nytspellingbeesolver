@@ -14,10 +14,20 @@ Detects words that NYT Spelling Bee typically rejects:
 import json
 import logging
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, List, Optional, Set
 
 from ..constants import MIN_WORD_LENGTH
 from .wiktionary_metadata import load_wiktionary_metadata
+
+# GPU acceleration support (cuDF for batch string operations)
+try:
+    import cudf
+    import pandas as pd
+    GPU_AVAILABLE = True
+    GPU_BATCH_SIZE = 10000  # Process 10k words per GPU batch
+except ImportError:
+    GPU_AVAILABLE = False
+    GPU_BATCH_SIZE = 10000  # Still define for code consistency
 
 
 class NYTRejectionFilter:
@@ -41,6 +51,11 @@ class NYTRejectionFilter:
         # Load NYT rejection blacklist if not provided
         if not self.nyt_rejection_blacklist:
             self._load_nyt_blacklist()
+
+        # Load NYT Pre-Filtered whitelist (words from valid NYT puzzles)
+        # This is our ground truth - if word appeared in valid puzzles, accept it
+        # regardless of Wiktionary flags (archaic, proper noun, etc.)
+        self.nyt_prefiltered_whitelist = self._load_nyt_prefiltered()
 
         # Load Wiktionary metadata (Layer 4)
         self.wiktionary = None
@@ -143,6 +158,9 @@ class NYTRejectionFilter:
             "altaian", "galatian", "thracian", "macedonian", "spartan", "athenian",
             "roman", "etruscan", "carthaginian", "phoenician", "babylonian",
 
+            # Additional proper nouns (names, etc.)
+            "inonu",  # Turkish surname/place name
+
             # Brands/Companies (sometimes in dictionaries)
             "alliant", "boeing", "ford", "tesla", "google", "amazon",
 
@@ -156,6 +174,9 @@ class NYTRejectionFilter:
             "loca", "loco", "casa", "mesa", "taco", "salsa",
             "gitana",  # gypsy woman
             "tiza",    # chalk
+            "indio",   # Indian (Spanish)
+            "doni",    # gifts (Italian/Spanish)
+            "chicha",  # fermented corn beverage (Andean/South American)
             # French
             "avec", "sans", "tres", "mais", "pour",
             # Italian
@@ -164,22 +185,57 @@ class NYTRejectionFilter:
             "intagli", # engravings (plural of intaglio)
             # German
             "uber", "auto",
+            # Greek
+            "chian",   # from Chios island (proper noun/adjective)
+            "achean",  # variant of "Achaean" (Greek proper adjective)
+            # Latin
+            "omnium",  # of all (Latin genitive plural)
+            "unio",    # pearl/union (Latin, also mollusk genus)
         }
 
-        # Archaic/obsolete words (low confidence, not rejected)
-        # These get flagged for low confidence scoring instead of outright rejection
+        # Archaic/obsolete words (flagged for rejection if not in NYT whitelist)
+        # These are obscure words that should be rejected unless proven valid by NYT
         self.archaic_words = {
+            # Old English pronouns and verbs
             "hath", "doth", "thee", "thou", "thy", "thine", "ye",
+            # Archaic adverbs and prepositions
             "whilst", "whence", "whither", "hither", "thither",
             "betwixt", "amongst", "unto", "anon",
+            # Archaic past tenses and participles
+            "chidden",  # archaic past participle of "chide"
+            "hied",     # archaic past tense of "hie" (to go quickly)
+            # Archaic spelling variants
+            "enniche",  # archaic variant of "niche"
+            "inhance",  # archaic spelling of "enhance"
+            # Archaic/dialectal words
+            "hanch",    # archaic/dialectal
+            "cond",     # archaic/abbreviation for "conduct" or "conduit"
+            # Obscure religious/liturgical terms
+            "noncommunion",  # obscure religious/liturgical term
+            "nondo",    # archaic (not in Wiktionary but NYT rejects it)
         }
 
-        # Abbreviations
+        # Offensive words/slurs (ALWAYS rejected, even if in dictionaries)
+        # NYT would never include these regardless of alternate meanings
+        self.offensive_words = {
+            "coon",  # Racial slur (even though also = raccoon)
+        }
+
+        # Dialectal/informal words (regional variants, informal speech)
+        # These are non-standard English forms that NYT typically avoids
+        self.dialectal_words = {
+            "haddie",  # dialectal/informal for "haddock" (fish)
+            "dich",    # unknown origin, possibly German or dialectal
+            "niched",  # questionable verb form of "niche" (modern marketing jargon)
+        }
+
+        # Abbreviations (NYT doesn't accept abbreviations)
         self.abbreviations = {
             "capt", "dept", "govt", "corp", "assn", "natl", "intl",
             "prof", "repr", "mgmt", "admin", "info", "tech", "spec",
             "univ", "inst", "assoc", "incl", "misc", "temp", "approx",
             "est", "max", "min", "avg", "std",
+            "muni",  # municipal (appears in puzzles but is abbreviation)
         }
 
     def _load_nyt_blacklist(self):
@@ -196,6 +252,25 @@ class NYTRejectionFilter:
         else:
             self.nyt_rejection_blacklist = {}
             self.logger.debug("NYT blacklist file not found: %s", blacklist_path)
+
+    def _load_nyt_prefiltered(self):
+        """Load NYT Pre-Filtered whitelist from valid puzzle solutions.
+
+        This dictionary contains words that have appeared in valid NYT puzzles.
+        Words in this list are ALWAYS accepted, even if Wiktionary marks them
+        as archaic, proper nouns, etc.
+
+        This is our ground truth for what NYT considers acceptable.
+        """
+        prefiltered_path = Path(__file__).parent.parent.parent.parent / 'data' / 'dictionaries' / 'nyt_prefiltered.txt'
+        if prefiltered_path.exists():
+            with open(prefiltered_path, encoding='utf-8') as f:
+                whitelist = {line.strip().lower() for line in f if line.strip()}
+            self.logger.info("Loaded %d words from NYT Pre-Filtered whitelist", len(whitelist))
+            return whitelist
+        else:
+            self.logger.debug("NYT Pre-Filtered file not found: %s", prefiltered_path)
+            return set()
 
     def is_proper_noun(self, word: str) -> bool:
         """Check if word is a proper noun.
@@ -253,17 +328,34 @@ class NYTRejectionFilter:
 
         return False
 
+    def is_dialectal(self, word: str) -> bool:
+        """Check if word is dialectal or informal.
+
+        Args:
+            word: Word to check (should be lowercase)
+
+        Returns:
+            True if word is dialectal/informal
+        """
+        word_lower = word.lower().strip()
+
+        # Check known dialectal/informal words
+        if word_lower in self.dialectal_words:
+            return True
+
+        return False
+
     def is_archaic(self, word: str) -> bool:
         """Check if word is archaic/obsolete.
 
-        Note: Archaic words are NOT rejected, just flagged for low confidence.
+        Note: Archaic/obsolete words are NOT rejected, just flagged for low confidence.
         Checks both manual list and Wiktionary metadata.
 
         Args:
             word: Word to check (should be lowercase)
 
         Returns:
-            True if word is archaic
+            True if word is archaic/obsolete/rare
         """
         word_lower = word.lower().strip()
 
@@ -272,8 +364,11 @@ class NYTRejectionFilter:
             return True
 
         # Check Wiktionary metadata (Layer 4)
+        # Include obsolete, archaic, and rare words - all get low confidence
         if self.wiktionary and self.wiktionary.loaded:
-            if self.wiktionary.is_archaic(word_lower) or self.wiktionary.is_rare(word_lower):
+            if (self.wiktionary.is_obsolete(word_lower) or
+                self.wiktionary.is_archaic(word_lower) or
+                self.wiktionary.is_rare(word_lower)):
                 return True
 
         return False
@@ -302,6 +397,47 @@ class NYTRejectionFilter:
 
         return False
 
+    def is_slang_compound(self, word: str) -> bool:
+        """Check if word is a slang compound (e.g., acidhead, pothead).
+
+        Args:
+            word: Word to check (should be lowercase)
+
+        Returns:
+            True if word is a slang compound
+        """
+        word_lower = word.lower().strip()
+
+        # Drug-related compound slang: *head (acidhead, pothead, crackhead, etc.)
+        # These are 1960s-1980s counterculture slang terms NYT avoids
+        if len(word_lower) > 7 and word_lower.endswith("head"):
+            # Check if the part before "head" is drug-related or derogatory
+            stem = word_lower[:-4]  # Remove "head"
+            drug_stems = {
+                "acid",     # LSD
+                "pot",      # marijuana
+                "crack",    # crack cocaine
+                "meth",     # methamphetamine
+                "coke",     # cocaine
+                "speed",    # amphetamines
+                "dope",     # various drugs
+                "pill",     # pill abuse
+            }
+            if stem in drug_stems:
+                return True
+            # Also check for derogatory compound terms
+            derogatory_stems = {
+                "bone",     # bonehead (stupid person)
+                "block",    # blockhead (stupid person)
+                "knuckle",  # knucklehead (stupid person)
+                "air",      # airhead (stupid person)
+                "meat",     # meathead (stupid person)
+            }
+            if stem in derogatory_stems:
+                return True
+
+        return False
+
     def is_technical_term(self, word: str) -> bool:
         """Check if word is a technical/scientific term.
 
@@ -320,9 +456,101 @@ class NYTRejectionFilter:
         if word_lower.endswith("ide") and len(word_lower) > 5:
             return True
 
+        # Chemical alkaloids and proteins ending in -ine (e.g., echidnine, morphine, caffeine)
+        # But whitelist common words
+        if len(word_lower) > 5 and word_lower.endswith("ine"):
+            ine_whitelist = {
+                "mine", "line", "fine", "wine", "dine", "pine", "vine", "nine",
+                "spine", "shine", "whine", "brine", "swine", "trine",
+                "define", "refine", "confine", "genuine", "routine", "machine",
+                "feline", "canine", "bovine", "equine",  # common animal terms
+            }
+            if word_lower not in ine_whitelist:
+                return True
+
+        # Chemical alkanes ending in -ane (e.g., methane, propane, hendecane, hecdecane)
+        # But whitelist common words
+        if len(word_lower) > 5 and word_lower.endswith("ane"):
+            ane_whitelist = {
+                "lane", "cane", "mane", "pane", "vane", "wane", "bane", "sane",
+                "plane", "crane", "humane", "insane", "arcane", "profane",
+                "butane", "octane", "propane",  # common fuels that might appear
+            }
+            if word_lower not in ane_whitelist:
+                return True
+
+        # Specific alkane pattern: *decane (11-carbon chain hydrocarbons)
+        # These are very technical chemistry terms
+        if "decane" in word_lower and len(word_lower) > 6:
+            return True
+
+        # Zoological family names ending in -id (e.g., echinid, canid, felid)
+        # But whitelist common words
+        if len(word_lower) > 5 and word_lower.endswith("id"):
+            id_whitelist = {
+                "said", "paid", "laid", "maid", "raid", "braid",
+                "valid", "solid", "timid", "rapid", "vapid", "acrid",
+                "liquid", "stupid", "hybrid", "orchid",
+            }
+            if word_lower not in id_whitelist:
+                return True
+
+        # Chemical acid suffixes (e.g., muconic acid, nonoic acid, cuminic acid, cahincic acid)
+        # -oic, -onic, -inic, -oid, -idic, -ic endings typically indicate chemical compounds
+        if len(word_lower) > 5:
+            # Whitelist common words to avoid false positives
+            chemical_whitelist = {
+                "heroic", "stoic", "sonic", "tonic", "iconic", "ironic", "chronic",
+                "conic", "ionic",  # geometry/physics terms that are common
+                "music", "magic", "logic", "comic", "topic", "basic", "toxic",  # common -ic words
+                "public", "static", "ethnic", "cosmic", "classic", "plastic",
+            }
+            if word_lower not in chemical_whitelist:
+                chemical_endings = ["oic", "onic", "inic", "oid", "idic"]
+                if any(word_lower.endswith(ending) for ending in chemical_endings):
+                    return True
+                # Standalone -ic for acids (check for unusual consonant clusters)
+                if len(word_lower) > 7 and word_lower.endswith("ic"):
+                    # Chemical names often have unusual patterns:
+                    # 1. Doubled letters (e.g., salicylic)
+                    # 2. 3+ consonants in a row (e.g., cahincic has "hinc")
+                    # 3. Uncommon letter combinations
+                    if any(c1 == c2 for c1, c2 in zip(word_lower, word_lower[1:])):
+                        return True
+                    # Check for 3+ consecutive consonants (very unusual in English)
+                    consonants = set('bcdfghjklmnpqrstvwxyz')
+                    consonant_run = 0
+                    max_consonant_run = 0
+                    for char in word_lower:
+                        if char in consonants:
+                            consonant_run += 1
+                            max_consonant_run = max(max_consonant_run, consonant_run)
+                        else:
+                            consonant_run = 0
+                    if max_consonant_run >= 3:
+                        return True
+
+        # Chemical protein/compound names ending in -in (e.g., nucin, indoin, indin)
+        # But avoid common words like "min", "din", "in"
+        if len(word_lower) > 4 and word_lower.endswith("in"):
+            # Whitelist common -in words
+            in_whitelist = {"min", "din", "sin", "fin", "kin", "pin", "tin", "win",
+                           "cumin", "satin", "robin", "cabin", "basin", "resin",
+                           "ruin", "main", "rain", "pain", "gain", "vein", "coin", "join"}
+            if word_lower not in in_whitelist:
+                return True
+
         # Latin scientific endings (but whitelist common words)
         if len(word_lower) > 6:
-            latin_whitelist = {"famous", "nervous", "curious", "plane", "humane"}
+            # Whitelist common words that end in Latin suffixes
+            # -ous: famous, nervous, curious, etc.
+            # -ium: stadium, premium, medium, condominium, etc.
+            latin_whitelist = {
+                "famous", "nervous", "curious", "humane",  # -ous/-ane
+                "stadium", "premium", "medium", "podium",  # -ium (common)
+                "auditorium", "condominium", "delirium",   # -ium (common)
+                "equilibrium", "aquarium", "emporium",     # -ium (common)
+            }
             if word_lower not in latin_whitelist:
                 latin_endings = ["ium", "ius", "ous", "eum"]
                 if any(word_lower.endswith(ending) for ending in latin_endings):
@@ -389,24 +617,143 @@ class NYTRejectionFilter:
         else:
             return 1.0  # No penalty
 
+    def filter_batch_gpu(self, words: List[str]) -> Set[str]:
+        """GPU-accelerated batch filtering of candidate words.
+
+        Uses cuDF for parallel set membership checks and pattern matching.
+        Significantly faster than sequential CPU filtering for large batches.
+
+        Args:
+            words: List of words to filter
+
+        Returns:
+            Set of words that passed all rejection filters
+        """
+        if not GPU_AVAILABLE or len(words) < 1000:
+            # For small batches, CPU is faster (no GPU transfer overhead)
+            return {word for word in words if not self.should_reject(word)}
+
+        accepted_words = set()
+
+        # Process in batches to manage GPU memory
+        for i in range(0, len(words), GPU_BATCH_SIZE):
+            batch = words[i:i + GPU_BATCH_SIZE]
+
+            # Create cuDF DataFrame on GPU
+            df = cudf.DataFrame({'word': batch})
+            df['word_lower'] = df['word'].str.lower().str.strip()
+
+            # GPU-accelerated whitelist check (highest priority)
+            if self.nyt_prefiltered_whitelist:
+                whitelist_series = cudf.Series(list(self.nyt_prefiltered_whitelist))
+                df['in_whitelist'] = df['word_lower'].isin(whitelist_series)
+            else:
+                df['in_whitelist'] = False
+
+            # GPU-accelerated blacklist check
+            if self.nyt_rejection_blacklist:
+                blacklist_series = cudf.Series(list(self.nyt_rejection_blacklist.keys()))
+                df['in_blacklist'] = df['word_lower'].isin(blacklist_series)
+            else:
+                df['in_blacklist'] = False
+
+            # GPU-accelerated offensive words check
+            if self.offensive_words:
+                offensive_series = cudf.Series(list(self.offensive_words))
+                df['is_offensive'] = df['word_lower'].isin(offensive_series)
+            else:
+                df['is_offensive'] = False
+
+            # GPU-accelerated proper nouns check
+            if self.known_proper_nouns:
+                proper_series = cudf.Series(list(self.known_proper_nouns))
+                df['is_proper'] = df['word_lower'].isin(proper_series)
+            else:
+                df['is_proper'] = False
+
+            # GPU-accelerated foreign words check
+            if self.known_foreign_words:
+                foreign_series = cudf.Series(list(self.known_foreign_words))
+                df['is_foreign'] = df['word_lower'].isin(foreign_series)
+            else:
+                df['is_foreign'] = False
+
+            # Transfer filtered results to CPU for final processing
+            # Accept words that:
+            # 1. Are in whitelist (highest priority) OR
+            # 2. NOT (blacklisted OR offensive OR proper OR foreign)
+            df_pandas = df.to_pandas()
+
+            for _, row in df_pandas.iterrows():
+                word_lower = row['word_lower']
+
+                # Whitelist has highest priority
+                if row['in_whitelist']:
+                    accepted_words.add(word_lower)
+                    continue
+
+                # Reject if any rejection criteria met
+                if (row['is_offensive'] or row['in_blacklist'] or
+                    row['is_proper'] or row['is_foreign']):
+                    continue
+
+                # For remaining words, do CPU-based detailed checks
+                # (pattern matching, technical terms, etc. are complex for GPU)
+                if not self.should_reject(word_lower):
+                    accepted_words.add(word_lower)
+
+        return accepted_words
+
     def should_reject(self, word: str) -> bool:
         """Check if word should be rejected (NYT likely won't accept it).
 
         This is the main entry point for filtering.
 
         Args:
-            word: Word to check (should be lowercase)
+            word: Word to check (case-insensitive, will be lowercased)
 
         Returns:
             True if word should be rejected
         """
-        word_lower = word.lower().strip()
+        word_original = word.strip()
+        word_lower = word_original.lower()
 
         # Length check
         if len(word_lower) < MIN_WORD_LENGTH:
             return True
 
-        # Check NYT blacklist first (data-driven)
+        # PRIORITY 0: Offensive words/slurs (ABSOLUTE HIGHEST PRIORITY)
+        # ALWAYS reject, even if in dictionaries or NYT whitelist
+        # This is an ethical/safety requirement
+        if word_lower in self.offensive_words:
+            self.logger.debug("Rejecting '%s': offensive word/slur", word_lower)
+            return True
+
+        # PRIORITY 0.5: Abbreviations (NYT policy: no abbreviations)
+        # ALWAYS reject, even if appeared in historical puzzles (whitelist)
+        # NYT doesn't accept abbreviations as per their rules
+        if self.is_abbreviation(word_lower):
+            self.logger.debug("Rejecting '%s': abbreviation", word_lower)
+            return True
+
+        # PRIORITY 0.6: Slang compounds (NYT policy: avoid counterculture slang)
+        # ALWAYS reject drug slang and derogatory compounds
+        if self.is_slang_compound(word_lower):
+            self.logger.debug("Rejecting '%s': slang compound", word_lower)
+            return True
+
+        # PRIORITY 1: NYT Pre-Filtered Whitelist (HIGHEST PRIORITY)
+        # If word appeared in valid NYT puzzles, ALWAYS accept it
+        # Whitelist > Blacklist because a word can be rejected in some puzzles but accepted in others
+        # Examples: "indium" rejected 4 times but IS valid in some puzzles
+        # This overrides blacklist and Wiktionary flags
+        if word_lower in self.nyt_prefiltered_whitelist:
+            self.logger.debug("Accepting '%s': in NYT Pre-Filtered whitelist", word_lower)
+            return False
+
+        # PRIORITY 2: NYT Blacklist (data-driven from 2,615 puzzles)
+        # Only reject if NOT in whitelist
+        # Words rejected 3+ times are likely invalid (unless whitelist proves otherwise)
         if self.is_blacklisted(word_lower):
             rejection_count = self.get_blacklist_count(word_lower)
             self.logger.debug("Rejecting '%s': NYT blacklist (%d rejections)", word_lower, rejection_count)
@@ -421,17 +768,28 @@ class NYTRejectionFilter:
             self.logger.debug("Rejecting '%s': foreign word", word_lower)
             return True
 
-        if self.is_abbreviation(word_lower):
-            self.logger.debug("Rejecting '%s': abbreviation", word_lower)
+        if self.is_dialectal(word_lower):
+            self.logger.debug("Rejecting '%s': dialectal/informal word", word_lower)
             return True
 
         if self.is_technical_term(word_lower):
             self.logger.debug("Rejecting '%s': technical term", word_lower)
             return True
 
+        # Check manual archaic words list (with whitelist protection already applied)
+        # Words in archaic_words that aren't in NYT whitelist get rejected
+        if self.is_archaic(word_lower):
+            # Only reject if from manual list, not Wiktionary (Wiktionary checked below)
+            if word_lower in self.archaic_words:
+                self.logger.debug("Rejecting '%s': archaic/obscure (manual list)", word_lower)
+                return True
+
         # Layer 4: Wiktionary metadata (comprehensive automated detection)
         if self.wiktionary and self.wiktionary.loaded:
-            # Check proper nouns via Wiktionary
+            # Check proper nouns (RE-ENABLED with whitelist protection)
+            # Safe now because NYT Pre-Filtered whitelist overrides this
+            # Examples: "communion" (proper + in whitelist) → accepted (by whitelist)
+            #           "dominic" (proper + NOT in whitelist) → rejected here
             if self.wiktionary.is_proper_noun_wiktionary(word_lower):
                 self.logger.debug("Rejecting '%s': proper noun (Wiktionary)", word_lower)
                 return True
@@ -441,13 +799,15 @@ class NYTRejectionFilter:
                 self.logger.debug("Rejecting '%s': foreign-only (Wiktionary)", word_lower)
                 return True
 
-            # Obsolete words are rejected (not just low confidence)
-            if self.wiktionary.is_obsolete(word_lower):
-                self.logger.debug("Rejecting '%s': obsolete (Wiktionary)", word_lower)
+            # Check obsolete/archaic/rare words (RE-ENABLED with whitelist protection)
+            # Reject if NOT in NYT Pre-Filtered (we already checked whitelist above)
+            # This catches truly obsolete words like "mund", "minum", "immund", "unnun"
+            # while accepting common words with archaic senses like "mind", "work"
+            if (self.wiktionary.is_obsolete(word_lower) or
+                self.wiktionary.is_archaic(word_lower) or
+                self.wiktionary.is_rare(word_lower)):
+                self.logger.debug("Rejecting '%s': obsolete/archaic/rare (Wiktionary)", word_lower)
                 return True
-
-        # Note: Archaic words are NOT rejected here
-        # They're flagged by is_archaic() and scored with low confidence instead
 
         return False
 

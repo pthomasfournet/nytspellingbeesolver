@@ -55,6 +55,16 @@ from .phonotactic_filter import create_phonotactic_filter
 
 logger = logging.getLogger(__name__)
 
+# GPU acceleration support (cuDF for string operations)
+try:
+    import cudf
+    import cupy as cp
+    GPU_AVAILABLE = True
+    GPU_BATCH_SIZE = 10000  # Process 10k words per GPU batch
+except ImportError:
+    GPU_AVAILABLE = False
+    GPU_BATCH_SIZE = 10000  # Still define for code consistency
+
 
 class CandidateGenerator:
     """Generates valid candidate words for Spelling Bee puzzles.
@@ -213,6 +223,76 @@ class CandidateGenerator:
 
         return True
 
+    def _gpu_filter_candidates(
+        self,
+        words: List[str],
+        letters_set: Set[str],
+        required_letter: str
+    ) -> List[str]:
+        """GPU-accelerated candidate filtering using cuDF.
+
+        Uses vectorized GPU operations to filter candidates in parallel.
+        Significantly faster than CPU for large dictionaries (>10k words).
+
+        Args:
+            words: List of words to filter
+            letters_set: Set of valid puzzle letters
+            required_letter: Required letter that must be in each word
+
+        Returns:
+            Filtered list of candidate words
+        """
+        if not GPU_AVAILABLE:
+            # Fallback to CPU if GPU not available
+            return [
+                word for word in words
+                if (
+                    len(word) >= self.min_word_length
+                    and required_letter in word
+                    and set(word).issubset(letters_set)
+                )
+            ]
+
+        # Convert to lowercase first
+        words_lower = [w.lower() for w in words]
+
+        # Process in batches to manage GPU memory
+        results = []
+
+        for i in range(0, len(words_lower), GPU_BATCH_SIZE):
+            batch = words_lower[i:i + GPU_BATCH_SIZE]
+
+            # Create cuDF DataFrame on GPU
+            df = cudf.DataFrame({'word': batch})
+
+            # GPU-accelerated length filter
+            df['length'] = df['word'].str.len()
+            df = df[df['length'] >= self.min_word_length]
+
+            if len(df) == 0:
+                continue
+
+            # GPU-accelerated required letter check
+            df['has_required'] = df['word'].str.contains(required_letter, regex=False)
+            df = df[df['has_required']]
+
+            if len(df) == 0:
+                continue
+
+            # Transfer back to CPU for letter validation
+            # (Character-level validation is complex on GPU, CPU is faster for small sets)
+            batch_words = df['word'].to_pandas().tolist()
+
+            # Final validation: check all letters in valid set
+            valid_batch = [
+                word for word in batch_words
+                if set(word).issubset(letters_set)
+            ]
+
+            results.extend(valid_batch)
+
+        return results
+
     def _generate_via_dictionary_scan(
         self,
         dictionary: Set[str],
@@ -223,7 +303,8 @@ class CandidateGenerator:
         """Generate candidates using dictionary scan mode.
 
         Scans entire dictionary, filtering by letter constraints and
-        optional phonotactic rules.
+        optional phonotactic rules. Uses GPU acceleration for large
+        dictionaries (>10k words).
 
         Args:
             dictionary: Dictionary to scan
@@ -234,27 +315,44 @@ class CandidateGenerator:
         Returns:
             List of valid candidate words
         """
-        # Pre-filter candidates (basic validation + phonotactic filtering)
-        candidates = [
-            word.lower()
-            for word in dictionary
-            if (
-                len(word) >= self.min_word_length
-                and required_letter in word.lower()
-                and set(word.lower()).issubset(letters_set)
-                # Apply phonotactic filter if enabled
-                and (not self.enable_phonotactic_filter or
-                     self.phonotactic_filter.is_valid_sequence(word.lower()))
-            )
-        ]
+        # Convert to list for processing
+        word_list = list(dictionary)
 
-        # Log phonotactic filter statistics if enabled
+        # Use GPU acceleration for large dictionaries
+        use_gpu = GPU_AVAILABLE and len(word_list) >= GPU_BATCH_SIZE
+
+        if use_gpu:
+            logger.debug(f"Using GPU acceleration for {len(word_list):,} words")
+            # GPU filtering (without phonotactic filter initially)
+            candidates = self._gpu_filter_candidates(
+                word_list, letters_set, required_letter
+            )
+        else:
+            # CPU filtering (original implementation)
+            candidates = [
+                word.lower()
+                for word in word_list
+                if (
+                    len(word) >= self.min_word_length
+                    and required_letter in word.lower()
+                    and set(word.lower()).issubset(letters_set)
+                )
+            ]
+
+        # Apply phonotactic filter if enabled (CPU only for now)
         if self.enable_phonotactic_filter and self.phonotactic_filter:
+            original_count = len(candidates)
+            candidates = [
+                word for word in candidates
+                if self.phonotactic_filter.is_valid_sequence(word)
+            ]
+
             stats = self.phonotactic_filter.get_stats()
             if stats["checked"] > 0:
                 logger.debug(
-                    "Dictionary scan: checked=%d, accepted=%d (%s)",
-                    stats["checked"], stats["accepted"], stats["acceptance_rate"]
+                    "Dictionary scan: checked=%d, accepted=%d (%s), phonotactic filtered=%d",
+                    stats["checked"], stats["accepted"], stats["acceptance_rate"],
+                    original_count - len(candidates)
                 )
 
         return candidates

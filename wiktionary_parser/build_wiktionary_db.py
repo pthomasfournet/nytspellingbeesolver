@@ -20,7 +20,7 @@ import logging
 import sys
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
-from typing import Dict, Set, Tuple
+from typing import Dict, List, Set, Tuple
 
 import requests
 
@@ -32,17 +32,87 @@ except ImportError:
     print("Run: pip install -r wiktionary_parser/requirements.txt")
     sys.exit(1)
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# Try to import GPU libraries
+try:
+    import cudf
+    import cupy as cp
+    GPU_AVAILABLE = True
+    logger_level = logging.INFO
+except ImportError:
+    GPU_AVAILABLE = False
+    cudf = None
+    cp = None
+    logger_level = logging.INFO
+
+logging.basicConfig(level=logger_level, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 # Wiktionary dump URL (latest English Wiktionary)
 WIKTIONARY_DUMP_URL = "https://dumps.wikimedia.org/enwiktionary/latest/enwiktionary-latest-pages-articles.xml.bz2"
+
+# GPU batch size for string operations
+GPU_BATCH_SIZE = 10000 if GPU_AVAILABLE else 1000
 
 
 # Label sets (module level for multiprocessing)
 OBSOLETE_LABELS = {'obsolete', 'dated'}
 ARCHAIC_LABELS = {'archaic', 'historical'}
 RARE_LABELS = {'rare', 'uncommon'}
+
+
+def gpu_filter_english_words(words: List[str], exclude_obsolete: Set[str],
+                             exclude_archaic: Set[str], exclude_rare: Set[str],
+                             exclude_proper_nouns: Set[str]) -> Set[str]:
+    """GPU-accelerated batch filtering of English words using cuDF.
+
+    Args:
+        words: List of words to filter
+        exclude_*: Sets of words to exclude by category
+
+    Returns:
+        Set of clean English words (>=4 letters, alphabetic, not flagged)
+    """
+    if not GPU_AVAILABLE or not words:
+        # CPU fallback
+        return {
+            w.lower() for w in words
+            if len(w) >= 4 and w.isalpha() and w.lower() not in exclude_obsolete
+            and w.lower() not in exclude_archaic and w.lower() not in exclude_rare
+            and w not in exclude_proper_nouns
+        }
+
+    try:
+        # Create cuDF Series (GPU-resident)
+        df = cudf.DataFrame({'word': words})
+
+        # GPU-accelerated string operations
+        df['word_lower'] = df['word'].str.lower()
+        df['length'] = df['word_lower'].str.len()
+        df['is_alpha'] = df['word_lower'].str.isalpha()
+
+        # Filter conditions (all GPU-accelerated)
+        mask = (
+            (df['length'] >= 4) &
+            (df['is_alpha']) &
+            (~df['word_lower'].isin(exclude_obsolete)) &
+            (~df['word_lower'].isin(exclude_archaic)) &
+            (~df['word_lower'].isin(exclude_rare)) &
+            (~df['word'].isin(exclude_proper_nouns))
+        )
+
+        # Get filtered words and transfer to CPU
+        filtered = df[mask]['word_lower'].to_pandas().tolist()
+        return set(filtered)
+
+    except Exception as e:
+        logger.warning(f"GPU filtering failed, falling back to CPU: {e}")
+        # CPU fallback
+        return {
+            w.lower() for w in words
+            if len(w) >= 4 and w.isalpha() and w.lower() not in exclude_obsolete
+            and w.lower() not in exclude_archaic and w.lower() not in exclude_rare
+            and w not in exclude_proper_nouns
+        }
 
 
 def extract_page_metadata(title: str, text: str) -> Tuple[str, Dict[str, Set[str]]]:
@@ -60,6 +130,7 @@ def extract_page_metadata(title: str, text: str) -> Tuple[str, Dict[str, Set[str
             - 'proper_nouns': set of proper nouns
             - 'foreign_only': set of foreign-only words
             - 'multi_language': dict of multi-language words
+            - 'all_english_words': set of ALL English words (clean, for dictionary use)
     """
     result = {
         'obsolete': set(),
@@ -67,7 +138,8 @@ def extract_page_metadata(title: str, text: str) -> Tuple[str, Dict[str, Set[str
         'rare': set(),
         'proper_nouns': set(),
         'foreign_only': set(),
-        'multi_language': {}
+        'multi_language': {},
+        'all_english_words': set()
     }
 
     # Skip non-main namespace pages
@@ -98,35 +170,57 @@ def extract_page_metadata(title: str, text: str) -> Tuple[str, Dict[str, Set[str
         # Check for usage labels
         usage_labels = _extract_usage_labels_static(english_section)
 
-        if any(label in OBSOLETE_LABELS for label in usage_labels):
+        is_obsolete = any(label in OBSOLETE_LABELS for label in usage_labels)
+        is_archaic = any(label in ARCHAIC_LABELS for label in usage_labels)
+        is_rare = any(label in RARE_LABELS for label in usage_labels)
+        is_proper_noun = _is_proper_noun_static(english_section)
+
+        if is_obsolete:
             result['obsolete'].add(title.lower())
 
-        if any(label in ARCHAIC_LABELS for label in usage_labels):
+        if is_archaic:
             result['archaic'].add(title.lower())
 
-        if any(label in RARE_LABELS for label in usage_labels):
+        if is_rare:
             result['rare'].add(title.lower())
 
         # Check for proper noun
-        if _is_proper_noun_static(english_section):
+        if is_proper_noun:
             result['proper_nouns'].add(title)  # Keep capitalization
 
         # Track multi-language words
         if len(languages) > 1:
             result['multi_language'][title.lower()] = list(languages.keys())
 
+        # Track ALL English words for dictionary use (exclude flagged words)
+        word_lower = title.lower()
+        if (len(word_lower) >= 4 and
+            word_lower.isalpha() and
+            not is_obsolete and
+            not is_archaic and
+            not is_rare and
+            not is_proper_noun):
+            result['all_english_words'].add(word_lower)
+
     return title, result
 
 
 def _extract_languages_static(parsed) -> Dict[str, str]:
-    """Extract language sections (static version for multiprocessing)."""
+    """Extract language sections (static version for multiprocessing).
+
+    CRITICAL FIX: Pattern now matches ==English== at document start.
+    Previous bug: r'\n==' failed when English was first section (no leading newline),
+    causing 1.1M+ words to be incorrectly marked as foreign-only.
+    """
     import re
 
     text = str(parsed)
     languages = {}
 
-    pattern = r'\n==([\w\s]+)==\n(.*?)(?=\n==[\w\s]+=|$)'
+    # Fixed pattern: (?:^|\n)== matches both start-of-string AND after newline
+    pattern = r'(?:^|\n)==([\w\s]+)==\n(.*?)(?=(?:^|\n)==[\w\s]+==|$)'
 
+    # CRITICAL: Use DOTALL only! MULTILINE breaks content capture (makes ^ match every line)
     for match in re.finditer(pattern, text, re.DOTALL):
         lang_name = match.group(1).strip()
         section_text = match.group(2)
@@ -183,6 +277,7 @@ class WiktionaryExtractor:
         self.proper_nouns = set()
         self.foreign_only = set()
         self.multi_language = {}
+        self.all_english_words = set()  # NEW: All clean English words for dictionary use
 
         # Usage label patterns to detect
         self.obsolete_labels = {'obsolete', 'dated'}
@@ -201,6 +296,7 @@ class WiktionaryExtractor:
         self.proper_nouns.update(results.get('proper_nouns', set()))
         self.foreign_only.update(results.get('foreign_only', set()))
         self.multi_language.update(results.get('multi_language', {}))
+        self.all_english_words.update(results.get('all_english_words', set()))
 
     def extract_from_page(self, title: str, text: str):
         """Extract metadata from a single Wiktionary page.
@@ -258,6 +354,10 @@ class WiktionaryExtractor:
     def _extract_languages(self, parsed) -> Dict[str, str]:
         """Extract language sections from parsed wikitext.
 
+        CRITICAL FIX: Pattern now matches ==English== at document start.
+        Previous bug: r'\n==' failed when English was first section (no leading newline),
+        causing 1.1M+ words to be incorrectly marked as foreign-only.
+
         Returns:
             Dict mapping language name to section text
         """
@@ -267,10 +367,11 @@ class WiktionaryExtractor:
         languages = {}
 
         # Match level-2 headers: ==Language==
-        # Pattern matches: newline, ==, language name (no =), ==
+        # Fixed pattern: (?:^|\n)== matches both start-of-string AND after newline
         # Uses lookahead to capture everything until next level-2 header or end
-        pattern = r'\n==([\w\s]+)==\n(.*?)(?=\n==[\w\s]+=|$)'
+        pattern = r'(?:^|\n)==([\w\s]+)==\n(.*?)(?=(?:^|\n)==[\w\s]+==|$)'
 
+        # CRITICAL: Use DOTALL only! MULTILINE breaks content capture (makes ^ match every line)
         for match in re.finditer(pattern, text, re.DOTALL):
             lang_name = match.group(1).strip()
             section_text = match.group(2)
@@ -334,6 +435,11 @@ class WiktionaryExtractor:
         Args:
             output_path: Path to output JSON file
         """
+        # Cleanup: Remove conflicts before saving
+        # Words can't be both foreign-only AND multi-language
+        # Priority: multi_language > foreign_only (if it has English, it's not foreign-only)
+        self.foreign_only -= set(self.multi_language.keys())
+
         metadata = {
             'obsolete': sorted(list(self.obsolete_words)),
             'archaic': sorted(list(self.archaic_words)),
@@ -361,6 +467,47 @@ class WiktionaryExtractor:
         logger.info(f"  Proper nouns: {len(self.proper_nouns):,}")
         logger.info(f"  Foreign-only: {len(self.foreign_only):,}")
         logger.info(f"  Multi-language: {len(self.multi_language):,}")
+
+    def save_english_words_txt(self, output_path: Path):
+        """Save all clean English words to plain text file for dictionary use.
+
+        Applies final GPU-accelerated filtering pass to ensure quality.
+
+        Args:
+            output_path: Path to output text file (one word per line)
+        """
+        logger.info(f"Saving English words to {output_path}")
+
+        if GPU_AVAILABLE and len(self.all_english_words) > GPU_BATCH_SIZE:
+            logger.info(f"Applying GPU-accelerated quality filter ({len(self.all_english_words):,} words)")
+
+            # Final quality filter using GPU
+            words_list = list(self.all_english_words)
+            cleaned_words = set()
+
+            # Process in batches
+            for i in range(0, len(words_list), GPU_BATCH_SIZE):
+                batch = words_list[i:i+GPU_BATCH_SIZE]
+                filtered_batch = gpu_filter_english_words(
+                    batch,
+                    self.obsolete_words,
+                    self.archaic_words,
+                    self.rare_words,
+                    self.proper_nouns
+                )
+                cleaned_words.update(filtered_batch)
+
+                if (i // GPU_BATCH_SIZE + 1) % 10 == 0:
+                    logger.info(f"  Processed {i+len(batch):,} words...")
+
+            self.all_english_words = cleaned_words
+            logger.info(f"✓ GPU quality filter complete: {len(self.all_english_words):,} clean words")
+
+        with open(output_path, 'w', encoding='utf-8') as f:
+            for word in sorted(self.all_english_words):
+                f.write(f"{word}\n")
+
+        logger.info(f"✓ Saved {len(self.all_english_words):,} English words to {output_path}")
 
 
 def download_wiktionary_dump(output_path: Path, force: bool = False):
@@ -519,6 +666,13 @@ def main():
 
     args = parser.parse_args()
 
+    # Log GPU status
+    if GPU_AVAILABLE:
+        logger.info("✓ GPU acceleration ENABLED (cuDF + CuPy)")
+        logger.info(f"  GPU batch size: {GPU_BATCH_SIZE:,} words")
+    else:
+        logger.info("✗ GPU acceleration DISABLED (cuDF/CuPy not available)")
+
     dump_path = Path(args.dump_file)
     output_path = Path(args.output)
 
@@ -537,6 +691,11 @@ def main():
 
     # Save results
     extractor.save_to_json(output_path)
+
+    # Save English words dictionary
+    wordlist_path = Path('data/dictionaries/wiktionary_english.txt')
+    wordlist_path.parent.mkdir(parents=True, exist_ok=True)
+    extractor.save_english_words_txt(wordlist_path)
 
     logger.info("✓ Wiktionary database build complete!")
 

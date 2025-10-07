@@ -16,8 +16,9 @@ Responsibilities:
 import json
 import logging
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Any, Dict, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Tuple
 from urllib.parse import urlparse
 
 import requests
@@ -101,9 +102,11 @@ class DictionaryManager:
                 words = {
                     word.strip().lower()
                     for word in f
-                    if word.strip() and word.strip().isalpha()
+                    if word.strip()
+                    and word.strip().isalpha()
+                    and not word.strip()[0].isupper()  # Skip capitalized words (proper nouns)
                 }
-            self.logger.info("Loaded %d words from %s", len(words), filepath)
+            self.logger.info("Loaded %d words from %s (skipped capitalized proper nouns)", len(words), filepath)
             return words
         except FileNotFoundError:
             self.logger.warning("Dictionary file not found: %s", filepath)
@@ -210,7 +213,9 @@ class DictionaryManager:
                 words = {
                     word.strip().lower()
                     for word in f
-                    if word.strip() and word.strip().isalpha()
+                    if word.strip()
+                    and word.strip().isalpha()
+                    and not word.strip()[0].isupper()  # Skip capitalized words (proper nouns)
                 }
             return words
         except IOError as e:
@@ -285,14 +290,20 @@ class DictionaryManager:
                 return {
                     word.lower()
                     for word in data.keys()
-                    if word and word.isalpha() and len(word) >= MIN_WORD_LENGTH
+                    if word
+                    and word.isalpha()
+                    and len(word) >= MIN_WORD_LENGTH
+                    and not word[0].isupper()  # Skip capitalized words (proper nouns)
                 }
             if isinstance(data, list):
                 # JSON array of words
                 return {
                     word.lower()
                     for word in data
-                    if word and word.isalpha() and len(word) >= MIN_WORD_LENGTH
+                    if word
+                    and word.isalpha()
+                    and len(word) >= MIN_WORD_LENGTH
+                    and not word[0].isupper()  # Skip capitalized words (proper nouns)
                 }
             self.logger.warning("Unexpected JSON structure: %s", type(data))
             return set()
@@ -313,9 +324,13 @@ class DictionaryManager:
         """
         words = set()
         for line in response.text.splitlines():
-            word = line.strip().lower()
-            if word and word.isalpha() and len(word) >= self.MIN_WORD_LENGTH:
-                words.add(word)
+            word = line.strip()
+            # Skip capitalized words (proper nouns) before lowercasing
+            if (word
+                and word.isalpha()
+                and len(word) >= MIN_WORD_LENGTH
+                and not word[0].isupper()):
+                words.add(word.lower())
         return words
 
     def _save_to_cache(self, cache_path: Path, words: Set[str]) -> None:
@@ -374,6 +389,71 @@ class DictionaryManager:
             info["newest_cache"] = time.time() - min(mtimes)
 
         return info
+
+    def load_dictionaries_parallel(
+        self, dictionary_sources: List[Tuple[str, str]], max_workers: int = 4
+    ) -> Dict[str, Set[str]]:
+        """
+        Load multiple dictionaries in parallel using multithreading.
+
+        This method significantly speeds up dictionary loading by downloading
+        and processing multiple dictionaries concurrently.
+
+        Args:
+            dictionary_sources: List of (name, filepath/URL) tuples
+            max_workers: Maximum number of parallel download threads (default: 4)
+
+        Returns:
+            Dictionary mapping source names to word sets
+
+        Example:
+            sources = [
+                ("Webster's", "https://..."),
+                ("ASPELL", "/usr/share/dict/american-english"),
+                ("NYT", "data/dictionaries/nyt_prefiltered.txt")
+            ]
+            results = manager.load_dictionaries_parallel(sources)
+            all_words = set.union(*results.values())
+        """
+        self.logger.info(
+            f"Loading {len(dictionary_sources)} dictionaries in parallel ({max_workers} workers)"
+        )
+
+        results = {}
+
+        def load_single_dictionary(name_path_tuple):
+            """Helper function for parallel loading"""
+            name, path = name_path_tuple
+            start_time = time.time()
+            try:
+                words = self.load_dictionary(path)
+                elapsed = time.time() - start_time
+                self.logger.info(f"✓ Loaded {name}: {len(words):,} words ({elapsed:.2f}s)")
+                return name, words
+            except Exception as e:
+                self.logger.error(f"✗ Failed to load {name}: {e}")
+                return name, set()
+
+        # Load dictionaries in parallel
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_source = {
+                executor.submit(load_single_dictionary, source): source
+                for source in dictionary_sources
+            }
+
+            for future in as_completed(future_to_source):
+                name, words = future.result()
+                results[name] = words
+
+        total_words = sum(len(words) for words in results.values())
+        unique_words = len(set.union(*results.values())) if results else 0
+
+        self.logger.info(
+            f"✓ Loaded {len(results)} dictionaries: {total_words:,} total words, "
+            f"{unique_words:,} unique"
+        )
+
+        return results
 
 
 def create_dictionary_manager(
