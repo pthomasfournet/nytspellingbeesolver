@@ -314,7 +314,7 @@ class DictionaryManager:
         words = set()
         for line in response.text.splitlines():
             word = line.strip().lower()
-            if word and word.isalpha() and len(word) >= self.MIN_WORD_LENGTH:
+            if word and word.isalpha() and len(word) >= MIN_WORD_LENGTH:
                 words.add(word)
         return words
 

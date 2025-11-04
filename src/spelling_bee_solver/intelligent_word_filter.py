@@ -467,7 +467,6 @@ class IntelligentWordFilter:
             return []
 
         batch_size = batch_size or self.batch_size
-        time.time()
 
         logger.info("Filtering %d words using intelligent analysis...", len(valid_length_words))
 
