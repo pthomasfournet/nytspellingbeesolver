@@ -1,0 +1,24 @@
+[package]
+name = "spelling_bee_validator"
+version = "0.1.0"
+edition = "2021"
+authors = ["NYT Spelling Bee Solver Team"]
+description = "High-performance Rust validator for NYT Spelling Bee puzzles with Python bindings"
+license = "MIT"
+
+[lib]
+name = "spelling_bee_validator"
+crate-type = ["cdylib"]  # Creates a C-compatible dynamic library for Python
+
+[dependencies]
+pyo3 = { version = "0.20", features = ["extension-module"] }
+
+[dev-dependencies]
+criterion = "0.5"  # For benchmarking
+
+[profile.release]
+opt-level = 3           # Maximum optimization
+lto = true              # Link-time optimization
+codegen-units = 1       # Better optimization, slower compile
+strip = true            # Strip symbols for smaller binary
+panic = "abort"         # Smaller binary
